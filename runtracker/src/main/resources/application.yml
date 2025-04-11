@@ -1,4 +1,7 @@
 spring:
+  config:
+    import: optional:dotenv:.env
+
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -14,7 +17,7 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
 
 server:
-  port: ${SPRING_PORT}
+  port: ${SPRING_PORT:8080}
 
 logging:
   level:
