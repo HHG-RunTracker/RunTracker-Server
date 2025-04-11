@@ -20,11 +20,7 @@ jobs:
           MYSQL_DATABASE: runtracker_test       
           MYSQL_USER: testuser                  
           MYSQL_PASSWORD: testpass              
-        options: >                              # mysql 시작 대기 시간 설정
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
 
     env:
       SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/runtracker_test
