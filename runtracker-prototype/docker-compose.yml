@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: runtracker_proto_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - runtracker_proto_net
+
+  app:
+    build:
+      context: .
+    container_name: runtracker_proto_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    networks:
+      - runtracker_proto_net
+
+volumes:
+  mysql-data:
+
+networks:
+  runtracker_proto_net:
+    driver: bridge
