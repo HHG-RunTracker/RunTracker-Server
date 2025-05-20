@@ -83,7 +83,7 @@ public class CourseService {
         List<Course> allCourses = courseRepository.findAll();
         
         // 반경 내의 코스만 필터링하고 거리순으로 정렬
-        return allCourses.stream()
+        List<CourseDTO> nearbyCourses = allCourses.stream()
                 .map(course -> {
                     // 코스까지의 거리 계산
                     double distance = GeoUtils.calculateDistance(currentLocation, course.getStartCoordinate());
@@ -103,6 +103,13 @@ public class CourseService {
                     );
                 })
                 .collect(Collectors.toList());
+
+        // 주변 코스가 없으면 예외 발생
+        if (nearbyCourses.isEmpty()) {
+            throw new CustomException(CourseErrorCode.NO_COURSES_FOUND);
+        }
+
+        return nearbyCourses;
     }
 
     // 거리 계산을 위한 내부 클래스
