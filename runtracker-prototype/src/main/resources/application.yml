@@ -4,9 +4,9 @@ spring:
     active: local
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:mysql://localhost:3306/runtracker
+    username: root
+    password: rootroot
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
