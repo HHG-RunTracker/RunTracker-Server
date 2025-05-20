@@ -2,6 +2,7 @@ package com.runtracker_prototype.controller;
 
 import com.runtracker_prototype.domain.attr.Coordinate;
 import com.runtracker_prototype.dto.CourseDTO;
+import com.runtracker_prototype.dto.NearbyCourses;
 import com.runtracker_prototype.exception.CustomException;
 import com.runtracker_prototype.response.ApiResponse;
 import com.runtracker_prototype.service.CourseService;
@@ -26,9 +27,17 @@ public class CourseController {
 
     @Operation(summary = "반경 내 주변 코스들 검색", description = "현재 위치를 기준으로 반경 내 코스들의 시작점 좌표 리스트를 반환")
     @GetMapping("/nearby")
-    public ApiResponse<List<CourseDTO>> getNearbyCourses() {
+    public ApiResponse<List<CourseDTO>> getNearbyCourses(
+            @RequestParam("latitude") Double latitude,
+            @RequestParam("longitude") Double longitude,
+            @RequestParam(value = "radiusInMeters", defaultValue = "5000") Integer radiusInMeters) {
         try {
-            List<CourseDTO> courses = new ArrayList<>();
+            NearbyCourses request = new NearbyCourses();
+            request.setLatitude(latitude);
+            request.setLongitude(longitude);
+            request.setRadiusInMeters(radiusInMeters);
+
+            List<CourseDTO> courses = courseService.getNearbyCourses(request);
             return ApiResponse.ok(courses);
         } catch (CustomException e) {
             return ApiResponse.error(e.getErrorCode());
