@@ -1,5 +1,6 @@
 package com.runtracker_prototype.controller;
 
+import com.runtracker_prototype.domain.attr.Coordinate;
 import com.runtracker_prototype.dto.CourseDTO;
 import com.runtracker_prototype.exception.CustomException;
 import com.runtracker_prototype.response.ApiResponse;
@@ -9,7 +10,6 @@ import com.runtracker_prototype.code.CommonResponseCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -52,9 +52,9 @@ public class CourseController {
 
     @Operation(summary = "코스 상세 보기", description = "코스의 세부 사항을 반환")
     @GetMapping("/{courseId}")
-    public ApiResponse<CourseDTO> getCourseById(@PathVariable Long courseId) {
+    public ApiResponse<CourseDTO> getCourseById(@PathVariable("courseId") Long courseId) {
         try {
-            CourseDTO courseDTO = new CourseDTO();
+            CourseDTO courseDTO = courseService.getCourseById(courseId);
             return ApiResponse.ok(courseDTO);
         } catch (CustomException e) {
             return ApiResponse.error(e.getErrorCode());

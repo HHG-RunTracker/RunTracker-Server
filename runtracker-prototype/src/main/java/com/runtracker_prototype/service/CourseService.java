@@ -54,4 +54,18 @@ public class CourseService {
             throw new CourseCreationFailedException();
         }
     }
+
+    public CourseDTO getCourseById(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new CustomException(CourseErrorCode.COURSE_NOT_FOUND));
+
+        return new CourseDTO(
+                course.getId(),
+                course.getName(),
+                course.getPhotoPath(),
+                course.getDifficulty().name(),
+                course.getStartCoordinate(),
+                course.getPoints()
+        );
+    }
 }
