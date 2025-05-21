@@ -8,6 +8,8 @@ import com.runtracker_prototype.dto.NearbyCourses;
 import com.runtracker_prototype.errorCode.CourseErrorCode;
 import com.runtracker_prototype.exception.CourseCreationFailedException;
 import com.runtracker_prototype.exception.CustomException;
+import com.runtracker_prototype.exception.DifficultyRequiredException;
+import com.runtracker_prototype.exception.InvalidDifficultyException;
 import com.runtracker_prototype.repository.CourseRepository;
 import com.runtracker_prototype.util.GeoUtils;
 import lombok.RequiredArgsConstructor;
@@ -26,22 +28,35 @@ public class CourseService {
 
     @Transactional
     public CourseDTO createCustomCourse(CourseDTO courseDTO) {
+        // 기본 유효성 검사
+        if (courseDTO.getPoints() == null || courseDTO.getPoints().isEmpty()) {
+            throw new CustomException(CourseErrorCode.INVALID_COURSE_DATA);
+        }
+
+        // 시작 좌표가 없으면 첫 번째 포인트를 시작 좌표로 설정
+        if (courseDTO.getStartCoordinate() == null) {
+            courseDTO.setStartCoordinate(courseDTO.getPoints().get(0));
+        }
+
+        // difficulty 검증
+        if (courseDTO.getDifficulty() == null) {
+            throw new DifficultyRequiredException();
+        }
+
+        Difficulty difficulty;
         try {
-            if (courseDTO.getPoints() == null || courseDTO.getPoints().isEmpty()) {
-                throw new CustomException(CourseErrorCode.INVALID_COURSE_DATA);
-            }
+            difficulty = Difficulty.valueOf(courseDTO.getDifficulty());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidDifficultyException();
+        }
 
-            // 시작 좌표가 없으면 첫 번째 포인트를 시작 좌표로 설정
-            if (courseDTO.getStartCoordinate() == null) {
-                courseDTO.setStartCoordinate(courseDTO.getPoints().get(0));
-            }
-
+        try {
             // 코스 생성
             Course course = Course.builder()
                     .name(courseDTO.getName() != null ? courseDTO.getName() : "자유 러닝 코스")
                     .points(courseDTO.getPoints())
                     .startCoordinate(courseDTO.getStartCoordinate())
-                    .difficulty(Difficulty.EASY)
+                    .difficulty(difficulty)
                     .isCircle(false)
                     .build();
 
