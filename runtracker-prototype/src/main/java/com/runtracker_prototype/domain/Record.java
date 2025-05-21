@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @ToString
 public class Record {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "record_id")
     private Long id;
 

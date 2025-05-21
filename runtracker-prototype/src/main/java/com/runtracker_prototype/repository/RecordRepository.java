@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface RecordRepository extends JpaRepository<Record, Long> {
     List<Record> findAllByOrderByTimeDesc();
+    List<Record> findAllByCourse_IdOrderByTimeDesc(Long courseId);
 }

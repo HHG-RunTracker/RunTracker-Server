@@ -1,9 +1,9 @@
 package com.runtracker_prototype.exception;
 
-import com.runtracker_prototype.errorCode.CourseErrorCode;
+import com.runtracker_prototype.errorCode.RecordErrorCode;
 
 public class NoRecordsFoundException extends CustomException {
     public NoRecordsFoundException() {
-        super(CourseErrorCode.NO_RECORDS_FOUND);
+        super(RecordErrorCode.NO_RECORDS_FOUND);
     }
 } 
