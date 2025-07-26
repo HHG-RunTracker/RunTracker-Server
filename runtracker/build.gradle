@@ -2,6 +2,8 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.4'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.asciidoctor.jvm.convert' version '3.3.2'
+	id 'com.epages.restdocs-api-spec' version '0.18.2'
 }
 
 group = 'com.runtracker'
@@ -32,6 +34,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
 	implementation 'me.paulschwarz:spring-dotenv:2.3.0'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
 
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -42,9 +45,51 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+	testImplementation 'com.epages:restdocs-api-spec-mockmvc:0.18.2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+ext {
+	snippetsDir = file('build/generated-snippets')
+}
+
+test {
+	outputs.dir snippetsDir
+}
+
+asciidoctor {
+	inputs.dir snippetsDir
+	dependsOn test
+}
+
+openapi3 {
+	title = 'RunTracker API Document'
+	description = 'RunTracker Application API Document'
+	version = '0.0.1'
+	format = 'yaml'
+}
+
+tasks.register('copyOasToSwagger', Copy) {
+	delete 'src/main/resources/static/swagger-ui/openapi3.yaml'
+	from "${layout.buildDirectory.get()}/api-spec/openapi3.yaml"
+	into "${layout.buildDirectory.get()}/resources/main/static/swagger-ui/."
+	dependsOn 'openapi3'
+}
+
+tasks.resolveMainClassName {
+	dependsOn 'copyOasToSwagger'
+}
+
+bootJar {
+	enabled = true
+}
+
+jar {
+	enabled = false
+}
+
