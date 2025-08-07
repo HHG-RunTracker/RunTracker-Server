@@ -1,6 +1,10 @@
 package com.runtracker.global.jwt;
 
 import com.runtracker.global.jwt.dto.TokenDataDto;
+import com.runtracker.global.jwt.exception.ExpiredJwtTokenException;
+import com.runtracker.global.jwt.exception.InvalidJwtTokenException;
+import com.runtracker.global.jwt.exception.JwtClaimsEmptyException;
+import com.runtracker.global.jwt.exception.UnsupportedJwtTokenException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -61,19 +65,28 @@ public class JwtUtil {
                     .getBody();
         } catch (ExpiredJwtException e) {
             log.error("JWT token expired: {}", e.getMessage());
-            throw e;
+            throw new ExpiredJwtTokenException();
+        } catch (MalformedJwtException e) {
+            log.error("Malformed JWT token: {}", e.getMessage());
+            throw new InvalidJwtTokenException();
+        } catch (UnsupportedJwtException e) {
+            log.error("Unsupported JWT token: {}", e.getMessage());
+            throw new UnsupportedJwtTokenException();
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims string is empty: {}", e.getMessage());
+            throw new JwtClaimsEmptyException();
         } catch (JwtException e) {
             log.error("Invalid JWT token: {}", e.getMessage());
-            throw e;
+            throw new InvalidJwtTokenException();
         }
     }
 
-    public boolean validateToken(String token) {
+    public void validateToken(String token) {
         try {
             parseToken(token);
-            return true;
-        } catch (JwtException e) {
-            return false;
+        } catch (ExpiredJwtTokenException | UnsupportedJwtTokenException | 
+                 JwtClaimsEmptyException | InvalidJwtTokenException e) {
+            throw e;
         }
     }
 
@@ -87,6 +100,22 @@ public class JwtUtil {
         return claims.get("socialId", String.class);
     }
 
+    public TokenDataDto createTokenData(Long memberId, String socialId) {
+        Date accessTokenExpiry = new Date(System.currentTimeMillis() + accessTokenExpiration);
+        Date refreshTokenExpiry = new Date(System.currentTimeMillis() + refreshTokenExpiration);
+
+        String accessToken = generateAccessToken(memberId, socialId);
+        String refreshToken = generateRefreshToken(memberId);
+
+        return TokenDataDto.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .accessTokenExpiredAt(accessTokenExpiry.getTime())
+                .refreshTokenExpiredAt(refreshTokenExpiry.getTime())
+                .build();
+    }
+
     public TokenDataDto refreshToken(String refreshToken) {
         validateToken(refreshToken);
         
@@ -94,18 +123,6 @@ public class JwtUtil {
         Long memberId = Long.valueOf(claims.getSubject());
         String socialId = claims.get("socialId", String.class);
 
-        Date accessTokenExpiry = new Date(System.currentTimeMillis() + accessTokenExpiration);
-        Date refreshTokenExpiry = new Date(System.currentTimeMillis() + refreshTokenExpiration);
-
-        String newAccessToken = generateAccessToken(memberId, socialId);
-        String newRefreshToken = generateRefreshToken(memberId);
-
-        return TokenDataDto.builder()
-                .grantType("Bearer")
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
-                .accessTokenExpiredAt(accessTokenExpiry.getTime())
-                .refreshTokenExpiredAt(refreshTokenExpiry.getTime())
-                .build();
+        return createTokenData(memberId, socialId);
     }
 }

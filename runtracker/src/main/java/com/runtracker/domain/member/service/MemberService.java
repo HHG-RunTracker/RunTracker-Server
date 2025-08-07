@@ -1,5 +1,6 @@
 package com.runtracker.domain.member.service;
 
+import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,15 +41,26 @@ public class MemberService {
         return memberRepository.save(newMember);
     }
 
-    public Optional<Member> findBySocialId(String socialId) {
-        return memberRepository.findBySocialId(socialId);
+
+    public Member getMemberByName(String name) {
+        return memberRepository.findByName(name)
+                .orElseThrow(() -> new RuntimeException("Member not found with name: " + name));
     }
 
-    public Optional<Member> findById(Long id) {
-        return memberRepository.findById(id);
+    public Member getMemberBySocialId(String socialId) {
+        return memberRepository.findBySocialId(socialId)
+                .orElseThrow(() -> new RuntimeException("Member not found with socialId: " + socialId));
     }
 
-    public boolean existsBySocialId(String socialId) {
-        return memberRepository.existsBySocialId(socialId);
+    @Transactional(readOnly = true)
+    public LoginTokenDto.MemberSearchResult findMemberByName(String name) {
+        Member member = getMemberByName(name);
+        
+        log.info("find member by name - userId: {}, socialId: {}", member.getId(), member.getSocialId());
+        
+        return LoginTokenDto.MemberSearchResult.builder()
+                .userId(member.getId())
+                .socialId(member.getSocialId())
+                .build();
     }
 }

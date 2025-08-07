@@ -5,6 +5,10 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "member")
@@ -57,6 +61,14 @@ public class Member {
 
     @Column(name = "notify_block", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean notifyBlock = true;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @Builder
     public Member(String socialAttr, String socialId, String photo, String name, 
