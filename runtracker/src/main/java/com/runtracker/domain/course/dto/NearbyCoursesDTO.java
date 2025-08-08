@@ -1,6 +1,6 @@
 package com.runtracker.domain.course.dto;
 
-import com.runtracker.domain.course.entity.enums.Difficulty;
+import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.entity.vo.Coordinate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

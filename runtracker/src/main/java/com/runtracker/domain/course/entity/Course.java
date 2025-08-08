@@ -1,8 +1,9 @@
 package com.runtracker.domain.course.entity;
 
 import com.runtracker.domain.course.entity.converter.CoordinatesConverter;
-import com.runtracker.domain.course.entity.enums.Difficulty;
+import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.entity.vo.Coordinate;
+import com.runtracker.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,7 +17,7 @@ import java.util.List;
 @Getter
 @ToString
 @Table(name = "course")
-public class Course {
+public class Course extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

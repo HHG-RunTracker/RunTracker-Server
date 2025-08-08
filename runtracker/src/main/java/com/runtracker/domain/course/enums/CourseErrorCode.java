@@ -1,4 +1,4 @@
-package com.runtracker.domain.course.entity.enums;
+package com.runtracker.domain.course.enums;
 
 import com.runtracker.global.code.ResponseCode;
 import lombok.AllArgsConstructor;

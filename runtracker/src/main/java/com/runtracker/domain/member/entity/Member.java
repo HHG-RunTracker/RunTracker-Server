@@ -1,23 +1,17 @@
 package com.runtracker.domain.member.entity;
 
-import com.runtracker.domain.member.entity.enums.MemberRole;
+import com.runtracker.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "member")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Member {
+public class Member extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -64,14 +58,6 @@ public class Member {
 
     @Column(name = "notify_block", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean notifyBlock = true;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     @Builder
     public Member(String socialAttr, String socialId, String photo, String name, 

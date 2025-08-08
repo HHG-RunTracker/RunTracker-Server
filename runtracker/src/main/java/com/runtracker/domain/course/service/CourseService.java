@@ -5,15 +5,10 @@ import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.entity.Course;
 import com.runtracker.domain.course.entity.converter.CoordinatesConverter;
-import com.runtracker.domain.course.entity.enums.Difficulty;
-import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.course.exception.CourseCreationFailedException;
-import com.runtracker.domain.course.exception.CoordinatesParsingFailedException;
 import com.runtracker.domain.course.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

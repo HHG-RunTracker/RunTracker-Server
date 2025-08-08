@@ -5,7 +5,7 @@ import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesRequest;
-import com.runtracker.domain.course.entity.enums.Difficulty;
+import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.course.service.CourseService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
