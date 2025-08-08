@@ -2,6 +2,7 @@ package com.runtracker.global.config;
 
 import com.runtracker.global.jwt.JwtAuthenticationFilter;
 import com.runtracker.global.jwt.JwtUtil;
+import com.runtracker.global.security.UserDetailsServiceImpl;
 import com.runtracker.domain.auth.eventHandler.OAuth2EventHandler;
 import com.runtracker.domain.auth.service.OAuth2UserService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final UserDetailsServiceImpl userDetailsService;
     private final OAuth2EventHandler oAuth2SuccessHandler;
 
     @Bean
@@ -54,10 +56,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
                         .requestMatchers("/actuator/**", "/health").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2Login -> oauth2Login
                         .successHandler(oAuth2SuccessHandler)
@@ -77,10 +79,10 @@ public class SecurityConfig {
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         List<String> excludePaths = Arrays.asList(
                 "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**",
-                "/static/**", "/api/**", "/login/oauth2/**", "/oauth2/**",
+                "/static/**", "/login/oauth2/**", "/oauth2/**",
                 "/actuator/**", "/health", "/error", "/favicon.ico"
         );
-        return new JwtAuthenticationFilter(jwtUtil, excludePaths);
+        return new JwtAuthenticationFilter(jwtUtil, userDetailsService, excludePaths);
     }
 
     @Bean

@@ -4,6 +4,7 @@ import com.runtracker.global.jwt.exception.ExpiredJwtTokenException;
 import com.runtracker.global.jwt.exception.InvalidJwtTokenException;
 import com.runtracker.global.jwt.exception.JwtClaimsEmptyException;
 import com.runtracker.global.jwt.exception.UnsupportedJwtTokenException;
+import com.runtracker.global.security.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -25,6 +27,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final UserDetailsServiceImpl userDetailsService;
     private final List<String> excludePaths;
     
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -87,10 +90,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void authenticateToken(String token) {
         jwtUtil.validateToken(token);
         Long memberId = jwtUtil.getMemberIdFromToken(token);
-        String socialId = jwtUtil.getSocialIdFromToken(token);
+        
+        UserDetails userDetails = userDetailsService.loadUserByUsername(String.valueOf(memberId));
         
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(memberId, socialId, new ArrayList<>());
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         
         SecurityContextHolder.getContext().setAuthentication(authentication);
         log.debug("Set Authentication to SecurityContext for member: {}", memberId);
