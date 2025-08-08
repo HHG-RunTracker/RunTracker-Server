@@ -3,8 +3,8 @@ package com.runtracker.domain.course.controller;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.course.dto.CourseDTO;
+import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO;
-import com.runtracker.domain.course.dto.NearbyCoursesRequest;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.course.service.CourseService;
@@ -25,6 +25,7 @@ import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
@@ -129,8 +130,8 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void getNearbyCoursesTest() throws Exception {
         // given
-        List<NearbyCoursesDTO> mockCourses = List.of(
-                NearbyCoursesDTO.builder()
+        List<NearbyCoursesDTO.Response> mockCourses = List.of(
+                NearbyCoursesDTO.Response.builder()
                         .id(1L)
                         .memberId(2L)
                         .name("한강공원 러닝 코스")
@@ -147,10 +148,9 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                         .photo("https://example.com/photo1.jpg")
                         .photoLat(37.5515)
                         .photoLng(126.9885)
-                        .createdAt(LocalDateTime.now())
                         .distanceFromUser(1200.5)
                         .build(),
-                NearbyCoursesDTO.builder()
+                NearbyCoursesDTO.Response.builder()
                         .id(2L)
                         .memberId(3L)
                         .name("여의도 산책 코스")
@@ -167,12 +167,11 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                         .photo("https://example.com/photo2.jpg")
                         .photoLat(37.5668)
                         .photoLng(126.9783)
-                        .createdAt(LocalDateTime.now())
                         .distanceFromUser(2100.3)
                         .build()
         );
         
-        given(courseService.getNearbyCourses(any(NearbyCoursesRequest.class))).willReturn(mockCourses);
+        given(courseService.getNearbyCourses(any(NearbyCoursesDTO.Request.class))).willReturn(mockCourses);
         
         // JWT 토큰 Mock
         given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
@@ -228,8 +227,89 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].photo").type(JsonFieldType.STRING).description("코스 사진 URL").optional(),
                                                 fieldWithPath("body[].photoLat").type(JsonFieldType.NUMBER).description("사진 촬영 위치 위도").optional(),
                                                 fieldWithPath("body[].photoLng").type(JsonFieldType.NUMBER).description("사진 촬영 위치 경도").optional(),
-                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("생성 시간"),
                                                 fieldWithPath("body[].distanceFromUser").type(JsonFieldType.NUMBER).description("사용자로부터의 거리 (미터)")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCourseDetailTest() throws Exception {
+        // given
+        Long courseId = 1L;
+        CourseDetailDTO mockCourseDetail = CourseDetailDTO.builder()
+                .id(courseId)
+                .memberId(2L)
+                .name("뚝섬 러닝 코스")
+                .difficulty(Difficulty.MEDIUM)
+                .points(List.of(
+                        new Coordinate(37.53, 127.066),
+                        new Coordinate(37.531, 127.067),
+                        new Coordinate(37.532, 127.068)
+                ))
+                .startLat(37.5305)
+                .startLng(127.0665)
+                .distance(7000.0)
+                .round(false)
+                .region("서울특별시 성동구")
+                .photo("https://example.com/photo2.jpg")
+                .photoLat(37.5315)
+                .photoLng(127.0675)
+                .createdAt(LocalDateTime.of(2025, 8, 9, 3, 45, 54))
+                .updatedAt(LocalDateTime.of(2025, 8, 9, 3, 45, 54))
+                .build();
+
+        given(courseService.getCourseDetail(anyLong())).willReturn(mockCourseDetail);
+
+        // JWT 토큰 Mock
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        // UserDetails Mock
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(get("/api/courses/{courseId}", courseId)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("course-get-detail",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("courses")
+                                        .description("코스 상세 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("courseId").description("코스 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body.memberId").type(JsonFieldType.NUMBER).description("생성자 회원 ID"),
+                                                fieldWithPath("body.name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("body.difficulty").type(JsonFieldType.STRING).description("난이도 (EASY, MEDIUM, HARD)"),
+                                                fieldWithPath("body.points").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트"),
+                                                fieldWithPath("body.points[].lat").type(JsonFieldType.NUMBER).description("좌표 위도"),
+                                                fieldWithPath("body.points[].lnt").type(JsonFieldType.NUMBER).description("좌표 경도"),
+                                                fieldWithPath("body.startLat").type(JsonFieldType.NUMBER).description("시작 지점 위도"),
+                                                fieldWithPath("body.startLng").type(JsonFieldType.NUMBER).description("시작 지점 경도"),
+                                                fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
+                                                fieldWithPath("body.round").type(JsonFieldType.BOOLEAN).description("왕복 여부"),
+                                                fieldWithPath("body.region").type(JsonFieldType.STRING).description("코스 지역"),
+                                                fieldWithPath("body.photo").type(JsonFieldType.STRING).description("코스 사진 URL").optional(),
+                                                fieldWithPath("body.photoLat").type(JsonFieldType.NUMBER).description("사진 촬영 위치 위도").optional(),
+                                                fieldWithPath("body.photoLng").type(JsonFieldType.NUMBER).description("사진 촬영 위치 경도").optional(),
+                                                fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("코스 생성 시간"),
+                                                fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("코스 수정 시간")
                                         )
                                         .build()
                         )

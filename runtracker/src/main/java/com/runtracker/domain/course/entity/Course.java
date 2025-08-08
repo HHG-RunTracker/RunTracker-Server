@@ -44,7 +44,7 @@ public class Course extends BaseEntity {
 
     private Double distance;
 
-    @Column(name = "round")
+    @Column(name = "round", columnDefinition = "TINYINT(1)")
     private Boolean round;
 
     @Column(columnDefinition = "json")
