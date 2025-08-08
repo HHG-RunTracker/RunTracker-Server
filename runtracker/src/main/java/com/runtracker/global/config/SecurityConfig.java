@@ -13,8 +13,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.core.AuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,33 +31,22 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final OAuth2EventHandler oAuth2SuccessHandler;
 
+    private static final List<String> EXCLUDE_PATHS = Arrays.asList(
+            "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**",
+            "/static/**", "/login/oauth2/**", "/oauth2/**",
+            "/actuator/**", "/health", "/error", "/favicon.ico",
+            "/api/members/search-name", "/api/members/test-login", "/api/members/refresh"
+    );
+
     @Bean
-    @Order(1)
-    public SecurityFilterChain staticResourceFilterChain(HttpSecurity http) throws Exception {
-        http
-                .securityMatcher("/static/**")
-                .authorizeHttpRequests(authorize -> authorize
-                        .anyRequest().permitAll()
-                )
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .oauth2Login(oauth2 -> oauth2.disable());
-        
-        return http.build();
-    }
-    
-    @Bean
-    @Order(2)
-    public SecurityFilterChain mainFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .formLogin(formLogin -> formLogin.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
-                        .requestMatchers("/actuator/**", "/health").permitAll()
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
+                        .requestMatchers(EXCLUDE_PATHS.toArray(new String[0])).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2Login -> oauth2Login
                         .successHandler(oAuth2SuccessHandler)
@@ -77,12 +64,7 @@ public class SecurityConfig {
     
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        List<String> excludePaths = Arrays.asList(
-                "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**",
-                "/static/**", "/login/oauth2/**", "/oauth2/**",
-                "/actuator/**", "/health", "/error", "/favicon.ico"
-        );
-        return new JwtAuthenticationFilter(jwtUtil, userDetailsService, excludePaths);
+        return new JwtAuthenticationFilter(jwtUtil, userDetailsService, EXCLUDE_PATHS);
     }
 
     @Bean

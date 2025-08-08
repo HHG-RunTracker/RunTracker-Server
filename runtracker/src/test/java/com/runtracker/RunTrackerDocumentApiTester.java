@@ -64,7 +64,6 @@ public class RunTrackerDocumentApiTester {
 
         SecurityContext securityContext = SecurityContextHolder.getContext();
 
-        // Mock Principal 생성 (실제 UserDetails 없이 간단하게)
         var principal = mock(Object.class);
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
