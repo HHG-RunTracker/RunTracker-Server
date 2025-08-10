@@ -50,4 +50,18 @@ public class RecordController {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping("/week")
+    public ApiResponse<List<RecordDetailDTO>> getCoursesByWeek(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate weekDate) {
+        try {
+            List<RecordDetailDTO> courses = recordService.getCoursesByWeek(userDetails.getMemberId(), weekDate);
+            return ApiResponse.ok(courses);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

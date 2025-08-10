@@ -13,8 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +42,24 @@ public class RecordService {
         
         if (courses.isEmpty()) {
             throw new NoRecordsFoundException("No courses found for member " + memberId + " between " + startDate + " and " + endDate);
+        }
+        
+        return courses.stream()
+                .map(this::convertToRecordDetailDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecordDetailDTO> getCoursesByWeek(Long memberId, LocalDate weekDate) {
+        validateWeekDate(weekDate);
+        
+        LocalDate weekStart = getWeekStart(weekDate);
+        LocalDate weekEnd = getWeekEnd(weekDate);
+        
+        List<Course> courses = recordRepository.findByMemberIdAndCreatedAtBetween(memberId, weekStart, weekEnd);
+        
+        if (courses.isEmpty()) {
+            throw new NoRecordsFoundException("No courses found for member " + memberId + " for the week of " + weekDate);
         }
         
         return courses.stream()
@@ -89,5 +109,24 @@ public class RecordService {
         if (daysBetween > 365) {
             throw new DateRangeTooLargeException("Date range cannot exceed 365 days. Current range: " + daysBetween + " days");
         }
+    }
+
+    private void validateWeekDate(LocalDate weekDate) {
+        if (weekDate == null) {
+            throw new DateParameterRequiredException("Week date parameter is required");
+        }
+        
+        LocalDate today = LocalDate.now();
+        if (weekDate.isAfter(today)) {
+            throw new FutureDateNotAllowedException("Week date cannot be in the future: " + weekDate);
+        }
+    }
+
+    public static LocalDate getWeekStart(LocalDate date) {
+        return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    }
+
+    public static LocalDate getWeekEnd(LocalDate date) {
+        return date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
     }
 }
