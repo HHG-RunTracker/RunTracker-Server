@@ -67,6 +67,24 @@ public class RecordService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<RecordDetailDTO> getCoursesByMonth(Long memberId, LocalDate monthDate) {
+        validateMonthDate(monthDate);
+        
+        LocalDate monthStart = getMonthStart(monthDate);
+        LocalDate monthEnd = getMonthEnd(monthDate);
+        
+        List<Course> courses = recordRepository.findByMemberIdAndCreatedAtBetween(memberId, monthStart, monthEnd);
+        
+        if (courses.isEmpty()) {
+            throw new NoRecordsFoundException("No courses found for member " + memberId + " for the month of " + monthDate.getYear() + "-" + monthDate.getMonthValue());
+        }
+        
+        return courses.stream()
+                .map(this::convertToRecordDetailDTO)
+                .collect(Collectors.toList());
+    }
+
     private RecordDetailDTO convertToRecordDetailDTO(Course course) {
         return RecordDetailDTO.builder()
                 .id(course.getId())
@@ -122,11 +140,30 @@ public class RecordService {
         }
     }
 
+    private void validateMonthDate(LocalDate monthDate) {
+        if (monthDate == null) {
+            throw new DateParameterRequiredException("Month date parameter is required");
+        }
+        
+        LocalDate today = LocalDate.now();
+        if (monthDate.isAfter(today)) {
+            throw new FutureDateNotAllowedException("Month date cannot be in the future: " + monthDate);
+        }
+    }
+
     public static LocalDate getWeekStart(LocalDate date) {
         return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
     public static LocalDate getWeekEnd(LocalDate date) {
         return date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+    }
+
+    public static LocalDate getMonthStart(LocalDate date) {
+        return date.with(TemporalAdjusters.firstDayOfMonth());
+    }
+
+    public static LocalDate getMonthEnd(LocalDate date) {
+        return date.with(TemporalAdjusters.lastDayOfMonth());
     }
 }

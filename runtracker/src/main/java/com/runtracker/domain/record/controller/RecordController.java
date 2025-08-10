@@ -64,4 +64,18 @@ public class RecordController {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping("/month")
+    public ApiResponse<List<RecordDetailDTO>> getCoursesByMonth(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate monthDate) {
+        try {
+            List<RecordDetailDTO> courses = recordService.getCoursesByMonth(userDetails.getMemberId(), monthDate);
+            return ApiResponse.ok(courses);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
