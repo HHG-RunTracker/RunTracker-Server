@@ -5,6 +5,7 @@ import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.domain.member.service.AuthService;
 import com.runtracker.global.jwt.JwtAuthenticationFilter;
 import com.runtracker.global.jwt.JwtUtil;
+import com.runtracker.global.security.UserDetailsServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,9 @@ public class RunTrackerDocumentApiTester {
     @MockitoBean
     protected AuthService authService;
 
+    @MockitoBean
+    protected UserDetailsServiceImpl userDetailsService;
+
     protected final static String AUTH_HEADER = "Authorization";
     protected final static String TEST_ACCESS_TOKEN = "Bearer testAccessToken";
 
@@ -55,12 +59,11 @@ public class RunTrackerDocumentApiTester {
     public void setUp(RestDocumentationContextProvider restDocumentation) {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.context)
                 .apply(documentationConfiguration(restDocumentation))
-                .addFilter(new JwtAuthenticationFilter(jwtUtil, List.of("*")))
+                .addFilter(new JwtAuthenticationFilter(jwtUtil, userDetailsService, List.of("/swagger-ui/**", "/api-docs/**")))
                 .build();
 
         SecurityContext securityContext = SecurityContextHolder.getContext();
 
-        // Mock Principal 생성 (실제 UserDetails 없이 간단하게)
         var principal = mock(Object.class);
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(

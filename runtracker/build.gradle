@@ -34,6 +34,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
 	implementation 'me.paulschwarz:spring-dotenv:2.3.0'
+	
+	// QueryDSL
+	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+	annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
+	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -84,6 +90,12 @@ tasks.resolveMainClassName {
 	dependsOn 'copyOasToSwagger'
 }
 
+def querydslDir = "${layout.buildDirectory.get()}/generated/querydsl"
+
+sourceSets {
+	main.java.srcDirs += [querydslDir]
+}
+
 bootJar {
 	enabled = true
 }
@@ -91,4 +103,3 @@ bootJar {
 jar {
 	enabled = false
 }
-
