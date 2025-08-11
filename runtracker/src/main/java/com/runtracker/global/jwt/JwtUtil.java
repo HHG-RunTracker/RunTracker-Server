@@ -5,6 +5,7 @@ import com.runtracker.global.jwt.exception.ExpiredJwtTokenException;
 import com.runtracker.global.jwt.exception.InvalidJwtTokenException;
 import com.runtracker.global.jwt.exception.JwtClaimsEmptyException;
 import com.runtracker.global.jwt.exception.UnsupportedJwtTokenException;
+import com.runtracker.global.jwt.service.TokenBlacklistService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -22,13 +23,16 @@ public class JwtUtil {
     private final SecretKey secretKey;
     private final long accessTokenExpiration;
     private final long refreshTokenExpiration;
+    private final TokenBlacklistService tokenBlacklistService;
 
     public JwtUtil(@Value("${jwt.secret}") String secret,
                    @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
-                   @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration) {
+                   @Value("${jwt.refresh-token-expiration}") long refreshTokenExpiration,
+                   TokenBlacklistService tokenBlacklistService) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     public String generateAccessToken(Long memberId, String socialId) {
@@ -83,10 +87,25 @@ public class JwtUtil {
 
     public void validateToken(String token) {
         try {
+            if (tokenBlacklistService.isBlacklisted(token)) {
+                log.warn("Token is blacklisted");
+                throw new InvalidJwtTokenException();
+            }
+            
             parseToken(token);
         } catch (ExpiredJwtTokenException | UnsupportedJwtTokenException | 
                  JwtClaimsEmptyException | InvalidJwtTokenException e) {
             throw e;
+        }
+    }
+
+    public void blacklistToken(String token) {
+        try {
+            Claims claims = parseToken(token);
+            long expirationTime = claims.getExpiration().getTime();
+            tokenBlacklistService.blacklistToken(token, expirationTime);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to blacklist token", e);
         }
     }
 
