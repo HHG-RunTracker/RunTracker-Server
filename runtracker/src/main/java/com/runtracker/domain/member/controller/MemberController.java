@@ -48,4 +48,10 @@ public class MemberController {
         memberService.logout(userDetails.getMemberId());
         return ApiResponse.ok();
     }
+
+    @DeleteMapping("/withdrawal")
+    public ApiResponse<Void> withdrawMember(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.withdrawMember(userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
 }

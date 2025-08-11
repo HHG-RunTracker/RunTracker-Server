@@ -3,6 +3,8 @@ package com.runtracker.domain.member.service;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.repository.MemberRepository;
+import com.runtracker.domain.course.repository.CourseRepository;
+import com.runtracker.domain.member.exception.MemberNotFoundException;
 import com.runtracker.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import java.util.Optional;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final CourseRepository courseRepository;
     private final JwtUtil jwtUtil;
 
     @Transactional
@@ -48,12 +51,12 @@ public class MemberService {
 
     public Member getMemberByName(String name) {
         return memberRepository.findByName(name)
-                .orElseThrow(() -> new RuntimeException("Member not found with name: " + name));
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with name: " + name));
     }
 
     public Member getMemberBySocialId(String socialId) {
         return memberRepository.findBySocialId(socialId)
-                .orElseThrow(() -> new RuntimeException("Member not found with socialId: " + socialId));
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with socialId: " + socialId));
     }
 
     @Transactional(readOnly = true)
@@ -83,5 +86,27 @@ public class MemberService {
                 }
             }
         }
+    }
+
+    @Transactional
+    public void withdrawMember(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            String authHeader = attributes.getRequest().getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                try {
+                    jwtUtil.blacklistToken(token);
+                } catch (Exception e) {
+                    log.error("Failed to blacklist token for withdrawing user: {}", memberId, e);
+                }
+            }
+        }
+
+        courseRepository.deleteByMemberId(memberId);
+        memberRepository.delete(member);
     }
 }
