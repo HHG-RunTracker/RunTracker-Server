@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -100,6 +101,41 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                 ResourceSnippetParameters.builder()
                                         .tag("crew")
                                         .description("크루 가입 신청")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+    
+    @Test
+    void cancelCrewApplication() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(789L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_789");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(789L)
+                .socialId("kakao_789")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("789")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/join/cancel/{crewId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-cancel-application",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 가입 신청 취소")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )

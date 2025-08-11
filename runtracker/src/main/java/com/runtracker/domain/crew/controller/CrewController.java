@@ -38,4 +38,15 @@ public class CrewController {
         
         return ApiResponse.ok();
     }
+    
+    @PostMapping("/join/cancel/{crewId}")
+    public ApiResponse<Void> cancelCrewApplication(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        Long applicantId = userDetails.getMemberId();
+        crewService.cancelCrewApplication(crewId, applicantId);
+        
+        return ApiResponse.ok();
+    }
 }

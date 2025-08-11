@@ -13,7 +13,8 @@ public enum CrewErrorCode implements ResponseCode {
     CREW_NOT_FOUND("CR003", "크루를 찾을 수 없습니다."),
     CREW_MEMBER_NOT_FOUND("CR004", "크루 멤버를 찾을 수 없습니다."),
     ALREADY_CREW_MEMBER("CR005", "이미 크루에 가입된 멤버입니다."),
-    CREW_APPLICATION_PENDING("CR006", "이미 크루 가입 신청이 진행 중입니다.");
+    CREW_APPLICATION_PENDING("CR006", "이미 크루 가입 신청이 진행 중입니다."),
+    NO_PENDING_APPLICATION("CR007", "취소할 가입 신청이 없습니다.");
 
     private final String statusCode;
     private final String message;

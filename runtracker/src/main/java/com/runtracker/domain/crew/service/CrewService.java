@@ -9,6 +9,7 @@ import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
 import com.runtracker.domain.crew.exception.CrewApplicationPendingException;
 import com.runtracker.domain.crew.exception.CrewNotFoundException;
 import com.runtracker.domain.crew.exception.MemberNotFoundException;
+import com.runtracker.domain.crew.exception.NoPendingApplicationException;
 import com.runtracker.domain.crew.repository.CrewRepository;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
 import com.runtracker.domain.member.entity.enums.MemberRole;
@@ -76,5 +77,23 @@ public class CrewService {
                 .status(CrewMemberStatus.PENDING)
                 .build();
         crewMemberRepository.save(newApplication);
+    }
+    
+    public void cancelCrewApplication(Long crewId, Long applicantId) {
+        memberRepository.findById(applicantId)
+                .orElseThrow(MemberNotFoundException::new);
+        
+        crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+        
+        CrewMember application = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, applicantId)
+                .orElseThrow(NoPendingApplicationException::new);
+        
+        if (application.getStatus() != CrewMemberStatus.PENDING) {
+            throw new NoPendingApplicationException();
+        }
+        
+        crewMemberRepository.delete(application);
     }
 }
