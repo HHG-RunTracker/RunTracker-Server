@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.validation.FieldError;
 
 @Slf4j
@@ -39,6 +40,14 @@ public class GlobalExceptionHandler {
             ? errorMessage.substring(0, errorMessage.length() - 2) 
             : "유효하지 않은 요청입니다";
             
+        return ApiResponse.error(CommonResponseCode.NOT_VALID_ERROR, message);
+    }
+    
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Object> handleMissingParameter(MissingServletRequestParameterException e) {
+        log.warn("Missing required parameter: {}", e.getMessage());
+        String message = "Missing required parameter : " + e.getParameterName();
         return ApiResponse.error(CommonResponseCode.NOT_VALID_ERROR, message);
     }
     
