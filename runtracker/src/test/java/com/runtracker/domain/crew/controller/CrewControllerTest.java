@@ -1,0 +1,80 @@
+package com.runtracker.domain.crew.controller;
+
+import com.epages.restdocs.apispec.ResourceSnippetParameters;
+import com.runtracker.RunTrackerDocumentApiTester;
+import com.runtracker.domain.course.enums.Difficulty;
+import com.runtracker.domain.crew.dto.CrewCreateDTO;
+import com.runtracker.domain.crew.service.CrewService;
+import com.runtracker.domain.member.entity.enums.MemberRole;
+import com.runtracker.global.security.UserDetailsImpl;
+import org.junit.jupiter.api.Test;
+import org.springframework.restdocs.payload.JsonFieldType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.List;
+
+import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
+import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+class CrewControllerTest extends RunTrackerDocumentApiTester {
+
+    @MockitoBean
+    private CrewService crewService;
+
+    @Test
+    void createCrew() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(123L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(123L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("123")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/create")
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(CrewCreateDTO.Request.builder()
+                                .title("러닝크루 초급자")
+                                .photo("https://example.com/crew-photo.jpg")
+                                .introduce("초급자를 위한 러닝크루입니다. 함께 건강한 러닝 습관을 만들어 봐요!")
+                                .region("서울시 강남구")
+                                .difficulty(Difficulty.EASY)
+                                .build())))
+                .andExpect(status().isOk())
+                .andDo(document("crew-create",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 생성")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("title").type(JsonFieldType.STRING).description("크루 이름"),
+                                                fieldWithPath("photo").type(JsonFieldType.STRING).description("크루 대표 사진 URL").optional(),
+                                                fieldWithPath("introduce").type(JsonFieldType.STRING).description("크루 소개").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("크루 활동 지역").optional(),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("크루 난이도 (EASY, MEDIUM, HARD)")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+}
