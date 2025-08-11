@@ -4,7 +4,10 @@ import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
+import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
+import com.runtracker.domain.crew.exception.CrewApplicationPendingException;
+import com.runtracker.domain.crew.exception.CrewNotFoundException;
 import com.runtracker.domain.crew.exception.MemberNotFoundException;
 import com.runtracker.domain.crew.repository.CrewRepository;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
@@ -44,5 +47,34 @@ public class CrewService {
                 .status(CrewMemberStatus.ACTIVE)
                 .build();
         crewMemberRepository.save(crewLeader);
+    }
+    
+    public void applyToJoinCrew(Long crewId, Long applicantId) {
+        memberRepository.findById(applicantId)
+                .orElseThrow(MemberNotFoundException::new);
+        
+        crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+        
+        CrewMember existingMembership = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, applicantId)
+                .orElse(null);
+                
+        if (existingMembership != null) {
+            if (existingMembership.getStatus() == CrewMemberStatus.ACTIVE) {
+                throw new AlreadyCrewMemberException();
+            }
+            if (existingMembership.getStatus() == CrewMemberStatus.PENDING) {
+                throw new CrewApplicationPendingException();
+            }
+        }
+        
+        CrewMember newApplication = CrewMember.builder()
+                .crewId(crewId)
+                .memberId(applicantId)
+                .role(MemberRole.CREW_MEMBER)
+                .status(CrewMemberStatus.PENDING)
+                .build();
+        crewMemberRepository.save(newApplication);
     }
 }

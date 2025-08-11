@@ -77,4 +77,39 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                         )
                 ));
     }
+    
+    @Test
+    void applyToJoinCrew() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(456L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_456");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(456L)
+                .socialId("kakao_456")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("456")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/join/{crewId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-join",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 가입 신청")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
 }

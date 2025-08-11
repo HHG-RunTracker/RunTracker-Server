@@ -27,4 +27,15 @@ public class CrewController {
         
         return ApiResponse.ok();
     }
+    
+    @PostMapping("/join/{crewId}")
+    public ApiResponse<Void> applyToJoinCrew(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        Long applicantId = userDetails.getMemberId();
+        crewService.applyToJoinCrew(crewId, applicantId);
+        
+        return ApiResponse.ok();
+    }
 }
