@@ -1,5 +1,6 @@
 package com.runtracker.domain.crew.controller;
 
+import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.global.response.ApiResponse;
@@ -19,8 +20,8 @@ public class CrewController {
 
     @PostMapping("/create")
     public ApiResponse<Void> createCrew(
-            @RequestBody CrewCreateDTO.Request request,
-            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody CrewCreateDTO.Request request) {
         
         Long leaderId = userDetails.getMemberId();
         crewService.createCrew(request, leaderId);
@@ -33,8 +34,8 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long applicantId = userDetails.getMemberId();
-        crewService.applyToJoinCrew(crewId, applicantId);
+        Long memberId = userDetails.getMemberId();
+        crewService.applyToJoinCrew(crewId, memberId);
         
         return ApiResponse.ok();
     }
@@ -44,8 +45,20 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long applicantId = userDetails.getMemberId();
-        crewService.cancelCrewApplication(crewId, applicantId);
+        Long memberId = userDetails.getMemberId();
+        crewService.cancelCrewApplication(crewId, memberId);
+        
+        return ApiResponse.ok();
+    }
+    
+    @PostMapping("/approval/{crewId}")
+    public ApiResponse<Void> processJoinRequest(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @RequestBody CrewApprovalDTO.Request request) {
+        
+        Long leaderId = userDetails.getMemberId();
+        crewService.processJoinRequest(crewId, request, leaderId);
         
         return ApiResponse.ok();
     }

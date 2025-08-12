@@ -3,6 +3,7 @@ package com.runtracker.domain.crew.controller;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.course.enums.Difficulty;
+import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
@@ -16,10 +17,8 @@ import java.util.List;
 import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -138,6 +137,50 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                         .description("크루 가입 신청 취소")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+    
+    @Test
+    void processJoinRequest() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(999L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_999");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(999L)
+                .socialId("kakao_999")
+                .roles(List.of(MemberRole.CREW_LEADER))
+                .build();
+        given(userDetailsService.loadUserByUsername("999")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/approval/{crewId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(CrewApprovalDTO.Request.builder()
+                                .memberId(456L)
+                                .approved(true)
+                                .build())))
+                .andExpect(status().isOk())
+                .andDo(document("crew-process-join-request",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 가입 승인/거절")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("memberId").type(JsonFieldType.NUMBER).description("신청자 회원 ID"),
+                                                fieldWithPath("approved").type(JsonFieldType.BOOLEAN).description("승인 유무 (true: 승인, false: 거절)")
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

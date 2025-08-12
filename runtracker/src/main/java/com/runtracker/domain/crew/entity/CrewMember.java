@@ -35,4 +35,8 @@ public class CrewMember extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
     private CrewMemberStatus status = CrewMemberStatus.ACTIVE;
+    
+    public void approve() {
+        this.status = CrewMemberStatus.ACTIVE;
+    }
 }

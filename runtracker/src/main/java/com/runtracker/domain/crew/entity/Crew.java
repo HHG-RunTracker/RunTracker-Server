@@ -33,9 +33,6 @@ public class Crew extends BaseEntity {
     @Column(name = "difficulty", length = 20)
     private Difficulty difficulty;
 
-    @Column(name = "crews", columnDefinition = "JSON")
-    private String crews;
-
     @Column(name = "schedules", columnDefinition = "JSON")
     private String schedules;
 

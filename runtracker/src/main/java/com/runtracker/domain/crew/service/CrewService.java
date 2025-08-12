@@ -1,15 +1,18 @@
 package com.runtracker.domain.crew.service;
 
+import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
+import com.runtracker.domain.crew.exception.ApplicantNotFoundException;
 import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
 import com.runtracker.domain.crew.exception.CrewApplicationPendingException;
 import com.runtracker.domain.crew.exception.CrewNotFoundException;
 import com.runtracker.domain.crew.exception.MemberNotFoundException;
 import com.runtracker.domain.crew.exception.NoPendingApplicationException;
+import com.runtracker.domain.crew.exception.NotCrewLeaderException;
 import com.runtracker.domain.crew.repository.CrewRepository;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
 import com.runtracker.domain.member.entity.enums.MemberRole;
@@ -95,5 +98,34 @@ public class CrewService {
         }
         
         crewMemberRepository.delete(application);
+    }
+    
+    public void processJoinRequest(Long crewId, CrewApprovalDTO.Request request, Long leaderId) {
+        validateCrewManagementPermission(crewId, leaderId);
+
+        CrewMember applicant = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, request.getMemberId())
+                .orElseThrow(ApplicantNotFoundException::new);
+        
+        if (applicant.getStatus() != CrewMemberStatus.PENDING) {
+            throw new ApplicantNotFoundException();
+        }
+        
+        if (request.getApproved()) {
+            applicant.approve();
+            crewMemberRepository.save(applicant);
+        } else {
+            crewMemberRepository.delete(applicant);
+        }
+    }
+    
+    private void validateCrewManagementPermission(Long crewId, Long memberId) {
+        CrewMember member = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, memberId)
+                .orElseThrow(NotCrewLeaderException::new);
+
+        if (member.getRole() != MemberRole.CREW_LEADER) {
+            throw new NotCrewLeaderException();
+        }
     }
 }
