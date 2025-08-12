@@ -2,17 +2,21 @@ package com.runtracker.domain.crew.service;
 
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
+import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.ApplicantNotFoundException;
+import com.runtracker.domain.crew.exception.CannotModifyLeaderRoleException;
 import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
 import com.runtracker.domain.crew.exception.CrewApplicationPendingException;
 import com.runtracker.domain.crew.exception.CrewNotFoundException;
+import com.runtracker.domain.crew.exception.InvalidCrewRoleException;
 import com.runtracker.domain.crew.exception.MemberNotFoundException;
 import com.runtracker.domain.crew.exception.NoPendingApplicationException;
 import com.runtracker.domain.crew.exception.NotCrewLeaderException;
+import com.runtracker.domain.crew.exception.SameRoleUpdateException;
 import com.runtracker.domain.crew.repository.CrewRepository;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
 import com.runtracker.domain.member.entity.enums.MemberRole;
@@ -119,12 +123,43 @@ public class CrewService {
         }
     }
     
+    public void updateCrewMemberRole(Long crewId, CrewMemberUpdateDTO.Request request, Long managerId) {
+        validateCrewManagementPermission(crewId, managerId);
+        
+        CrewMember targetMember = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, request.getMemberId())
+                .orElseThrow(MemberNotFoundException::new);
+        
+        if (targetMember.getStatus() != CrewMemberStatus.ACTIVE) {
+            throw new MemberNotFoundException();
+        }
+
+        if (targetMember.getRole() == MemberRole.CREW_LEADER) {
+            throw new CannotModifyLeaderRoleException();
+        }
+        
+        if (targetMember.getRole() == request.getRole()) {
+            throw new SameRoleUpdateException();
+        }
+        
+        if (!isValidCrewRole(request.getRole())) {
+            throw new InvalidCrewRoleException();
+        }
+        
+        targetMember.updateRole(request.getRole());
+        crewMemberRepository.save(targetMember);
+    }
+    
+    private boolean isValidCrewRole(MemberRole role) {
+        return role == MemberRole.CREW_MEMBER || role == MemberRole.CREW_MANAGER;
+    }
+    
     private void validateCrewManagementPermission(Long crewId, Long memberId) {
         CrewMember member = crewMemberRepository
                 .findByCrewIdAndMemberId(crewId, memberId)
                 .orElseThrow(NotCrewLeaderException::new);
 
-        if (member.getRole() != MemberRole.CREW_LEADER) {
+        if (member.getRole() != MemberRole.CREW_LEADER && member.getRole() != MemberRole.CREW_MANAGER) {
             throw new NotCrewLeaderException();
         }
     }

@@ -5,6 +5,7 @@ import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
+import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -181,6 +182,50 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                         .requestFields(
                                                 fieldWithPath("memberId").type(JsonFieldType.NUMBER).description("신청자 회원 ID"),
                                                 fieldWithPath("approved").type(JsonFieldType.BOOLEAN).description("승인 유무 (true: 승인, false: 거절)")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+    
+    @Test
+    void updateCrewMemberRole() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(888L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_888");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(888L)
+                .socialId("kakao_888")
+                .roles(List.of(MemberRole.CREW_LEADER))
+                .build();
+        given(userDetailsService.loadUserByUsername("888")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/member/role/{crewId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(CrewMemberUpdateDTO.Request.builder()
+                                .memberId(456L)
+                                .role(MemberRole.CREW_MANAGER)
+                                .build())))
+                .andExpect(status().isOk())
+                .andDo(document("crew-update-member-role",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루원 권한 수정")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("memberId").type(JsonFieldType.NUMBER).description("대상 회원 ID"),
+                                                fieldWithPath("role").type(JsonFieldType.STRING).description("변경할 권한 (CREW_MEMBER, CREW_MANAGER)")
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

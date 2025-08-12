@@ -16,7 +16,10 @@ public enum CrewErrorCode implements ResponseCode {
     CREW_APPLICATION_PENDING("CR006", "이미 크루 가입 신청이 진행 중입니다."),
     NO_PENDING_APPLICATION("CR007", "취소할 가입 신청이 없습니다."),
     NOT_CREW_LEADER("CR008", "크루 관리 권한이 없습니다."),
-    APPLICANT_NOT_FOUND("CR009", "해당 가입 신청자를 찾을 수 없습니다.");
+    APPLICANT_NOT_FOUND("CR009", "해당 가입 신청자를 찾을 수 없습니다."),
+    CANNOT_MODIFY_LEADER_ROLE("CR010", "크루장의 권한은 변경할 수 없습니다."),
+    SAME_ROLE_UPDATE("CR011", "이미 동일한 권한을 가지고 있습니다."),
+    INVALID_CREW_ROLE("CR012", "크루에서 사용할 수 없는 권한입니다.");
 
     private final String statusCode;
     private final String message;

@@ -29,7 +29,7 @@ public class CrewMember extends BaseEntity {
     private Long memberId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
+    @Column(name = "role", nullable = false, length = 20)
     private MemberRole role;
 
     @Enumerated(EnumType.STRING)
@@ -38,5 +38,9 @@ public class CrewMember extends BaseEntity {
     
     public void approve() {
         this.status = CrewMemberStatus.ACTIVE;
+    }
+    
+    public void updateRole(MemberRole role) {
+        this.role = role;
     }
 }
