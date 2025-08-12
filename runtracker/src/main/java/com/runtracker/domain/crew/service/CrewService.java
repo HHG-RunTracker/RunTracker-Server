@@ -3,6 +3,7 @@ package com.runtracker.domain.crew.service;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
+import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
@@ -150,8 +151,43 @@ public class CrewService {
         crewMemberRepository.save(targetMember);
     }
     
+    public void updateCrew(Long crewId, CrewUpdateDTO.Request request, Long leaderId) {
+        validateCrewLeaderPermission(crewId, leaderId);
+        
+        Crew crew = crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+        
+        if (request.getTitle() != null) {
+            crew.updateTitle(request.getTitle());
+        }
+        if (request.getPhoto() != null) {
+            crew.updatePhoto(request.getPhoto());
+        }
+        if (request.getIntroduce() != null) {
+            crew.updateIntroduce(request.getIntroduce());
+        }
+        if (request.getRegion() != null) {
+            crew.updateRegion(request.getRegion());
+        }
+        if (request.getDifficulty() != null) {
+            crew.updateDifficulty(request.getDifficulty());
+        }
+        
+        crewRepository.save(crew);
+    }
+    
     private boolean isValidCrewRole(MemberRole role) {
         return role == MemberRole.CREW_MEMBER || role == MemberRole.CREW_MANAGER;
+    }
+    
+    private void validateCrewLeaderPermission(Long crewId, Long memberId) {
+        CrewMember member = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, memberId)
+                .orElseThrow(NotCrewLeaderException::new);
+
+        if (member.getRole() != MemberRole.CREW_LEADER) {
+            throw new NotCrewLeaderException();
+        }
     }
     
     private void validateCrewManagementPermission(Long crewId, Long memberId) {

@@ -3,6 +3,7 @@ package com.runtracker.domain.crew.controller;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
+import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -72,6 +73,18 @@ public class CrewController {
         
         Long managerId = userDetails.getMemberId();
         crewService.updateCrewMemberRole(crewId, request, managerId);
+        
+        return ApiResponse.ok();
+    }
+    
+    @PatchMapping("/update/{crewId}")
+    public ApiResponse<Void> updateCrew(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @RequestBody CrewUpdateDTO.Request request) {
+        
+        Long leaderId = userDetails.getMemberId();
+        crewService.updateCrew(crewId, request, leaderId);
         
         return ApiResponse.ok();
     }

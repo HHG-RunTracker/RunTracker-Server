@@ -6,6 +6,7 @@ import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
+import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -20,6 +21,7 @@ import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -226,6 +228,56 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                         .requestFields(
                                                 fieldWithPath("memberId").type(JsonFieldType.NUMBER).description("대상 회원 ID"),
                                                 fieldWithPath("role").type(JsonFieldType.STRING).description("변경할 권한 (CREW_MEMBER, CREW_MANAGER)")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+    
+    @Test
+    void updateCrew() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(777L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_777");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(777L)
+                .socialId("kakao_777")
+                .roles(List.of(MemberRole.CREW_LEADER))
+                .build();
+        given(userDetailsService.loadUserByUsername("777")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(patch("/api/crew/update/{crewId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(CrewUpdateDTO.Request.builder()
+                                .title("업데이트된 크루명")
+                                .photo("https://example.com/updated-photo.jpg")
+                                .introduce("업데이트된 크루 소개입니다.")
+                                .region("서울시 서초구")
+                                .difficulty(Difficulty.MEDIUM)
+                                .build())))
+                .andExpect(status().isOk())
+                .andDo(document("crew-update",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 정보 수정")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("title").type(JsonFieldType.STRING).description("크루 이름").optional(),
+                                                fieldWithPath("photo").type(JsonFieldType.STRING).description("크루 대표 사진 URL").optional(),
+                                                fieldWithPath("introduce").type(JsonFieldType.STRING).description("크루 소개").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("크루 활동 지역").optional(),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("크루 난이도 (EASY, MEDIUM, HARD)").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
