@@ -10,6 +10,10 @@ import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
 import com.runtracker.domain.crew.exception.ApplicantNotFoundException;
+import com.runtracker.domain.crew.exception.BannedFromCrewException;
+import com.runtracker.domain.crew.exception.CannotKickCrewLeaderException;
+import com.runtracker.domain.crew.exception.CannotKickManagerAsManagerException;
+import com.runtracker.domain.crew.exception.CannotKickYourselfException;
 import com.runtracker.domain.crew.exception.CannotModifyLeaderRoleException;
 import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
 import com.runtracker.domain.crew.exception.CrewApplicationPendingException;
@@ -83,6 +87,9 @@ public class CrewService {
             if (existingMembership.getStatus() == CrewMemberStatus.PENDING) {
                 throw new CrewApplicationPendingException();
             }
+            if (existingMembership.getStatus() == CrewMemberStatus.BANNED) {
+                throw new BannedFromCrewException();
+            }
         }
         
         CrewMember newApplication = CrewMember.builder()
@@ -127,8 +134,20 @@ public class CrewService {
         }
         
         if (request.getApproved()) {
+            List<CrewMember> activeCrewMemberships = crewMemberRepository
+                    .findByMemberIdAndStatus(request.getMemberId(), CrewMemberStatus.ACTIVE);
+            if (!activeCrewMemberships.isEmpty()) {
+                throw new AlreadyCrewMemberException();
+            }
+
             applicant.approve();
             crewMemberRepository.save(applicant);
+
+            List<CrewMember> pendingApplications = crewMemberRepository
+                    .findByMemberIdAndStatus(request.getMemberId(), CrewMemberStatus.PENDING);
+
+            pendingApplications.removeIf(member -> member.getCrewId().equals(crewId));
+            crewMemberRepository.deleteAll(pendingApplications);
         } else {
             crewMemberRepository.delete(applicant);
         }
@@ -196,6 +215,42 @@ public class CrewService {
         crewMemberRepository.deleteAll(crewMembers);
 
         crewRepository.delete(crew);
+    }
+    
+    public void banCrewMember(Long crewId, Long targetMemberId, Long managerId) {
+        crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+
+        validateCrewManagementPermission(crewId, managerId);
+
+        if (targetMemberId.equals(managerId)) {
+            throw new CannotKickYourselfException();
+        }
+
+        CrewMember targetMember = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, targetMemberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        if (targetMember.getStatus() != CrewMemberStatus.ACTIVE) {
+            throw new MemberNotFoundException();
+        }
+
+        if (targetMember.getRole() == MemberRole.CREW_LEADER) {
+            throw new CannotKickCrewLeaderException();
+        }
+
+        // 매니저 권한 체크 후 매니저가 매니저 추방 못하게 예외 처리
+        CrewMember manager = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, managerId)
+                .orElseThrow(NotCrewLeaderException::new);
+        
+        if (manager.getRole() == MemberRole.CREW_MANAGER && 
+            targetMember.getRole() == MemberRole.CREW_MANAGER) {
+            throw new CannotKickManagerAsManagerException();
+        }
+
+        targetMember.ban();
+        crewMemberRepository.save(targetMember);
     }
     
     private boolean isValidCrewRole(MemberRole role) {

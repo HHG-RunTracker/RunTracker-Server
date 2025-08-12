@@ -99,4 +99,16 @@ public class CrewController {
         
         return ApiResponse.ok();
     }
+    
+    @PostMapping("/ban/{crewId}")
+    public ApiResponse<Void> banCrewMember(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @RequestParam Long memberId) {
+        
+        Long managerId = userDetails.getMemberId();
+        crewService.banCrewMember(crewId, memberId, managerId);
+        
+        return ApiResponse.ok();
+    }
 }

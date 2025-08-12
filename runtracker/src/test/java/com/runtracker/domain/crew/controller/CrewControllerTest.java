@@ -17,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import java.util.List;
 
 import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
+import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -323,5 +324,42 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                         .build()
                         )
                 ));
+    }
+    
+    @Test
+    void banCrewMember() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(555L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_555");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(555L)
+                .socialId("kakao_555")
+                .roles(List.of(MemberRole.CREW_LEADER))
+                .build();
+        given(userDetailsService.loadUserByUsername("555")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/ban/{crewId}?memberId=123", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-ban-member",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루원 차단")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .queryParameters(
+                                                parameterWithName("memberId").description("차단할 회원 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )));
     }
 }

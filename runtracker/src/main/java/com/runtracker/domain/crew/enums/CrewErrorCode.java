@@ -20,7 +20,11 @@ public enum CrewErrorCode implements ResponseCode {
     CANNOT_MODIFY_LEADER_ROLE("CR010", "크루장의 권한은 변경할 수 없습니다."),
     SAME_ROLE_UPDATE("CR011", "이미 동일한 권한을 가지고 있습니다."),
     INVALID_CREW_ROLE("CR012", "크루에서 사용할 수 없는 권한입니다."),
-    ALREADY_JOINED_OTHER_CREW("CR013", "이미 다른 크루에 가입되어 있습니다.");
+    ALREADY_JOINED_OTHER_CREW("CR013", "이미 다른 크루에 가입되어 있습니다."),
+    CANNOT_KICK_CREW_LEADER("CR014", "크루장은 추방할 수 없습니다."),
+    CANNOT_KICK_YOURSELF("CR015", "자기 자신을 추방할 수 없습니다."),
+    CANNOT_KICK_MANAGER_AS_MANAGER("CR016", "매니저는 다른 매니저를 추방할 수 없습니다."),
+    BANNED_FROM_CREW("CR017", "해당 크루에서 차단된 회원입니다.");
 
     private final String statusCode;
     private final String message;
