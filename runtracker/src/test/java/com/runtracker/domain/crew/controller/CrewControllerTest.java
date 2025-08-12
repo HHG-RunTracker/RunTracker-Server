@@ -362,4 +362,42 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                         .build()
                         )));
     }
+    
+    @Test
+    void leaveCrew() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(444L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_444");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(444L)
+                .socialId("kakao_444")
+                .roles(List.of(MemberRole.CREW_MEMBER))
+                .build();
+        given(userDetailsService.loadUserByUsername("444")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/leave/{crewId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-leave",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 나가기")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("나갈 크루 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
 }

@@ -111,4 +111,15 @@ public class CrewController {
         
         return ApiResponse.ok();
     }
+    
+    @PostMapping("/leave/{crewId}")
+    public ApiResponse<Void> leaveCrew(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        Long memberId = userDetails.getMemberId();
+        crewService.leaveCrew(crewId, memberId);
+        
+        return ApiResponse.ok();
+    }
 }

@@ -24,7 +24,8 @@ public enum CrewErrorCode implements ResponseCode {
     CANNOT_KICK_CREW_LEADER("CR014", "크루장은 추방할 수 없습니다."),
     CANNOT_KICK_YOURSELF("CR015", "자기 자신을 추방할 수 없습니다."),
     CANNOT_KICK_MANAGER_AS_MANAGER("CR016", "매니저는 다른 매니저를 추방할 수 없습니다."),
-    BANNED_FROM_CREW("CR017", "해당 크루에서 차단된 회원입니다.");
+    BANNED_FROM_CREW("CR017", "해당 크루에서 차단된 회원입니다."),
+    CANNOT_LEAVE_AS_CREW_LEADER("CR018", "크루장은 크루를 나갈 수 없습니다.");
 
     private final String statusCode;
     private final String message;

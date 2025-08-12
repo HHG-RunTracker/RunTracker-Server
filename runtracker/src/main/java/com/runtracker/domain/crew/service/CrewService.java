@@ -14,6 +14,7 @@ import com.runtracker.domain.crew.exception.BannedFromCrewException;
 import com.runtracker.domain.crew.exception.CannotKickCrewLeaderException;
 import com.runtracker.domain.crew.exception.CannotKickManagerAsManagerException;
 import com.runtracker.domain.crew.exception.CannotKickYourselfException;
+import com.runtracker.domain.crew.exception.CannotLeaveAsCrewLeaderException;
 import com.runtracker.domain.crew.exception.CannotModifyLeaderRoleException;
 import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
 import com.runtracker.domain.crew.exception.CrewApplicationPendingException;
@@ -251,6 +252,28 @@ public class CrewService {
 
         targetMember.ban();
         crewMemberRepository.save(targetMember);
+    }
+    
+    public void leaveCrew(Long crewId, Long memberId) {
+        memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        
+        crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+        
+        CrewMember crewMember = crewMemberRepository
+                .findByCrewIdAndMemberId(crewId, memberId)
+                .orElseThrow(MemberNotFoundException::new);
+        
+        if (crewMember.getStatus() != CrewMemberStatus.ACTIVE) {
+            throw new MemberNotFoundException();
+        }
+        
+        if (crewMember.getRole() == MemberRole.CREW_LEADER) {
+            throw new CannotLeaveAsCrewLeaderException();
+        }
+        
+        crewMemberRepository.delete(crewMember);
     }
     
     private boolean isValidCrewRole(MemberRole role) {
