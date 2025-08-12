@@ -88,4 +88,15 @@ public class CrewController {
         
         return ApiResponse.ok();
     }
+    
+    @DeleteMapping("/delete/{crewId}")
+    public ApiResponse<Void> deleteCrew(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        Long leaderId = userDetails.getMemberId();
+        crewService.deleteCrew(crewId, leaderId);
+        
+        return ApiResponse.ok();
+    }
 }

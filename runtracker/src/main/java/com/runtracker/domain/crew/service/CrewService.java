@@ -8,6 +8,7 @@ import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
+import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
 import com.runtracker.domain.crew.exception.ApplicantNotFoundException;
 import com.runtracker.domain.crew.exception.CannotModifyLeaderRoleException;
 import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
@@ -64,6 +65,12 @@ public class CrewService {
         
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
+
+        List<CrewMember> activeCrewMemberships = crewMemberRepository
+                .findByMemberIdAndStatus(applicantId, CrewMemberStatus.ACTIVE);
+        if (!activeCrewMemberships.isEmpty()) {
+            throw new AlreadyJoinedOtherCrewException();
+        }
         
         CrewMember existingMembership = crewMemberRepository
                 .findByCrewIdAndMemberId(crewId, applicantId)
@@ -81,7 +88,7 @@ public class CrewService {
         CrewMember newApplication = CrewMember.builder()
                 .crewId(crewId)
                 .memberId(applicantId)
-                .role(MemberRole.CREW_MEMBER)
+                .role(MemberRole.USER)
                 .status(CrewMemberStatus.PENDING)
                 .build();
         crewMemberRepository.save(newApplication);
@@ -106,6 +113,9 @@ public class CrewService {
     }
     
     public void processJoinRequest(Long crewId, CrewApprovalDTO.Request request, Long leaderId) {
+        crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+                
         validateCrewManagementPermission(crewId, leaderId);
 
         CrewMember applicant = crewMemberRepository
@@ -174,6 +184,18 @@ public class CrewService {
         }
         
         crewRepository.save(crew);
+    }
+    
+    public void deleteCrew(Long crewId, Long leaderId) {
+        validateCrewLeaderPermission(crewId, leaderId);
+        
+        Crew crew = crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+
+        List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
+        crewMemberRepository.deleteAll(crewMembers);
+
+        crewRepository.delete(crew);
     }
     
     private boolean isValidCrewRole(MemberRole role) {

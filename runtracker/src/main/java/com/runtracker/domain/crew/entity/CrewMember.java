@@ -38,6 +38,7 @@ public class CrewMember extends BaseEntity {
     
     public void approve() {
         this.status = CrewMemberStatus.ACTIVE;
+        this.role = MemberRole.CREW_MEMBER;
     }
     
     public void updateRole(MemberRole role) {

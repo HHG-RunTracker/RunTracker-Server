@@ -21,6 +21,7 @@ import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -278,6 +279,41 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("introduce").type(JsonFieldType.STRING).description("크루 소개").optional(),
                                                 fieldWithPath("region").type(JsonFieldType.STRING).description("크루 활동 지역").optional(),
                                                 fieldWithPath("difficulty").type(JsonFieldType.STRING).description("크루 난이도 (EASY, MEDIUM, HARD)").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+    
+    @Test
+    void deleteCrew() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(666L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_666");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(666L)
+                .socialId("kakao_666")
+                .roles(List.of(MemberRole.CREW_LEADER))
+                .build();
+        given(userDetailsService.loadUserByUsername("666")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(delete("/api/crew/delete/{crewId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-delete",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 삭제")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

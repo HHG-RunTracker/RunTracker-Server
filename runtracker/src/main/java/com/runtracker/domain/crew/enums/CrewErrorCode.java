@@ -19,7 +19,8 @@ public enum CrewErrorCode implements ResponseCode {
     APPLICANT_NOT_FOUND("CR009", "해당 가입 신청자를 찾을 수 없습니다."),
     CANNOT_MODIFY_LEADER_ROLE("CR010", "크루장의 권한은 변경할 수 없습니다."),
     SAME_ROLE_UPDATE("CR011", "이미 동일한 권한을 가지고 있습니다."),
-    INVALID_CREW_ROLE("CR012", "크루에서 사용할 수 없는 권한입니다.");
+    INVALID_CREW_ROLE("CR012", "크루에서 사용할 수 없는 권한입니다."),
+    ALREADY_JOINED_OTHER_CREW("CR013", "이미 다른 크루에 가입되어 있습니다.");
 
     private final String statusCode;
     private final String message;
