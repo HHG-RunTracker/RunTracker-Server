@@ -2,8 +2,12 @@ package com.runtracker.domain.crew.service;
 
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
+import com.runtracker.domain.crew.dto.CrewDetailDTO;
+import com.runtracker.domain.crew.dto.CrewListDTO;
+import com.runtracker.domain.crew.dto.CrewManagementDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
+import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
@@ -26,6 +30,7 @@ import com.runtracker.domain.crew.exception.NotCrewLeaderException;
 import com.runtracker.domain.crew.exception.SameRoleUpdateException;
 import com.runtracker.domain.crew.repository.CrewRepository;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
+import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -274,6 +279,87 @@ public class CrewService {
         }
         
         crewMemberRepository.delete(crewMember);
+    }
+    
+    @Transactional(readOnly = true)
+    public CrewListDTO.ListResponse getAllCrews() {
+        List<Crew> crews = crewRepository.findAll();
+        
+        List<CrewListDTO.Response> crewResponses = crews.stream()
+                .map(crew -> {
+                    List<CrewMember> activeMembers = crewMemberRepository.findByCrewId(crew.getId()).stream()
+                            .filter(member -> member.getStatus() == CrewMemberStatus.ACTIVE)
+                            .toList();
+                    return CrewListDTO.Response.from(crew, activeMembers.size());
+                })
+                .toList();
+        
+        return CrewListDTO.ListResponse.of(crewResponses);
+    }
+    
+    @Transactional(readOnly = true)
+    public CrewDetailDTO.Response getCrewDetail(Long crewId) {
+        Crew crew = crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+        
+        List<CrewMember> allMembers = crewMemberRepository.findByCrewId(crewId);
+        
+        return CrewDetailDTO.Response.from(crew, allMembers);
+    }
+    
+    @Transactional(readOnly = true)
+    public CrewManagementDTO.PendingMembersResponse getPendingMembers(Long crewId, Long managerId) {
+        crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+        
+        validateCrewManagementPermission(crewId, managerId);
+        
+        List<CrewMember> pendingMembers = crewMemberRepository.findByCrewId(crewId).stream()
+                .filter(member -> member.getStatus() == CrewMemberStatus.PENDING)
+                .toList();
+        
+        List<CrewManagementDTO.MemberInfo> memberInfos = pendingMembers.stream()
+                .map(crewMember -> {
+                    Member member = memberRepository.findById(crewMember.getMemberId())
+                            .orElseThrow(MemberNotFoundException::new);
+                    return CrewManagementDTO.MemberInfo.from(crewMember, member.getName(), member.getAge(), member.getGender());
+                })
+                .toList();
+        
+        return CrewManagementDTO.PendingMembersResponse.of(memberInfos);
+    }
+    
+    @Transactional(readOnly = true)
+    public CrewManagementDTO.BannedMembersResponse getBannedMembers(Long crewId, Long managerId) {
+        crewRepository.findById(crewId)
+                .orElseThrow(CrewNotFoundException::new);
+        
+        validateCrewManagementPermission(crewId, managerId);
+        
+        List<CrewMember> bannedMembers = crewMemberRepository.findByCrewId(crewId).stream()
+                .filter(member -> member.getStatus() == CrewMemberStatus.BANNED)
+                .toList();
+        
+        List<CrewManagementDTO.MemberInfo> memberInfos = bannedMembers.stream()
+                .map(crewMember -> {
+                    Member member = memberRepository.findById(crewMember.getMemberId())
+                            .orElseThrow(MemberNotFoundException::new);
+                    return CrewManagementDTO.MemberInfo.from(crewMember, member.getName(), member.getAge(), member.getGender());
+                })
+                .toList();
+        
+        return CrewManagementDTO.BannedMembersResponse.of(memberInfos);
+    }
+    
+    @Transactional(readOnly = true)
+    public MemberProfileDTO getMemberProfile(Long targetMemberId, Long requesterId) {
+        memberRepository.findById(requesterId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        Member targetMember = memberRepository.findById(targetMemberId)
+                .orElseThrow(MemberNotFoundException::new);
+        
+        return MemberProfileDTO.from(targetMember);
     }
     
     private boolean isValidCrewRole(MemberRole role) {

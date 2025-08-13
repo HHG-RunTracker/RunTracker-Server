@@ -2,8 +2,12 @@ package com.runtracker.domain.crew.controller;
 
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
+import com.runtracker.domain.crew.dto.CrewDetailDTO;
+import com.runtracker.domain.crew.dto.CrewListDTO;
+import com.runtracker.domain.crew.dto.CrewManagementDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
+import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -121,5 +125,57 @@ public class CrewController {
         crewService.leaveCrew(crewId, memberId);
         
         return ApiResponse.ok();
+    }
+    
+    @GetMapping("/list")
+    public ApiResponse<CrewListDTO.ListResponse> getCrewList(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        Long memberId = userDetails.getMemberId();
+        CrewListDTO.ListResponse response = crewService.getAllCrews();
+        return ApiResponse.ok(response);
+    }
+    
+    @GetMapping("/{crewId}")
+    public ApiResponse<CrewDetailDTO.Response> getCrewDetail(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        Long memberId = userDetails.getMemberId();
+        CrewDetailDTO.Response response = crewService.getCrewDetail(crewId);
+        return ApiResponse.ok(response);
+    }
+    
+    @GetMapping("/list/pending/{crewId}")
+    public ApiResponse<CrewManagementDTO.PendingMembersResponse> getPendingMembers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        Long managerId = userDetails.getMemberId();
+        CrewManagementDTO.PendingMembersResponse response = crewService.getPendingMembers(crewId, managerId);
+        
+        return ApiResponse.ok(response);
+    }
+    
+    @GetMapping("/list/banned/{crewId}")
+    public ApiResponse<CrewManagementDTO.BannedMembersResponse> getBannedMembers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        Long managerId = userDetails.getMemberId();
+        CrewManagementDTO.BannedMembersResponse response = crewService.getBannedMembers(crewId, managerId);
+        
+        return ApiResponse.ok(response);
+    }
+    
+    @GetMapping("/member/{memberId}")
+    public ApiResponse<MemberProfileDTO> getMemberProfile(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long memberId) {
+        
+        Long requesterId = userDetails.getMemberId();
+        MemberProfileDTO response = crewService.getMemberProfile(memberId, requesterId);
+        
+        return ApiResponse.ok(response);
     }
 }
