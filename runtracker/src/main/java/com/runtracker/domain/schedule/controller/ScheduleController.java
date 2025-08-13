@@ -3,6 +3,7 @@ package com.runtracker.domain.schedule.controller;
 import com.runtracker.domain.schedule.dto.ScheduleCreateDTO;
 import com.runtracker.domain.schedule.dto.ScheduleDetailDTO;
 import com.runtracker.domain.schedule.dto.ScheduleListDTO;
+import com.runtracker.domain.schedule.dto.ScheduleParticipantDTO;
 import com.runtracker.domain.schedule.dto.ScheduleUpdateDTO;
 import com.runtracker.domain.schedule.service.ScheduleService;
 import com.runtracker.global.response.ApiResponse;
@@ -72,5 +73,13 @@ public class ScheduleController {
             @PathVariable Long scheduleId) {
         scheduleService.cancelSchedule(scheduleId, userDetails.getMemberId());
         return ApiResponse.ok();
+    }
+
+    @GetMapping("/participants/{scheduleId}")
+    public ApiResponse<ScheduleParticipantDTO.ListResponse> getScheduleParticipants(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long scheduleId) {
+        ScheduleParticipantDTO.ListResponse response = scheduleService.getScheduleParticipants(scheduleId, userDetails.getMemberId());
+        return ApiResponse.ok(response);
     }
 }

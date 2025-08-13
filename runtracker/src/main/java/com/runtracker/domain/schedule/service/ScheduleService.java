@@ -9,6 +9,7 @@ import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.domain.schedule.dto.ScheduleCreateDTO;
 import com.runtracker.domain.schedule.dto.ScheduleDetailDTO;
 import com.runtracker.domain.schedule.dto.ScheduleListDTO;
+import com.runtracker.domain.schedule.dto.ScheduleParticipantDTO;
 import com.runtracker.domain.schedule.dto.ScheduleUpdateDTO;
 import com.runtracker.domain.schedule.entity.Schedule;
 import com.runtracker.domain.schedule.enums.ScheduleErrorCode;
@@ -157,6 +158,36 @@ public class ScheduleService {
         validateScheduleAccess(schedule.getCrewId(), memberId);
         
         schedule.cancelSchedule(memberId);
+    }
+    
+    @Transactional(readOnly = true)
+    public ScheduleParticipantDTO.ListResponse getScheduleParticipants(Long scheduleId, Long memberId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(ScheduleNotFoundException::new);
+        
+        validateScheduleAccess(schedule.getCrewId(), memberId);
+        
+        List<Long> participantIds = schedule.getParticipants();
+        
+        List<ScheduleParticipantDTO.Response> participantResponses = participantIds.stream()
+                .map(participantId -> {
+                    Member member = memberRepository.findById(participantId)
+                            .orElse(null);
+                    String memberName = member != null ? member.getName() : "알 수 없음";
+
+                    MemberRole role = crewMemberRepository.findByCrewIdAndMemberId(schedule.getCrewId(), participantId)
+                            .map(CrewMember::getRole)
+                            .orElse(MemberRole.CREW_MEMBER);
+                    
+                    return ScheduleParticipantDTO.Response.builder()
+                            .memberId(participantId)
+                            .memberName(memberName)
+                            .role(role)
+                            .build();
+                })
+                .toList();
+        
+        return ScheduleParticipantDTO.ListResponse.of(participantResponses);
     }
     
     private void validateScheduleAccess(Long crewId, Long memberId) {

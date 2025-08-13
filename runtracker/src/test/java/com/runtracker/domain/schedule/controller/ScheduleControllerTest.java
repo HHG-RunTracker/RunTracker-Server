@@ -5,6 +5,7 @@ import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.schedule.dto.ScheduleDetailDTO;
 import com.runtracker.domain.schedule.dto.ScheduleListDTO;
+import com.runtracker.domain.schedule.dto.ScheduleParticipantDTO;
 import com.runtracker.domain.schedule.service.ScheduleService;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
@@ -335,6 +336,66 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
                                                 fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
                                                 fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getScheduleParticipantsTest() throws Exception {
+        // given
+        ScheduleParticipantDTO.ListResponse mockResponse = ScheduleParticipantDTO.ListResponse.of(
+                List.of(
+                        ScheduleParticipantDTO.Response.builder()
+                                .memberId(1L)
+                                .memberName("김러너")
+                                .role(MemberRole.CREW_LEADER)
+                                .build(),
+                        ScheduleParticipantDTO.Response.builder()
+                                .memberId(2L)
+                                .memberName("박조깅")
+                                .role(MemberRole.CREW_MANAGER)
+                                .build(),
+                        ScheduleParticipantDTO.Response.builder()
+                                .memberId(3L)
+                                .memberName("이마라톤")
+                                .role(MemberRole.CREW_MEMBER)
+                                .build()
+                )
+        );
+        given(scheduleService.getScheduleParticipants(anyLong(), anyLong())).willReturn(mockResponse);
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(get("/api/schedules/participants/{scheduleId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("schedule-participants",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("schedules")
+                                        .description("일정 참여자 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.participants").type(JsonFieldType.ARRAY).description("참여자 목록"),
+                                                fieldWithPath("body.participants[].memberId").type(JsonFieldType.NUMBER).description("참여자 회원 ID"),
+                                                fieldWithPath("body.participants[].memberName").type(JsonFieldType.STRING).description("참여자 이름"),
+                                                fieldWithPath("body.participants[].role").type(JsonFieldType.STRING).description("크루 내 역할"),
+                                                fieldWithPath("body.participantCount").type(JsonFieldType.NUMBER).description("참여자 수")
                                         )
                                         .build()
                         )
