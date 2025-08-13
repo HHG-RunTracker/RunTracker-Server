@@ -1,18 +1,17 @@
 package com.runtracker.domain.schedule.controller;
 
 import com.runtracker.domain.schedule.dto.ScheduleCreateDTO;
+import com.runtracker.domain.schedule.dto.ScheduleDetailDTO;
+import com.runtracker.domain.schedule.dto.ScheduleListDTO;
 import com.runtracker.domain.schedule.service.ScheduleService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/schedules")
+@RequestMapping("/api/schedules")
 @RequiredArgsConstructor
 public class ScheduleController {
 
@@ -24,5 +23,20 @@ public class ScheduleController {
             @RequestBody ScheduleCreateDTO scheduleCreateDTO) {
         scheduleService.createSchedule(scheduleCreateDTO, userDetails.getMemberId());
         return ApiResponse.ok();
+    }
+
+    @GetMapping("/list")
+    public ApiResponse<ScheduleListDTO.ListResponse> getCrewSchedules(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        ScheduleListDTO.ListResponse response = scheduleService.getCrewSchedulesByMemberId(userDetails.getMemberId());
+        return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/{scheduleId}")
+    public ApiResponse<ScheduleDetailDTO.Response> getScheduleDetail(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long scheduleId) {
+        ScheduleDetailDTO.Response response = scheduleService.getScheduleDetail(scheduleId, userDetails.getMemberId());
+        return ApiResponse.ok(response);
     }
 }

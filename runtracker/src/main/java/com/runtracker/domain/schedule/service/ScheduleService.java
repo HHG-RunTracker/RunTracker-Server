@@ -3,10 +3,15 @@ package com.runtracker.domain.schedule.service;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.exception.NotCrewLeaderException;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
+import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
+import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.domain.schedule.dto.ScheduleCreateDTO;
+import com.runtracker.domain.schedule.dto.ScheduleDetailDTO;
+import com.runtracker.domain.schedule.dto.ScheduleListDTO;
 import com.runtracker.domain.schedule.entity.Schedule;
 import com.runtracker.domain.schedule.enums.ScheduleErrorCode;
+import com.runtracker.domain.schedule.exception.ScheduleNotFoundException;
 import com.runtracker.domain.schedule.repository.ScheduleRepository;
 import com.runtracker.global.code.DateConstants;
 import com.runtracker.global.exception.CustomException;
@@ -18,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +32,7 @@ public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
     private final CrewMemberRepository crewMemberRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional
     public Long createSchedule(ScheduleCreateDTO scheduleCreateDTO, Long memberId) {
@@ -62,6 +69,58 @@ public class ScheduleService {
             return parsedDate;
         } catch (Exception e) {
             throw new CustomException(ScheduleErrorCode.INVALID_SCHEDULE_DATE);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduleListDTO.ListResponse getCrewSchedules(Long crewId) {
+        List<Schedule> schedules = scheduleRepository.findByCrewIdOrderByDateAsc(crewId);
+        
+        List<ScheduleListDTO.Response> scheduleResponses = schedules.stream()
+                .map(schedule -> {
+                    Member creator = memberRepository.findById(schedule.getMemberId())
+                            .orElse(null);
+                    String creatorName = creator != null ? creator.getName() : "알 수 없음";
+                    return ScheduleListDTO.Response.from(schedule, creatorName);
+                })
+                .toList();
+        
+        return ScheduleListDTO.ListResponse.of(scheduleResponses);
+    }
+    
+    @Transactional(readOnly = true)
+    public ScheduleListDTO.ListResponse getCrewSchedulesByMemberId(Long memberId) {
+        CrewMember crewMember = crewMemberRepository.findByMemberIdAndStatus(memberId, 
+                com.runtracker.domain.crew.enums.CrewMemberStatus.ACTIVE)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS));
+
+        return getCrewSchedules(crewMember.getCrewId());
+    }
+    
+    @Transactional(readOnly = true)
+    public ScheduleDetailDTO.Response getScheduleDetail(Long scheduleId, Long memberId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(ScheduleNotFoundException::new);
+
+        validateScheduleAccess(schedule.getCrewId(), memberId);
+        
+        Member creator = memberRepository.findById(schedule.getMemberId())
+                .orElse(null);
+        String creatorName = creator != null ? creator.getName() : "알 수 없음";
+        
+        return ScheduleDetailDTO.Response.from(schedule, creatorName);
+    }
+    
+    private void validateScheduleAccess(Long crewId, Long memberId) {
+        boolean hasAccess = crewMemberRepository.findByMemberIdAndStatus(memberId, 
+                com.runtracker.domain.crew.enums.CrewMemberStatus.ACTIVE)
+                .stream()
+                .anyMatch(crewMember -> crewMember.getCrewId().equals(crewId));
+        
+        if (!hasAccess) {
+            throw new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS);
         }
     }
 
