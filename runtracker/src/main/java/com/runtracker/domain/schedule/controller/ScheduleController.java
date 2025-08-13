@@ -3,6 +3,7 @@ package com.runtracker.domain.schedule.controller;
 import com.runtracker.domain.schedule.dto.ScheduleCreateDTO;
 import com.runtracker.domain.schedule.dto.ScheduleDetailDTO;
 import com.runtracker.domain.schedule.dto.ScheduleListDTO;
+import com.runtracker.domain.schedule.dto.ScheduleUpdateDTO;
 import com.runtracker.domain.schedule.service.ScheduleService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -38,5 +39,14 @@ public class ScheduleController {
             @PathVariable Long scheduleId) {
         ScheduleDetailDTO.Response response = scheduleService.getScheduleDetail(scheduleId, userDetails.getMemberId());
         return ApiResponse.ok(response);
+    }
+
+    @PatchMapping("/update/{scheduleId}")
+    public ApiResponse<Void> updateSchedule(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long scheduleId,
+            @RequestBody ScheduleUpdateDTO scheduleUpdateDTO) {
+        scheduleService.updateSchedule(scheduleId, scheduleUpdateDTO, userDetails.getMemberId());
+        return ApiResponse.ok();
     }
 }

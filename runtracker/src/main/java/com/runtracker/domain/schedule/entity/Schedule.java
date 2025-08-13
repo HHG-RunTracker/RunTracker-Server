@@ -35,4 +35,16 @@ public class Schedule extends BaseEntity {
 
     @Column(name = "members", columnDefinition = "JSON")
     private String members;
+
+    public void updateSchedule(LocalDateTime date, String title, String content) {
+        if (date != null) {
+            this.date = date;
+        }
+        if (title != null && !title.trim().isEmpty()) {
+            this.title = title;
+        }
+        if (content != null) {
+            this.content = content;
+        }
+    }
 }

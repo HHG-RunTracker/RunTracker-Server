@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -190,12 +191,65 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
                 ));
     }
 
+    @Test
+    void updateScheduleTest() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        Map<String, Object> request = updateScheduleRequest();
+
+        this.mockMvc.perform(patch("/api/schedules/update/{scheduleId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(request)))
+                .andExpect(status().isOk())
+                .andDo(document("schedule-update",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("schedules")
+                                        .description("크루 일정 수정")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("date").type(JsonFieldType.STRING).description("수정할 일정 날짜 (yyyy-MM-dd HH:mm 형식)").optional(),
+                                                fieldWithPath("title").type(JsonFieldType.STRING).description("수정할 일정 제목").optional(),
+                                                fieldWithPath("content").type(JsonFieldType.STRING).description("수정할 일정 내용").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
     private Map<String, Object> createScheduleRequest() {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("crewId", 1L);
         request.put("date", "2025-08-20 10:00");
         request.put("title", "한강 러닝 모임");
         request.put("content", "한강공원에서 5km 러닝 후 치킨 먹기");
+        
+        return request;
+    }
+
+    private Map<String, Object> updateScheduleRequest() {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("date", "2025-08-25 14:00");
+        request.put("title", "올림픽공원 러닝 모임 (수정됨)");
+        request.put("content", "올림픽공원에서 10km 러닝 후 치킨 먹기");
         
         return request;
     }

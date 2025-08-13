@@ -9,6 +9,7 @@ import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.domain.schedule.dto.ScheduleCreateDTO;
 import com.runtracker.domain.schedule.dto.ScheduleDetailDTO;
 import com.runtracker.domain.schedule.dto.ScheduleListDTO;
+import com.runtracker.domain.schedule.dto.ScheduleUpdateDTO;
 import com.runtracker.domain.schedule.entity.Schedule;
 import com.runtracker.domain.schedule.enums.ScheduleErrorCode;
 import com.runtracker.domain.schedule.exception.ScheduleNotFoundException;
@@ -111,6 +112,21 @@ public class ScheduleService {
         String creatorName = creator != null ? creator.getName() : "알 수 없음";
         
         return ScheduleDetailDTO.Response.from(schedule, creatorName);
+    }
+    
+    @Transactional
+    public void updateSchedule(Long scheduleId, ScheduleUpdateDTO scheduleUpdateDTO, Long memberId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(ScheduleNotFoundException::new);
+
+        validateCrewManagementPermission(schedule.getCrewId(), memberId);
+
+        LocalDateTime parsedDate = null;
+        if (scheduleUpdateDTO.getDate() != null && !scheduleUpdateDTO.getDate().trim().isEmpty()) {
+            parsedDate = parseAndValidateDate(scheduleUpdateDTO.getDate());
+        }
+
+        schedule.updateSchedule(parsedDate, scheduleUpdateDTO.getTitle(), scheduleUpdateDTO.getContent());
     }
     
     private void validateScheduleAccess(Long crewId, Long memberId) {
