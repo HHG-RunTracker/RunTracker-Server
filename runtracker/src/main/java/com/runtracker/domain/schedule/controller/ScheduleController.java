@@ -57,4 +57,20 @@ public class ScheduleController {
         scheduleService.deleteSchedule(scheduleId, userDetails.getMemberId());
         return ApiResponse.ok();
     }
+
+    @PostMapping("/join/{scheduleId}")
+    public ApiResponse<Void> joinSchedule(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long scheduleId) {
+        scheduleService.joinSchedule(scheduleId, userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/cancel/{scheduleId}")
+    public ApiResponse<Void> cancelSchedule(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long scheduleId) {
+        scheduleService.cancelSchedule(scheduleId, userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
 }

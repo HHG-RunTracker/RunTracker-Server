@@ -139,6 +139,26 @@ public class ScheduleService {
         scheduleRepository.delete(schedule);
     }
     
+    @Transactional
+    public void joinSchedule(Long scheduleId, Long memberId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(ScheduleNotFoundException::new);
+        
+        validateScheduleAccess(schedule.getCrewId(), memberId);
+        
+        schedule.joinSchedule(memberId);
+    }
+    
+    @Transactional
+    public void cancelSchedule(Long scheduleId, Long memberId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(ScheduleNotFoundException::new);
+        
+        validateScheduleAccess(schedule.getCrewId(), memberId);
+        
+        schedule.cancelSchedule(memberId);
+    }
+    
     private void validateScheduleAccess(Long crewId, Long memberId) {
         boolean hasAccess = crewMemberRepository.findByMemberIdAndStatus(memberId, 
                 com.runtracker.domain.crew.enums.CrewMemberStatus.ACTIVE)

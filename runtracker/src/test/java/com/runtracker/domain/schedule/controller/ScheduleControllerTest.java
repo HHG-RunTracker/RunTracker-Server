@@ -271,6 +271,76 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
                 ));
     }
 
+    @Test
+    void joinScheduleTest() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/schedules/join/{scheduleId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("schedule-join",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("schedules")
+                                        .description("크루 일정 참여")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void cancelScheduleTest() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/schedules/cancel/{scheduleId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("schedule-cancel",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("schedules")
+                                        .description("크루 일정 참여 취소")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
     private Map<String, Object> createScheduleRequest() {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("crewId", 1L);

@@ -3,8 +3,12 @@ package com.runtracker.domain.schedule.entity;
 import com.runtracker.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "schedule")
@@ -45,6 +49,42 @@ public class Schedule extends BaseEntity {
         }
         if (content != null) {
             this.content = content;
+        }
+    }
+
+    public void joinSchedule(Long memberId) {
+        List<Long> memberList = getParticipants();
+        if (!memberList.contains(memberId)) {
+            memberList.add(memberId);
+            updateMembersJson(memberList);
+        }
+    }
+
+    public void cancelSchedule(Long memberId) {
+        List<Long> memberList = getParticipants();
+        memberList.remove(memberId);
+        updateMembersJson(memberList);
+    }
+
+    public List<Long> getParticipants() {
+        if (members == null || members.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(members, new TypeReference<List<Long>>() {});
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private void updateMembersJson(List<Long> memberList) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            this.members = objectMapper.writeValueAsString(memberList);
+        } catch (Exception e) {
+            this.members = "[]";
         }
     }
 }
