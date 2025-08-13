@@ -89,7 +89,8 @@ public class ScheduleService {
         
         return ScheduleListDTO.ListResponse.of(scheduleResponses);
     }
-    
+
+    //TODO: Crew 도메인이 없어서 (com.runtracker.domain.crew.enums) 임시로 표시했음. 추후 import해서 사욯하도록 수정ㅗ하기
     @Transactional(readOnly = true)
     public ScheduleListDTO.ListResponse getCrewSchedulesByMemberId(Long memberId) {
         CrewMember crewMember = crewMemberRepository.findByMemberIdAndStatus(memberId, 
