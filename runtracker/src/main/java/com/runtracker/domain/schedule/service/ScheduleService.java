@@ -129,6 +129,16 @@ public class ScheduleService {
         schedule.updateSchedule(parsedDate, scheduleUpdateDTO.getTitle(), scheduleUpdateDTO.getContent());
     }
     
+    @Transactional
+    public void deleteSchedule(Long scheduleId, Long memberId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(ScheduleNotFoundException::new);
+
+        validateCrewManagementPermission(schedule.getCrewId(), memberId);
+
+        scheduleRepository.delete(schedule);
+    }
+    
     private void validateScheduleAccess(Long crewId, Long memberId) {
         boolean hasAccess = crewMemberRepository.findByMemberIdAndStatus(memberId, 
                 com.runtracker.domain.crew.enums.CrewMemberStatus.ACTIVE)

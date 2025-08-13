@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
@@ -224,6 +225,41 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("date").type(JsonFieldType.STRING).description("수정할 일정 날짜 (yyyy-MM-dd HH:mm 형식)").optional(),
                                                 fieldWithPath("title").type(JsonFieldType.STRING).description("수정할 일정 제목").optional(),
                                                 fieldWithPath("content").type(JsonFieldType.STRING).description("수정할 일정 내용").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void deleteScheduleTest() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(delete("/api/schedules/delete/{scheduleId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("schedule-delete",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("schedules")
+                                        .description("크루 일정 삭제")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

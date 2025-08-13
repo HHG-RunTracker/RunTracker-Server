@@ -49,4 +49,12 @@ public class ScheduleController {
         scheduleService.updateSchedule(scheduleId, scheduleUpdateDTO, userDetails.getMemberId());
         return ApiResponse.ok();
     }
+
+    @DeleteMapping("/delete/{scheduleId}")
+    public ApiResponse<Void> deleteSchedule(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long scheduleId) {
+        scheduleService.deleteSchedule(scheduleId, userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
 }
