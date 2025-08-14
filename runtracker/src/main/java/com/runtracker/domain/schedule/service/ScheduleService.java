@@ -1,8 +1,9 @@
 package com.runtracker.domain.schedule.service;
 
 import com.runtracker.domain.crew.entity.CrewMember;
-import com.runtracker.domain.crew.exception.NotCrewLeaderException;
+import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
+import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.repository.MemberRepository;
@@ -35,10 +36,11 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final CrewMemberRepository crewMemberRepository;
     private final MemberRepository memberRepository;
+    private final CrewService crewService;
 
     @Transactional
     public Long createSchedule(ScheduleCreateDTO scheduleCreateDTO, Long memberId) {
-        validateCrewManagementPermission(scheduleCreateDTO.getCrewId(), memberId);
+        crewService.validateCrewManagementPermission(scheduleCreateDTO.getCrewId(), memberId);
         LocalDateTime parsedDate = parseAndValidateDate(scheduleCreateDTO.getDate());
         
         Schedule schedule = Schedule.builder()
@@ -90,11 +92,10 @@ public class ScheduleService {
         return ScheduleListDTO.ListResponse.of(scheduleResponses);
     }
 
-    //TODO: Crew 도메인이 없어서 (com.runtracker.domain.crew.enums) 임시로 표시했음. 추후 import해서 사욯하도록 수정ㅗ하기
     @Transactional(readOnly = true)
     public ScheduleListDTO.ListResponse getCrewSchedulesByMemberId(Long memberId) {
         CrewMember crewMember = crewMemberRepository.findByMemberIdAndStatus(memberId, 
-                com.runtracker.domain.crew.enums.CrewMemberStatus.ACTIVE)
+                CrewMemberStatus.ACTIVE)
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS));
@@ -121,7 +122,7 @@ public class ScheduleService {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
 
-        validateCrewManagementPermission(schedule.getCrewId(), memberId);
+        crewService.validateCrewManagementPermission(schedule.getCrewId(), memberId);
 
         LocalDateTime parsedDate = null;
         if (scheduleUpdateDTO.getDate() != null && !scheduleUpdateDTO.getDate().trim().isEmpty()) {
@@ -136,7 +137,7 @@ public class ScheduleService {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
 
-        validateCrewManagementPermission(schedule.getCrewId(), memberId);
+        crewService.validateCrewManagementPermission(schedule.getCrewId(), memberId);
 
         scheduleRepository.delete(schedule);
     }
@@ -193,7 +194,7 @@ public class ScheduleService {
     
     private void validateScheduleAccess(Long crewId, Long memberId) {
         boolean hasAccess = crewMemberRepository.findByMemberIdAndStatus(memberId, 
-                com.runtracker.domain.crew.enums.CrewMemberStatus.ACTIVE)
+                CrewMemberStatus.ACTIVE)
                 .stream()
                 .anyMatch(crewMember -> crewMember.getCrewId().equals(crewId));
         
@@ -202,14 +203,4 @@ public class ScheduleService {
         }
     }
 
-    // TODO: 나중에 이 메소드 지우고 crew Service에서 상속 받기
-    private void validateCrewManagementPermission(Long crewId, Long memberId) {
-        CrewMember member = crewMemberRepository
-                .findByCrewIdAndMemberId(crewId, memberId)
-                .orElseThrow(NotCrewLeaderException::new);
-
-        if (member.getRole() != MemberRole.CREW_LEADER && member.getRole() != MemberRole.CREW_MANAGER) {
-            throw new NotCrewLeaderException();
-        }
-    }
 }

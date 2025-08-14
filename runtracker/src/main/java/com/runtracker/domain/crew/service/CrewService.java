@@ -376,7 +376,7 @@ public class CrewService {
         }
     }
     
-    private void validateCrewManagementPermission(Long crewId, Long memberId) {
+    public void validateCrewManagementPermission(Long crewId, Long memberId) {
         CrewMember member = crewMemberRepository
                 .findByCrewIdAndMemberId(crewId, memberId)
                 .orElseThrow(NotCrewLeaderException::new);
