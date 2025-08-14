@@ -12,10 +12,14 @@ import java.util.Map;
 import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class MemberControllerTest extends RunTrackerDocumentApiTester {
@@ -143,6 +147,62 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.tokenData.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                                                 fieldWithPath("body.tokenData.accessTokenExpiredAt").type(JsonFieldType.NUMBER).description("액세스 토큰 만료 시간 (timestamp)"),
                                                 fieldWithPath("body.tokenData.refreshTokenExpiredAt").type(JsonFieldType.NUMBER).description("리프레시 토큰 만료 시간 (timestamp)")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void logoutTest() throws Exception {
+        // given
+        doNothing().when(memberService).logout(anyLong());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/logout")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-logout",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("로그아웃")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void withdrawMemberTest() throws Exception {
+        // given
+        doNothing().when(memberService).withdrawMember(anyLong());
+
+        // when & then
+        this.mockMvc.perform(delete("/api/members/withdrawal")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-withdrawal",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("회원 탈퇴")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
                                         )
                                         .build()
                         )

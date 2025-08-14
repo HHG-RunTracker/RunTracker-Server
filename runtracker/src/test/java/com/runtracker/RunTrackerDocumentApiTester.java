@@ -3,9 +3,11 @@ package com.runtracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.domain.member.service.AuthService;
+import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.jwt.JwtAuthenticationFilter;
 import com.runtracker.global.jwt.JwtUtil;
 import com.runtracker.global.security.UserDetailsServiceImpl;
+import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,9 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 
@@ -62,12 +67,18 @@ public class RunTrackerDocumentApiTester {
                 .addFilter(new JwtAuthenticationFilter(jwtUtil, userDetailsService, List.of("/swagger-ui/**", "/api-docs/**")))
                 .build();
 
+        doNothing().when(jwtUtil).validateToken(anyString());
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("test_social_id")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername(anyString())).willReturn(mockUserDetails);
+
         SecurityContext securityContext = SecurityContextHolder.getContext();
-
-        var principal = mock(Object.class);
-
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                principal, null, new ArrayList<>()
+                mockUserDetails, null, mockUserDetails.getAuthorities()
         );
         securityContext.setAuthentication(authentication);
     }

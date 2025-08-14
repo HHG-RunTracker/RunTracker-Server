@@ -5,8 +5,10 @@ import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.domain.member.service.AuthService;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import com.runtracker.global.response.ApiResponse;
+import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -39,5 +41,17 @@ public class MemberController {
     @PostMapping("/test-login")
     public ApiResponse<LoginTokenDto> testLogin(@Valid @RequestBody LoginTokenDto.SocialIdLoginRequest request) {
         return ApiResponse.ok(authService.testLoginBySocialId(request.getSocialId(), request.getKey()));
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.logout(userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
+
+    @DeleteMapping("/withdrawal")
+    public ApiResponse<Void> withdrawMember(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.withdrawMember(userDetails.getMemberId());
+        return ApiResponse.ok();
     }
 }
