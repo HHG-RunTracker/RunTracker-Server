@@ -1,11 +1,13 @@
 package com.runtracker.domain.course.service;
 
 import com.runtracker.domain.course.dto.CourseDTO;
+import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.entity.Course;
 import com.runtracker.domain.course.entity.converter.CoordinatesConverter;
 import com.runtracker.domain.course.exception.CourseCreationFailedException;
+import com.runtracker.domain.course.exception.CourseNotFoundException;
 import com.runtracker.domain.course.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,5 +58,33 @@ public class CourseService {
                 request.getLatitude(),
                 request.getLongitude()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public CourseDetailDTO getCourseDetail(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
+
+        return convertToCourseDetailDTO(course);
+    }
+
+    private CourseDetailDTO convertToCourseDetailDTO(Course course) {
+        return CourseDetailDTO.builder()
+                .id(course.getId())
+                .memberId(course.getMemberId())
+                .name(course.getName())
+                .difficulty(course.getDifficulty())
+                .points(course.getPoints())
+                .startLat(course.getStartLat())
+                .startLng(course.getStartLng())
+                .distance(course.getDistance())
+                .round(course.getRound())
+                .region(course.getRegion())
+                .photo(course.getPhoto())
+                .photoLat(course.getPhotoLat())
+                .photoLng(course.getPhotoLng())
+                .createdAt(course.getCreatedAt())
+                .updatedAt(course.getUpdatedAt())
+                .build();
     }
 }
