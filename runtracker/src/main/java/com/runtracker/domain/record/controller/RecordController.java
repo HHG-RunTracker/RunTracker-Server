@@ -1,6 +1,6 @@
 package com.runtracker.domain.record.controller;
 
-import com.runtracker.domain.record.dto.RecordDetailDTO;
+import com.runtracker.domain.record.dto.RunningRecordDTO;
 import com.runtracker.domain.record.service.RecordService;
 import com.runtracker.global.code.CommonResponseCode;
 import com.runtracker.global.code.DateConstants;
@@ -22,13 +22,13 @@ public class RecordController {
     
     private final RecordService recordService;
 
-    @GetMapping("/{courseId}")
-    public ApiResponse<RecordDetailDTO> getCourseDetail(
+    @PostMapping("/save")
+    public ApiResponse<Void> saveRunningRecord(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @PathVariable Long courseId) {
+            @RequestBody RunningRecordDTO createDTO) {
         try {
-            RecordDetailDTO courseDetail = recordService.getCourseDetail(courseId);
-            return ApiResponse.ok(courseDetail);
+            recordService.saveRunningRecord(userDetails.getMemberId(), createDTO);
+            return ApiResponse.ok();
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());
         } catch (Exception e) {
@@ -37,13 +37,13 @@ public class RecordController {
     }
 
     @GetMapping("/date")
-    public ApiResponse<List<RecordDetailDTO>> getCoursesByDateRange(
+    public ApiResponse<List<RunningRecordDTO>> getRunningRecordsByDateRange(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate startDate,
             @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate endDate) {
         try {
-            List<RecordDetailDTO> courses = recordService.getCoursesByDate(userDetails.getMemberId(), startDate, endDate);
-            return ApiResponse.ok(courses);
+            List<RunningRecordDTO> records = recordService.getRunningRecordsByDate(userDetails.getMemberId(), startDate, endDate);
+            return ApiResponse.ok(records);
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());
         } catch (Exception e) {
@@ -52,12 +52,12 @@ public class RecordController {
     }
 
     @GetMapping("/week")
-    public ApiResponse<List<RecordDetailDTO>> getCoursesByWeek(
+    public ApiResponse<List<RunningRecordDTO>> getRunningRecordsByWeek(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate weekDate) {
         try {
-            List<RecordDetailDTO> courses = recordService.getCoursesByWeek(userDetails.getMemberId(), weekDate);
-            return ApiResponse.ok(courses);
+            List<RunningRecordDTO> records = recordService.getRunningRecordsByWeek(userDetails.getMemberId(), weekDate);
+            return ApiResponse.ok(records);
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());
         } catch (Exception e) {
@@ -66,12 +66,39 @@ public class RecordController {
     }
 
     @GetMapping("/month")
-    public ApiResponse<List<RecordDetailDTO>> getCoursesByMonth(
+    public ApiResponse<List<RunningRecordDTO>> getRunningRecordsByMonth(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate monthDate) {
         try {
-            List<RecordDetailDTO> courses = recordService.getCoursesByMonth(userDetails.getMemberId(), monthDate);
-            return ApiResponse.ok(courses);
+            List<RunningRecordDTO> records = recordService.getRunningRecordsByMonth(userDetails.getMemberId(), monthDate);
+            return ApiResponse.ok(records);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/user")
+    public ApiResponse<List<RunningRecordDTO>> getAllRunningRecords(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        try {
+            List<RunningRecordDTO> records = recordService.getAllRunningRecords(userDetails.getMemberId());
+            return ApiResponse.ok(records);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/{recordId}")
+    public ApiResponse<RunningRecordDTO> getRunningRecord(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long recordId) {
+        try {
+            RunningRecordDTO record = recordService.getRunningRecordById(userDetails.getMemberId(), recordId);
+            return ApiResponse.ok(record);
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());
         } catch (Exception e) {

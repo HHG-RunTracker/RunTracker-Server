@@ -1,4 +1,4 @@
-package com.runtracker.domain.record.dto;
+package com.runtracker.domain.course.dto;
 
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.entity.vo.Coordinate;
@@ -10,7 +10,7 @@ import java.util.List;
 
 @Getter
 @Builder
-public class RecordDetailDTO {
+public class CourseDetailDTO {
     private Long id;
     private Long memberId;
     private String name;

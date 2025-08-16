@@ -1,6 +1,7 @@
 package com.runtracker.domain.course.controller;
 
 import com.runtracker.domain.course.dto.CourseDTO;
+import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.service.CourseService;
@@ -53,6 +54,20 @@ public class CourseController {
             
             List<Response> courses = courseService.getNearbyCourses(request);
             return ApiResponse.ok(courses);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/{courseId}")
+    public ApiResponse<CourseDetailDTO> getCourseDetail(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long courseId) {
+        try {
+            CourseDetailDTO courseDetail = courseService.getCourseDetail(courseId);
+            return ApiResponse.ok(courseDetail);
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());
         } catch (Exception e) {

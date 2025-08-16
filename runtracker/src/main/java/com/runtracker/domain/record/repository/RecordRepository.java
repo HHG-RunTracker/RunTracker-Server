@@ -1,6 +1,6 @@
 package com.runtracker.domain.record.repository;
 
-import com.runtracker.domain.course.entity.Course;
+import com.runtracker.domain.record.entity.RunningRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,10 +10,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface RecordRepository extends JpaRepository<Course, Long> {
+public interface RecordRepository extends JpaRepository<RunningRecord, Long> {
     
-    @Query("SELECT c FROM Course c WHERE c.memberId = :memberId AND DATE(c.createdAt) BETWEEN :startDate AND :endDate ORDER BY c.createdAt DESC")
-    List<Course> findByMemberIdAndCreatedAtBetween(@Param("memberId") Long memberId, 
-                                                   @Param("startDate") LocalDate startDate, 
-                                                   @Param("endDate") LocalDate endDate);
+    List<RunningRecord> findByMemberIdOrderByRunningTimeDesc(Long memberId);
+    
+    @Query("SELECT r FROM RunningRecord r WHERE r.memberId = :memberId AND DATE(r.runningTime) BETWEEN :startDate AND :endDate ORDER BY r.runningTime DESC")
+    List<RunningRecord> findByMemberIdAndRunningTimeBetween(@Param("memberId") Long memberId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    
+    @Query("SELECT r FROM RunningRecord r WHERE r.memberId = :memberId AND r.courseId = :courseId ORDER BY r.runningTime DESC")
+    List<RunningRecord> findByMemberIdAndCourseId(@Param("memberId") Long memberId, @Param("courseId") Long courseId);
 }
