@@ -1,5 +1,6 @@
 package com.runtracker.domain.record.service;
 
+import com.runtracker.domain.member.exception.MemberNotFoundException;
 import com.runtracker.domain.record.dto.RunningRecordDTO;
 import com.runtracker.domain.record.entity.RunningRecord;
 import com.runtracker.domain.record.exception.CourseNotFoundForRecordException;
@@ -9,6 +10,10 @@ import com.runtracker.domain.record.exception.DateParameterRequiredException;
 import com.runtracker.domain.record.exception.RecordNotFoundException;
 import com.runtracker.domain.record.repository.RecordRepository;
 import com.runtracker.domain.course.repository.CourseRepository;
+import com.runtracker.domain.course.entity.Course;
+import com.runtracker.domain.member.entity.Member;
+import com.runtracker.domain.member.repository.MemberRepository;
+import com.runtracker.domain.member.service.TempCalcService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,13 +31,17 @@ public class RecordService {
     
     private final RecordRepository recordRepository;
     private final CourseRepository courseRepository;
+    private final MemberRepository memberRepository;
+    private final TempCalcService temperatureCalculationService;
 
     @Transactional
     public void saveRunningRecord(Long memberId, RunningRecordDTO createDTO) {
-        if (!courseRepository.existsById(createDTO.getCourseId())) {
-            throw new CourseNotFoundForRecordException("Course not found with id: " + createDTO.getCourseId());
-        }
-        
+        Course course = courseRepository.findById(createDTO.getCourseId())
+                .orElseThrow(() -> new CourseNotFoundForRecordException("Course not found with id: " + createDTO.getCourseId()));
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+
         RunningRecord runningRecord = RunningRecord.builder()
                 .memberId(memberId)
                 .courseId(createDTO.getCourseId())
@@ -43,6 +52,14 @@ public class RecordService {
                 .build();
         
         recordRepository.save(runningRecord);
+
+        double newTemperature = temperatureCalculationService.calculateNewTemperature(
+                member.getTemperature(), createDTO.getDistance(), course.getDistance());
+
+        double roundedTemperature = Math.round(newTemperature * 10.0) / 10.0;
+        
+        member.updateTemperature(roundedTemperature);
+        memberRepository.save(member);
     }
 
     @Transactional(readOnly = true)
