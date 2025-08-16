@@ -5,6 +5,7 @@ import com.runtracker.global.jwt.exception.InvalidJwtTokenException;
 import com.runtracker.global.jwt.exception.JwtClaimsEmptyException;
 import com.runtracker.global.jwt.exception.UnsupportedJwtTokenException;
 import com.runtracker.global.security.UserDetailsServiceImpl;
+import com.runtracker.global.jwt.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -28,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
     private final List<String> excludePaths;
     
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -89,6 +90,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     
     private void authenticateToken(String token) {
         jwtUtil.validateToken(token);
+
+        if (tokenBlacklistService.isBlacklisted(token)) {
+            throw new InvalidJwtTokenException();
+        }
+        
         Long memberId = jwtUtil.getMemberIdFromToken(token);
         
         UserDetails userDetails = userDetailsService.loadUserByUsername(String.valueOf(memberId));

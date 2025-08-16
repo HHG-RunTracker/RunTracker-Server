@@ -39,25 +39,35 @@ public class JwtUtil {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + accessTokenExpiration);
 
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setSubject(memberId.toString())
                 .claim("socialId", socialId)
                 .setIssuedAt(now)
                 .setExpiration(expiration)
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
+
+        tokenBlacklistService.trackUserToken(memberId, token, 
+            java.time.Duration.ofMillis(accessTokenExpiration));
+        
+        return token;
     }
 
     public String generateRefreshToken(Long memberId) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + refreshTokenExpiration);
 
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setSubject(memberId.toString())
                 .setIssuedAt(now)
                 .setExpiration(expiration)
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
+
+        tokenBlacklistService.trackUserToken(memberId, token, 
+            java.time.Duration.ofMillis(refreshTokenExpiration));
+        
+        return token;
     }
 
     public Claims parseToken(String token) {

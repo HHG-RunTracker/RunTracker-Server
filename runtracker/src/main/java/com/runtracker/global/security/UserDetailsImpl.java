@@ -1,6 +1,7 @@
 package com.runtracker.global.security;
 
 import com.runtracker.domain.member.entity.enums.MemberRole;
+import com.runtracker.global.security.dto.CrewMembership;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,6 +21,7 @@ public class UserDetailsImpl implements UserDetails {
     private Long memberId;
     private String socialId;
     private List<MemberRole> roles;
+    private CrewMembership crewMembership;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

@@ -33,6 +33,9 @@ import com.runtracker.domain.crew.repository.CrewMemberRepository;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.repository.MemberRepository;
+import com.runtracker.global.security.UserDetailsImpl;
+import com.runtracker.global.security.CrewAuthorizationUtil;
+import com.runtracker.global.jwt.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,43 +50,45 @@ public class CrewService {
     private final CrewRepository crewRepository;
     private final CrewMemberRepository crewMemberRepository;
     private final MemberRepository memberRepository;
+    private final CrewAuthorizationUtil authorizationUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public void createCrew(CrewCreateDTO.Request request, Long leaderId) {
-        memberRepository.findById(leaderId)
+    public void createCrew(CrewCreateDTO.Request request, UserDetailsImpl userDetails) {
+        memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
         
-        List<Crew> existingCrews = crewRepository.findByLeaderId(leaderId);
+        List<Crew> existingCrews = crewRepository.findByLeaderId(userDetails.getMemberId());
         if (!existingCrews.isEmpty()) {
             throw new CrewAlreadyExistsException();
         }
         
-        Crew crew = request.toEntity(leaderId);
+        Crew crew = request.toEntity(userDetails.getMemberId());
         crewRepository.save(crew);
         
         CrewMember crewLeader = CrewMember.builder()
                 .crewId(crew.getId())
-                .memberId(leaderId)
+                .memberId(userDetails.getMemberId())
                 .role(MemberRole.CREW_LEADER)
                 .status(CrewMemberStatus.ACTIVE)
                 .build();
         crewMemberRepository.save(crewLeader);
     }
     
-    public void applyToJoinCrew(Long crewId, Long applicantId) {
-        memberRepository.findById(applicantId)
+    public void applyToJoinCrew(Long crewId, UserDetailsImpl userDetails) {
+        memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
         
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
 
         List<CrewMember> activeCrewMemberships = crewMemberRepository
-                .findByMemberIdAndStatus(applicantId, CrewMemberStatus.ACTIVE);
+                .findByMemberIdAndStatus(userDetails.getMemberId(), CrewMemberStatus.ACTIVE);
         if (!activeCrewMemberships.isEmpty()) {
             throw new AlreadyJoinedOtherCrewException();
         }
         
         CrewMember existingMembership = crewMemberRepository
-                .findByCrewIdAndMemberId(crewId, applicantId)
+                .findByCrewIdAndMemberId(crewId, userDetails.getMemberId())
                 .orElse(null);
                 
         if (existingMembership != null) {
@@ -100,22 +105,22 @@ public class CrewService {
         
         CrewMember newApplication = CrewMember.builder()
                 .crewId(crewId)
-                .memberId(applicantId)
+                .memberId(userDetails.getMemberId())
                 .role(MemberRole.USER)
                 .status(CrewMemberStatus.PENDING)
                 .build();
         crewMemberRepository.save(newApplication);
     }
     
-    public void cancelCrewApplication(Long crewId, Long applicantId) {
-        memberRepository.findById(applicantId)
+    public void cancelCrewApplication(Long crewId, UserDetailsImpl userDetails) {
+        memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
         
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
         
         CrewMember application = crewMemberRepository
-                .findByCrewIdAndMemberId(crewId, applicantId)
+                .findByCrewIdAndMemberId(crewId, userDetails.getMemberId())
                 .orElseThrow(NoPendingApplicationException::new);
         
         if (application.getStatus() != CrewMemberStatus.PENDING) {
@@ -125,11 +130,11 @@ public class CrewService {
         crewMemberRepository.delete(application);
     }
     
-    public void processJoinRequest(Long crewId, CrewApprovalDTO.Request request, Long leaderId) {
+    public void processJoinRequest(Long crewId, CrewApprovalDTO.Request request, UserDetailsImpl userDetails) {
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
-                
-        validateCrewManagementPermission(crewId, leaderId);
+
+        authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
 
         CrewMember applicant = crewMemberRepository
                 .findByCrewIdAndMemberId(crewId, request.getMemberId())
@@ -154,13 +159,15 @@ public class CrewService {
 
             pendingApplications.removeIf(member -> member.getCrewId().equals(crewId));
             crewMemberRepository.deleteAll(pendingApplications);
+
+            tokenBlacklistService.invalidateUserTokens(request.getMemberId());
         } else {
             crewMemberRepository.delete(applicant);
         }
     }
     
-    public void updateCrewMemberRole(Long crewId, CrewMemberUpdateDTO.Request request, Long managerId) {
-        validateCrewManagementPermission(crewId, managerId);
+    public void updateCrewMemberRole(Long crewId, CrewMemberUpdateDTO.Request request, UserDetailsImpl userDetails) {
+        authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
         
         CrewMember targetMember = crewMemberRepository
                 .findByCrewIdAndMemberId(crewId, request.getMemberId())
@@ -184,10 +191,12 @@ public class CrewService {
         
         targetMember.updateRole(request.getRole());
         crewMemberRepository.save(targetMember);
+
+        tokenBlacklistService.invalidateUserTokens(request.getMemberId());
     }
     
-    public void updateCrew(Long crewId, CrewUpdateDTO.Request request, Long leaderId) {
-        validateCrewLeaderPermission(crewId, leaderId);
+    public void updateCrew(Long crewId, CrewUpdateDTO.Request request, UserDetailsImpl userDetails) {
+        authorizationUtil.validateCrewLeaderPermission(userDetails, crewId);
         
         Crew crew = crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
@@ -211,25 +220,30 @@ public class CrewService {
         crewRepository.save(crew);
     }
     
-    public void deleteCrew(Long crewId, Long leaderId) {
-        validateCrewLeaderPermission(crewId, leaderId);
+    public void deleteCrew(Long crewId, UserDetailsImpl userDetails) {
+        authorizationUtil.validateCrewLeaderPermission(userDetails, crewId);
         
         Crew crew = crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
 
         List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
-        crewMemberRepository.deleteAll(crewMembers);
 
+        List<Long> memberIds = crewMembers.stream()
+                .map(CrewMember::getMemberId)
+                .toList();
+        tokenBlacklistService.invalidateCrewMemberTokens(crewId, memberIds);
+        
+        crewMemberRepository.deleteAll(crewMembers);
         crewRepository.delete(crew);
     }
     
-    public void banCrewMember(Long crewId, Long targetMemberId, Long managerId) {
+    public void banCrewMember(Long crewId, Long targetMemberId, UserDetailsImpl userDetails) {
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
 
-        validateCrewManagementPermission(crewId, managerId);
+        authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
 
-        if (targetMemberId.equals(managerId)) {
+        if (targetMemberId.equals(userDetails.getMemberId())) {
             throw new CannotKickYourselfException();
         }
 
@@ -245,29 +259,28 @@ public class CrewService {
             throw new CannotKickCrewLeaderException();
         }
 
-        // 매니저 권한 체크 후 매니저가 매니저 추방 못하게 예외 처리
-        CrewMember manager = crewMemberRepository
-                .findByCrewIdAndMemberId(crewId, managerId)
-                .orElseThrow(NotCrewLeaderException::new);
+        boolean isManager = userDetails.getRoles().contains(MemberRole.CREW_MANAGER) && 
+                           !userDetails.getRoles().contains(MemberRole.CREW_LEADER);
         
-        if (manager.getRole() == MemberRole.CREW_MANAGER && 
-            targetMember.getRole() == MemberRole.CREW_MANAGER) {
+        if (isManager && targetMember.getRole() == MemberRole.CREW_MANAGER) {
             throw new CannotKickManagerAsManagerException();
         }
 
         targetMember.ban();
         crewMemberRepository.save(targetMember);
+
+        tokenBlacklistService.invalidateUserTokens(targetMemberId);
     }
     
-    public void leaveCrew(Long crewId, Long memberId) {
-        memberRepository.findById(memberId)
+    public void leaveCrew(Long crewId, UserDetailsImpl userDetails) {
+        memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
         
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
         
         CrewMember crewMember = crewMemberRepository
-                .findByCrewIdAndMemberId(crewId, memberId)
+                .findByCrewIdAndMemberId(crewId, userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
         
         if (crewMember.getStatus() != CrewMemberStatus.ACTIVE) {
@@ -279,6 +292,8 @@ public class CrewService {
         }
         
         crewMemberRepository.delete(crewMember);
+
+        tokenBlacklistService.invalidateUserTokens(userDetails.getMemberId());
     }
     
     @Transactional(readOnly = true)
@@ -308,11 +323,11 @@ public class CrewService {
     }
     
     @Transactional(readOnly = true)
-    public CrewManagementDTO.PendingMembersResponse getPendingMembers(Long crewId, Long managerId) {
+    public CrewManagementDTO.PendingMembersResponse getPendingMembers(Long crewId, UserDetailsImpl userDetails) {
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
-        
-        validateCrewManagementPermission(crewId, managerId);
+
+        authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
         
         List<CrewMember> pendingMembers = crewMemberRepository.findByCrewId(crewId).stream()
                 .filter(member -> member.getStatus() == CrewMemberStatus.PENDING)
@@ -330,11 +345,11 @@ public class CrewService {
     }
     
     @Transactional(readOnly = true)
-    public CrewManagementDTO.BannedMembersResponse getBannedMembers(Long crewId, Long managerId) {
+    public CrewManagementDTO.BannedMembersResponse getBannedMembers(Long crewId, UserDetailsImpl userDetails) {
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
-        
-        validateCrewManagementPermission(crewId, managerId);
+
+        authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
         
         List<CrewMember> bannedMembers = crewMemberRepository.findByCrewId(crewId).stream()
                 .filter(member -> member.getStatus() == CrewMemberStatus.BANNED)
@@ -352,8 +367,8 @@ public class CrewService {
     }
     
     @Transactional(readOnly = true)
-    public MemberProfileDTO getMemberProfile(Long targetMemberId, Long requesterId) {
-        memberRepository.findById(requesterId)
+    public MemberProfileDTO getMemberProfile(Long targetMemberId, UserDetailsImpl userDetails) {
+        memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
 
         Member targetMember = memberRepository.findById(targetMemberId)
@@ -365,24 +380,5 @@ public class CrewService {
     private boolean isValidCrewRole(MemberRole role) {
         return role == MemberRole.CREW_MEMBER || role == MemberRole.CREW_MANAGER;
     }
-    
-    private void validateCrewLeaderPermission(Long crewId, Long memberId) {
-        CrewMember member = crewMemberRepository
-                .findByCrewIdAndMemberId(crewId, memberId)
-                .orElseThrow(NotCrewLeaderException::new);
 
-        if (member.getRole() != MemberRole.CREW_LEADER) {
-            throw new NotCrewLeaderException();
-        }
-    }
-    
-    public void validateCrewManagementPermission(Long crewId, Long memberId) {
-        CrewMember member = crewMemberRepository
-                .findByCrewIdAndMemberId(crewId, memberId)
-                .orElseThrow(NotCrewLeaderException::new);
-
-        if (member.getRole() != MemberRole.CREW_LEADER && member.getRole() != MemberRole.CREW_MANAGER) {
-            throw new NotCrewLeaderException();
-        }
-    }
 }

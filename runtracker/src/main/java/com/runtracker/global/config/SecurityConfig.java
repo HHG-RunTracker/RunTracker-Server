@@ -3,6 +3,7 @@ package com.runtracker.global.config;
 import com.runtracker.global.jwt.JwtAuthenticationFilter;
 import com.runtracker.global.jwt.JwtUtil;
 import com.runtracker.global.security.UserDetailsServiceImpl;
+import com.runtracker.global.jwt.service.TokenBlacklistService;
 import com.runtracker.domain.auth.eventHandler.OAuth2EventHandler;
 import com.runtracker.domain.auth.service.OAuth2UserService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
     private final OAuth2EventHandler oAuth2SuccessHandler;
 
     private static final List<String> EXCLUDE_PATHS = Arrays.asList(
@@ -64,7 +66,7 @@ public class SecurityConfig {
     
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtUtil, userDetailsService, EXCLUDE_PATHS);
+        return new JwtAuthenticationFilter(jwtUtil, userDetailsService, tokenBlacklistService, EXCLUDE_PATHS);
     }
 
     @Bean
