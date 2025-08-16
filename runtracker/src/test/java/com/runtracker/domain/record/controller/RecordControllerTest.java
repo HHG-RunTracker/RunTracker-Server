@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -272,6 +271,123 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                         )
                                         .queryParameters(
                                                 parameterWithName("monthDate").description("월간 기준 날짜 (yyyy-MM-dd) - 해당 날짜가 포함된 월의 기록을 조회")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("러닝 기록 목록"),
+                                                fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
+                                                fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body[].runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
+                                                fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getRunningRecordByIdTest() throws Exception {
+        // given
+        RunningRecordDTO mockRecord = new RunningRecordDTO(
+                1L,
+                1L,
+                LocalDateTime.of(2025, 8, 16, 7, 30, 0),
+                5000.0,
+                7200,
+                400
+        );
+
+        given(recordService.getRunningRecordById(anyLong(), anyLong())).willReturn(mockRecord);
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(get("/api/records/{recordId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("record-get-running-record-by-id",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("records")
+                                        .description("러닝 기록 ID로 상세 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("recordId").description("러닝 기록 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.OBJECT).description("러닝 기록 상세"),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
+                                                fieldWithPath("body.courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body.runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
+                                                fieldWithPath("body.walk").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("body.calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getAllRunningRecordsTest() throws Exception {
+        // given
+        List<RunningRecordDTO> mockRecords = List.of(
+                new RunningRecordDTO(
+                        1L,
+                        1L,
+                        LocalDateTime.of(2025, 8, 16, 7, 30, 0),
+                        5000.0,
+                        7200,
+                        400
+                ),
+                new RunningRecordDTO(
+                        2L,
+                        2L,
+                        LocalDateTime.of(2025, 8, 15, 6, 0, 0),
+                        3000.0,
+                        4500,
+                        250
+                )
+        );
+
+        given(recordService.getAllRunningRecords(anyLong())).willReturn(mockRecords);
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(get("/api/records/user")
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("record-get-all-running-records",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("records")
+                                        .description("사용자의 전체 러닝 기록 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

@@ -6,7 +6,7 @@ import com.runtracker.domain.record.exception.CourseNotFoundForRecordException;
 import com.runtracker.domain.record.exception.InvalidDateRangeException;
 import com.runtracker.domain.record.exception.DateRangeTooLargeException;
 import com.runtracker.domain.record.exception.DateParameterRequiredException;
-import com.runtracker.domain.record.exception.NoRecordsFoundException;
+import com.runtracker.domain.record.exception.RecordNotFoundException;
 import com.runtracker.domain.record.repository.RecordRepository;
 import com.runtracker.domain.course.repository.CourseRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,6 @@ public class RecordService {
 
     @Transactional
     public void saveRunningRecord(Long memberId, RunningRecordDTO createDTO) {
-        // 코스가 존재하는지 확인
         if (!courseRepository.existsById(createDTO.getCourseId())) {
             throw new CourseNotFoundForRecordException("Course not found with id: " + createDTO.getCourseId());
         }
@@ -47,13 +46,38 @@ public class RecordService {
     }
 
     @Transactional(readOnly = true)
+    public List<RunningRecordDTO> getAllRunningRecords(Long memberId) {
+        List<RunningRecord> records = recordRepository.findByMemberIdOrderByRunningTimeDesc(memberId);
+        
+        if (records.isEmpty()) {
+            throw new RecordNotFoundException("No running records found for member " + memberId);
+        }
+        
+        return records.stream()
+                .map(RunningRecordDTO::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public RunningRecordDTO getRunningRecordById(Long memberId, Long recordId) {
+        RunningRecord record = recordRepository.findById(recordId)
+                .orElseThrow(() -> new RecordNotFoundException("Running record not found with id: " + recordId));
+
+        if (!record.getMemberId().equals(memberId)) {
+            throw new RecordNotFoundException("Running record not found with id: " + recordId);
+        }
+        
+        return RunningRecordDTO.from(record);
+    }
+
+    @Transactional(readOnly = true)
     public List<RunningRecordDTO> getRunningRecordsByDate(Long memberId, LocalDate startDate, LocalDate endDate) {
         validateDateRange(startDate, endDate);
         
         List<RunningRecord> records = recordRepository.findByMemberIdAndRunningTimeBetween(memberId, startDate, endDate);
         
         if (records.isEmpty()) {
-            throw new NoRecordsFoundException("No running records found for member " + memberId + " between " + startDate + " and " + endDate);
+            throw new RecordNotFoundException("No running records found for member " + memberId + " between " + startDate + " and " + endDate);
         }
         
         return records.stream()
@@ -71,7 +95,7 @@ public class RecordService {
         List<RunningRecord> records = recordRepository.findByMemberIdAndRunningTimeBetween(memberId, weekStart, weekEnd);
         
         if (records.isEmpty()) {
-            throw new NoRecordsFoundException("No running records found for member " + memberId + " for the week of " + weekDate);
+            throw new RecordNotFoundException("No running records found for member " + memberId + " for the week of " + weekDate);
         }
         
         return records.stream()
@@ -89,7 +113,7 @@ public class RecordService {
         List<RunningRecord> records = recordRepository.findByMemberIdAndRunningTimeBetween(memberId, monthStart, monthEnd);
         
         if (records.isEmpty()) {
-            throw new NoRecordsFoundException("No running records found for member " + memberId + " for the month of " + monthDate.getYear() + "-" + monthDate.getMonthValue());
+            throw new RecordNotFoundException("No running records found for member " + memberId + " for the month of " + monthDate.getYear() + "-" + monthDate.getMonthValue());
         }
         
         return records.stream()

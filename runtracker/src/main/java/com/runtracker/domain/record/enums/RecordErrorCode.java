@@ -12,7 +12,7 @@ public enum RecordErrorCode implements ResponseCode {
     INVALID_DATE_RANGE("RC002", "Start date must be before or equal to end date"),
     DATE_RANGE_TOO_LARGE("RC003", "Date range cannot exceed 365 days"),
     DATE_PARAMETER_REQUIRED("RC004", "Date parameters are required"),
-    NO_RECORDS_FOUND("RC005", "No records found for the specified date range");
+    RECORD_NOT_FOUND("RC005", "Running record not found");
     
     private final String statusCode;
     private final String message;

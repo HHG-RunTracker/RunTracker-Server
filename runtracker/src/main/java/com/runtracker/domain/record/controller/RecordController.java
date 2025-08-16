@@ -78,4 +78,31 @@ public class RecordController {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping("/user")
+    public ApiResponse<List<RunningRecordDTO>> getAllRunningRecords(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        try {
+            List<RunningRecordDTO> records = recordService.getAllRunningRecords(userDetails.getMemberId());
+            return ApiResponse.ok(records);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/{recordId}")
+    public ApiResponse<RunningRecordDTO> getRunningRecord(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long recordId) {
+        try {
+            RunningRecordDTO record = recordService.getRunningRecordById(userDetails.getMemberId(), recordId);
+            return ApiResponse.ok(record);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
