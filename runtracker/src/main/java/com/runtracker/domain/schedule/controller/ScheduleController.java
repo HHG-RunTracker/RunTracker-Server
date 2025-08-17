@@ -23,14 +23,14 @@ public class ScheduleController {
     public ApiResponse<Void> createSchedule(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody ScheduleCreateDTO scheduleCreateDTO) {
-        scheduleService.createSchedule(scheduleCreateDTO, userDetails.getMemberId());
+        scheduleService.createSchedule(scheduleCreateDTO, userDetails);
         return ApiResponse.ok();
     }
 
     @GetMapping("/list")
     public ApiResponse<ScheduleListDTO.ListResponse> getCrewSchedules(
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        ScheduleListDTO.ListResponse response = scheduleService.getCrewSchedulesByMemberId(userDetails.getMemberId());
+        ScheduleListDTO.ListResponse response = scheduleService.getCrewSchedulesByMemberId(userDetails);
         return ApiResponse.ok(response);
     }
 
@@ -38,7 +38,7 @@ public class ScheduleController {
     public ApiResponse<ScheduleDetailDTO.Response> getScheduleDetail(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long scheduleId) {
-        ScheduleDetailDTO.Response response = scheduleService.getScheduleDetail(scheduleId, userDetails.getMemberId());
+        ScheduleDetailDTO.Response response = scheduleService.getScheduleDetail(scheduleId, userDetails);
         return ApiResponse.ok(response);
     }
 
@@ -47,7 +47,7 @@ public class ScheduleController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long scheduleId,
             @RequestBody ScheduleUpdateDTO scheduleUpdateDTO) {
-        scheduleService.updateSchedule(scheduleId, scheduleUpdateDTO, userDetails.getMemberId());
+        scheduleService.updateSchedule(scheduleId, scheduleUpdateDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -55,7 +55,7 @@ public class ScheduleController {
     public ApiResponse<Void> deleteSchedule(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long scheduleId) {
-        scheduleService.deleteSchedule(scheduleId, userDetails.getMemberId());
+        scheduleService.deleteSchedule(scheduleId, userDetails);
         return ApiResponse.ok();
     }
 
@@ -63,7 +63,7 @@ public class ScheduleController {
     public ApiResponse<Void> joinSchedule(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long scheduleId) {
-        scheduleService.joinSchedule(scheduleId, userDetails.getMemberId());
+        scheduleService.joinSchedule(scheduleId, userDetails);
         return ApiResponse.ok();
     }
 
@@ -71,7 +71,7 @@ public class ScheduleController {
     public ApiResponse<Void> cancelSchedule(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long scheduleId) {
-        scheduleService.cancelSchedule(scheduleId, userDetails.getMemberId());
+        scheduleService.cancelSchedule(scheduleId, userDetails);
         return ApiResponse.ok();
     }
 
@@ -79,7 +79,7 @@ public class ScheduleController {
     public ApiResponse<ScheduleParticipantDTO.ListResponse> getScheduleParticipants(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long scheduleId) {
-        ScheduleParticipantDTO.ListResponse response = scheduleService.getScheduleParticipants(scheduleId, userDetails.getMemberId());
+        ScheduleParticipantDTO.ListResponse response = scheduleService.getScheduleParticipants(scheduleId, userDetails);
         return ApiResponse.ok(response);
     }
 }

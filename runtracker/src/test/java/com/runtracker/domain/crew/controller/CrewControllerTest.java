@@ -26,6 +26,8 @@ import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
@@ -169,7 +171,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(999L)
                 .socialId("kakao_999")
-                .roles(List.of(MemberRole.CREW_LEADER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("999")).willReturn(mockUserDetails);
 
@@ -213,7 +215,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(888L)
                 .socialId("kakao_888")
-                .roles(List.of(MemberRole.CREW_LEADER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("888")).willReturn(mockUserDetails);
 
@@ -257,7 +259,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(777L)
                 .socialId("kakao_777")
-                .roles(List.of(MemberRole.CREW_LEADER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("777")).willReturn(mockUserDetails);
 
@@ -307,7 +309,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(666L)
                 .socialId("kakao_666")
-                .roles(List.of(MemberRole.CREW_LEADER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("666")).willReturn(mockUserDetails);
 
@@ -342,7 +344,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(555L)
                 .socialId("kakao_555")
-                .roles(List.of(MemberRole.CREW_LEADER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("555")).willReturn(mockUserDetails);
 
@@ -379,7 +381,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(444L)
                 .socialId("kakao_444")
-                .roles(List.of(MemberRole.CREW_MEMBER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MEMBER))
                 .build();
         given(userDetailsService.loadUserByUsername("444")).willReturn(mockUserDetails);
 
@@ -583,7 +585,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(333L)
                 .socialId("kakao_333")
-                .roles(List.of(MemberRole.CREW_LEADER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("333")).willReturn(mockUserDetails);
         
@@ -609,7 +611,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         );
         
         CrewManagementDTO.PendingMembersResponse mockResponse = CrewManagementDTO.PendingMembersResponse.of(mockPendingMembers);
-        given(crewService.getPendingMembers(1L, 333L)).willReturn(mockResponse);
+        given(crewService.getPendingMembers(anyLong(), any(UserDetailsImpl.class))).willReturn(mockResponse);
 
         // when
         this.mockMvc.perform(get("/api/crew/list/pending/{crewId}", 1L)
@@ -654,7 +656,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(333L)
                 .socialId("kakao_333")
-                .roles(List.of(MemberRole.CREW_LEADER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("333")).willReturn(mockUserDetails);
         
@@ -680,7 +682,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
         );
         
         CrewManagementDTO.BannedMembersResponse mockResponse = CrewManagementDTO.BannedMembersResponse.of(mockBannedMembers);
-        given(crewService.getBannedMembers(1L, 333L)).willReturn(mockResponse);
+        given(crewService.getBannedMembers(anyLong(), any(UserDetailsImpl.class))).willReturn(mockResponse);
 
         // when
         this.mockMvc.perform(get("/api/crew/list/banned/{crewId}", 1L)
@@ -742,7 +744,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                 .temperature(36.5)
                 .build();
         
-        given(crewService.getMemberProfile(123L, 500L)).willReturn(mockProfile);
+        given(crewService.getMemberProfile(anyLong(), any(UserDetailsImpl.class))).willReturn(mockProfile);
 
         // when
         this.mockMvc.perform(get("/api/crew/member/{memberId}", 123L)

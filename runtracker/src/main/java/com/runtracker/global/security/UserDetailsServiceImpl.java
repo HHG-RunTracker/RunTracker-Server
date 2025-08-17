@@ -1,8 +1,11 @@
 package com.runtracker.global.security;
 
+import com.runtracker.domain.crew.enums.CrewMemberStatus;
+import com.runtracker.domain.crew.repository.CrewMemberRepository;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.repository.MemberRepository;
+import com.runtracker.global.security.dto.CrewMembership;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -10,6 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -17,6 +21,7 @@ import java.util.List;
 public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final MemberRepository memberRepository;
+    private final CrewMemberRepository crewMemberRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -28,14 +33,25 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     private UserDetails createUserDetails(Member member) {
-        // TODO: 나중에 Member 엔티티에 roles 필드가 추가되면 실제 권한 사용
-        // 현재는 기본적으로 USER 권한만 부여
-        List<MemberRole> roles = List.of(MemberRole.USER);
+        List<MemberRole> roles = new ArrayList<>();
+        roles.add(MemberRole.USER);
+        
+        // 활성 크루 멤버십 조회 (한 명당 크루 1개만 가능)
+        CrewMembership crewMembership = crewMemberRepository
+                .findByMemberIdAndStatus(member.getId(), CrewMemberStatus.ACTIVE)
+                .stream()
+                .findFirst()
+                .map(crewMember -> CrewMembership.builder()
+                        .crewId(crewMember.getCrewId())
+                        .role(crewMember.getRole())
+                        .build())
+                .orElse(null);
         
         return UserDetailsImpl.builder()
                 .memberId(member.getId())
                 .socialId(member.getSocialId())
                 .roles(roles)
+                .crewMembership(crewMembership)
                 .build();
     }
 }

@@ -29,8 +29,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody CrewCreateDTO.Request request) {
         
-        Long leaderId = userDetails.getMemberId();
-        crewService.createCrew(request, leaderId);
+        crewService.createCrew(request, userDetails);
         
         return ApiResponse.ok();
     }
@@ -40,8 +39,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long memberId = userDetails.getMemberId();
-        crewService.applyToJoinCrew(crewId, memberId);
+        crewService.applyToJoinCrew(crewId, userDetails);
         
         return ApiResponse.ok();
     }
@@ -51,8 +49,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long memberId = userDetails.getMemberId();
-        crewService.cancelCrewApplication(crewId, memberId);
+        crewService.cancelCrewApplication(crewId, userDetails);
         
         return ApiResponse.ok();
     }
@@ -63,8 +60,7 @@ public class CrewController {
             @PathVariable Long crewId,
             @RequestBody CrewApprovalDTO.Request request) {
         
-        Long leaderId = userDetails.getMemberId();
-        crewService.processJoinRequest(crewId, request, leaderId);
+        crewService.processJoinRequest(crewId, request, userDetails);
         
         return ApiResponse.ok();
     }
@@ -75,8 +71,7 @@ public class CrewController {
             @PathVariable Long crewId,
             @RequestBody CrewMemberUpdateDTO.Request request) {
         
-        Long managerId = userDetails.getMemberId();
-        crewService.updateCrewMemberRole(crewId, request, managerId);
+        crewService.updateCrewMemberRole(crewId, request, userDetails);
         
         return ApiResponse.ok();
     }
@@ -87,8 +82,7 @@ public class CrewController {
             @PathVariable Long crewId,
             @RequestBody CrewUpdateDTO.Request request) {
         
-        Long leaderId = userDetails.getMemberId();
-        crewService.updateCrew(crewId, request, leaderId);
+        crewService.updateCrew(crewId, request, userDetails);
         
         return ApiResponse.ok();
     }
@@ -98,8 +92,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long leaderId = userDetails.getMemberId();
-        crewService.deleteCrew(crewId, leaderId);
+        crewService.deleteCrew(crewId, userDetails);
         
         return ApiResponse.ok();
     }
@@ -110,8 +103,7 @@ public class CrewController {
             @PathVariable Long crewId,
             @RequestParam Long memberId) {
         
-        Long managerId = userDetails.getMemberId();
-        crewService.banCrewMember(crewId, memberId, managerId);
+        crewService.banCrewMember(crewId, memberId, userDetails);
         
         return ApiResponse.ok();
     }
@@ -121,8 +113,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long memberId = userDetails.getMemberId();
-        crewService.leaveCrew(crewId, memberId);
+        crewService.leaveCrew(crewId, userDetails);
         
         return ApiResponse.ok();
     }
@@ -151,8 +142,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long managerId = userDetails.getMemberId();
-        CrewManagementDTO.PendingMembersResponse response = crewService.getPendingMembers(crewId, managerId);
+        CrewManagementDTO.PendingMembersResponse response = crewService.getPendingMembers(crewId, userDetails);
         
         return ApiResponse.ok(response);
     }
@@ -162,8 +152,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long crewId) {
         
-        Long managerId = userDetails.getMemberId();
-        CrewManagementDTO.BannedMembersResponse response = crewService.getBannedMembers(crewId, managerId);
+        CrewManagementDTO.BannedMembersResponse response = crewService.getBannedMembers(crewId, userDetails);
         
         return ApiResponse.ok(response);
     }
@@ -173,8 +162,7 @@ public class CrewController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long memberId) {
         
-        Long requesterId = userDetails.getMemberId();
-        MemberProfileDTO response = crewService.getMemberProfile(memberId, requesterId);
+        MemberProfileDTO response = crewService.getMemberProfile(memberId, userDetails);
         
         return ApiResponse.ok(response);
     }

@@ -1,9 +1,10 @@
 package com.runtracker.domain.schedule.service;
 
 import com.runtracker.domain.crew.entity.CrewMember;
-import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
-import com.runtracker.domain.crew.service.CrewService;
+import com.runtracker.global.security.UserDetailsImpl;
+import com.runtracker.global.security.CrewAuthorizationUtil;
+import com.runtracker.global.security.dto.CrewMembership;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.repository.MemberRepository;
@@ -36,16 +37,16 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final CrewMemberRepository crewMemberRepository;
     private final MemberRepository memberRepository;
-    private final CrewService crewService;
+    private final CrewAuthorizationUtil authorizationUtil;
 
     @Transactional
-    public Long createSchedule(ScheduleCreateDTO scheduleCreateDTO, Long memberId) {
-        crewService.validateCrewManagementPermission(scheduleCreateDTO.getCrewId(), memberId);
+    public Long createSchedule(ScheduleCreateDTO scheduleCreateDTO, UserDetailsImpl userDetails) {
+        authorizationUtil.validateCrewManagementPermission(userDetails, scheduleCreateDTO.getCrewId());
         LocalDateTime parsedDate = parseAndValidateDate(scheduleCreateDTO.getDate());
         
         Schedule schedule = Schedule.builder()
                 .crewId(scheduleCreateDTO.getCrewId())
-                .memberId(memberId)
+                .memberId(userDetails.getMemberId())
                 .date(parsedDate)
                 .title(scheduleCreateDTO.getTitle())
                 .content(scheduleCreateDTO.getContent())
@@ -93,22 +94,24 @@ public class ScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public ScheduleListDTO.ListResponse getCrewSchedulesByMemberId(Long memberId) {
-        CrewMember crewMember = crewMemberRepository.findByMemberIdAndStatus(memberId, 
-                CrewMemberStatus.ACTIVE)
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS));
+    public ScheduleListDTO.ListResponse getCrewSchedulesByMemberId(UserDetailsImpl userDetails) {
+        CrewMembership membership = userDetails.getCrewMembership();
+        if (membership == null) {
+            throw new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS);
+        }
+        
+        Long crewId = membership.getCrewId();
+        authorizationUtil.validateCrewMemberAccess(userDetails, crewId);
 
-        return getCrewSchedules(crewMember.getCrewId());
+        return getCrewSchedules(crewId);
     }
     
     @Transactional(readOnly = true)
-    public ScheduleDetailDTO.Response getScheduleDetail(Long scheduleId, Long memberId) {
+    public ScheduleDetailDTO.Response getScheduleDetail(Long scheduleId, UserDetailsImpl userDetails) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
 
-        validateScheduleAccess(schedule.getCrewId(), memberId);
+        authorizationUtil.validateCrewMemberAccess(userDetails, schedule.getCrewId());
         
         Member creator = memberRepository.findById(schedule.getMemberId())
                 .orElse(null);
@@ -118,11 +121,11 @@ public class ScheduleService {
     }
     
     @Transactional
-    public void updateSchedule(Long scheduleId, ScheduleUpdateDTO scheduleUpdateDTO, Long memberId) {
+    public void updateSchedule(Long scheduleId, ScheduleUpdateDTO scheduleUpdateDTO, UserDetailsImpl userDetails) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
 
-        crewService.validateCrewManagementPermission(schedule.getCrewId(), memberId);
+        authorizationUtil.validateCrewManagementPermission(userDetails, schedule.getCrewId());
 
         LocalDateTime parsedDate = null;
         if (scheduleUpdateDTO.getDate() != null && !scheduleUpdateDTO.getDate().trim().isEmpty()) {
@@ -133,41 +136,41 @@ public class ScheduleService {
     }
     
     @Transactional
-    public void deleteSchedule(Long scheduleId, Long memberId) {
+    public void deleteSchedule(Long scheduleId, UserDetailsImpl userDetails) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
 
-        crewService.validateCrewManagementPermission(schedule.getCrewId(), memberId);
+        authorizationUtil.validateCrewManagementPermission(userDetails, schedule.getCrewId());
 
         scheduleRepository.delete(schedule);
     }
     
     @Transactional
-    public void joinSchedule(Long scheduleId, Long memberId) {
+    public void joinSchedule(Long scheduleId, UserDetailsImpl userDetails) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
         
-        validateScheduleAccess(schedule.getCrewId(), memberId);
+        authorizationUtil.validateCrewMemberAccess(userDetails, schedule.getCrewId());
         
-        schedule.joinSchedule(memberId);
+        schedule.joinSchedule(userDetails.getMemberId());
     }
     
     @Transactional
-    public void cancelSchedule(Long scheduleId, Long memberId) {
+    public void cancelSchedule(Long scheduleId, UserDetailsImpl userDetails) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
         
-        validateScheduleAccess(schedule.getCrewId(), memberId);
+        authorizationUtil.validateCrewMemberAccess(userDetails, schedule.getCrewId());
         
-        schedule.cancelSchedule(memberId);
+        schedule.cancelSchedule(userDetails.getMemberId());
     }
     
     @Transactional(readOnly = true)
-    public ScheduleParticipantDTO.ListResponse getScheduleParticipants(Long scheduleId, Long memberId) {
+    public ScheduleParticipantDTO.ListResponse getScheduleParticipants(Long scheduleId, UserDetailsImpl userDetails) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(ScheduleNotFoundException::new);
         
-        validateScheduleAccess(schedule.getCrewId(), memberId);
+        authorizationUtil.validateCrewMemberAccess(userDetails, schedule.getCrewId());
         
         List<Long> participantIds = schedule.getParticipants();
         
@@ -192,15 +195,5 @@ public class ScheduleService {
         return ScheduleParticipantDTO.ListResponse.of(participantResponses);
     }
     
-    private void validateScheduleAccess(Long crewId, Long memberId) {
-        boolean hasAccess = crewMemberRepository.findByMemberIdAndStatus(memberId, 
-                CrewMemberStatus.ACTIVE)
-                .stream()
-                .anyMatch(crewMember -> crewMember.getCrewId().equals(crewId));
-        
-        if (!hasAccess) {
-            throw new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS);
-        }
-    }
 
 }

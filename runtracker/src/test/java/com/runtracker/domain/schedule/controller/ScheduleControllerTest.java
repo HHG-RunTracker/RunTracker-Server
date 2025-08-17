@@ -45,7 +45,7 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
         
@@ -102,14 +102,14 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
                                 .build()
                 )
         );
-        given(scheduleService.getCrewSchedulesByMemberId(anyLong())).willReturn(mockResponse);
+        given(scheduleService.getCrewSchedulesByMemberId(any(UserDetailsImpl.class))).willReturn(mockResponse);
         given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
         given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
 
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MEMBER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
@@ -153,14 +153,14 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
                 .content("한강공원에서 5km 러닝 후 치킨 먹기")
                 .creatorName("김러너")
                 .build();
-        given(scheduleService.getScheduleDetail(anyLong(), anyLong())).willReturn(mockResponse);
+        given(scheduleService.getScheduleDetail(anyLong(), any(UserDetailsImpl.class))).willReturn(mockResponse);
         given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
         given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
 
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MEMBER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
@@ -202,7 +202,7 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
@@ -246,7 +246,7 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_LEADER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
@@ -281,7 +281,7 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MEMBER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
@@ -316,7 +316,7 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MEMBER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
@@ -364,14 +364,14 @@ class ScheduleControllerTest extends RunTrackerDocumentApiTester {
                                 .build()
                 )
         );
-        given(scheduleService.getScheduleParticipants(anyLong(), anyLong())).willReturn(mockResponse);
+        given(scheduleService.getScheduleParticipants(anyLong(), any(UserDetailsImpl.class))).willReturn(mockResponse);
         given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
         given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
 
         UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
                 .memberId(1L)
                 .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MEMBER))
                 .build();
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 

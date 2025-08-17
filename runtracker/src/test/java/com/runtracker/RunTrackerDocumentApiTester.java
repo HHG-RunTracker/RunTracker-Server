@@ -64,7 +64,7 @@ public class RunTrackerDocumentApiTester {
     public void setUp(RestDocumentationContextProvider restDocumentation) {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.context)
                 .apply(documentationConfiguration(restDocumentation))
-                .addFilter(new JwtAuthenticationFilter(jwtUtil, userDetailsService, List.of("/swagger-ui/**", "/api-docs/**")))
+                .addFilter(new JwtAuthenticationFilter(jwtUtil, userDetailsService, mock(com.runtracker.global.jwt.service.TokenBlacklistService.class), List.of("/swagger-ui/**", "/api-docs/**")))
                 .build();
 
         doNothing().when(jwtUtil).validateToken(anyString());
