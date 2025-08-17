@@ -4,6 +4,7 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
+import com.runtracker.domain.crew.dto.CrewCourseRecommendationDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.dto.CrewDetailDTO;
 import com.runtracker.domain.crew.dto.CrewListDTO;
@@ -13,6 +14,7 @@ import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.service.CrewService;
+import com.runtracker.domain.crew.service.CrewRunningService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,9 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
 
     @MockitoBean
     private CrewService crewService;
+    
+    @MockitoBean
+    private CrewRunningService crewRunningService;
 
     @Test
     void createCrew() throws Exception {
@@ -775,6 +780,101 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.region").type(JsonFieldType.STRING).description("지역").optional(),
                                                 fieldWithPath("body.difficulty").type(JsonFieldType.STRING).description("선호 난이도").optional(),
                                                 fieldWithPath("body.temperature").type(JsonFieldType.NUMBER).description("매너 온도").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getRecommendedCourses() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(600L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_600");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(600L)
+                .socialId("kakao_600")
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MANAGER))
+                .build();
+        given(userDetailsService.loadUserByUsername("600")).willReturn(mockUserDetails);
+
+        List<CrewCourseRecommendationDTO.Response> mockRecommendations = List.of(
+                CrewCourseRecommendationDTO.Response.builder()
+                        .courseId(1L)
+                        .name("한강 러닝 코스")
+                        .region("서울시 강남구")
+                        .distance(5.2)
+                        .difficulty(Difficulty.EASY)
+                        .startLat(37.5172)
+                        .startLng(127.0473)
+                        .photo("https://example.com/course1.jpg")
+                        .createdAt(LocalDateTime.of(2024, 1, 1, 10, 0))
+                        .build(),
+                CrewCourseRecommendationDTO.Response.builder()
+                        .courseId(2L)
+                        .name("올림픽공원 코스")
+                        .region("서울시 송파구")
+                        .distance(3.8)
+                        .difficulty(Difficulty.MEDIUM)
+                        .startLat(37.5219)
+                        .startLng(127.1277)
+                        .photo("https://example.com/course2.jpg")
+                        .createdAt(LocalDateTime.of(2024, 1, 5, 14, 30))
+                        .build(),
+                CrewCourseRecommendationDTO.Response.builder()
+                        .courseId(3L)
+                        .name("남산 순환 코스")
+                        .region("서울시 중구")
+                        .distance(7.1)
+                        .difficulty(Difficulty.HARD)
+                        .startLat(37.5506)
+                        .startLng(126.9910)
+                        .photo("https://example.com/course3.jpg")
+                        .createdAt(LocalDateTime.of(2024, 1, 10, 16, 45))
+                        .build()
+        );
+
+        given(crewRunningService.getRecommendedCourses(anyLong(), anyString(), any(), any(), any(UserDetailsImpl.class)))
+                .willReturn(mockRecommendations);
+
+        // when
+        this.mockMvc.perform(get("/api/crew/{crewId}/recommended-courses", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .param("region", "서울시 강남구")
+                        .param("minDistance", "3.0")
+                        .param("maxDistance", "8.0"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-recommended-courses",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 코스 추천 조회 (크루장/매니저 전용)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("조회할 크루 ID")
+                                        )
+                                        .queryParameters(
+                                                parameterWithName("region").description("지역 필터 (선택사항)").optional(),
+                                                parameterWithName("minDistance").description("최소 거리 필터 (선택사항)").optional(),
+                                                parameterWithName("maxDistance").description("최대 거리 필터 (선택사항)").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("추천 코스 목록"),
+                                                fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body[].name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("body[].region").type(JsonFieldType.STRING).description("코스 지역"),
+                                                fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("코스 거리 (km)"),
+                                                fieldWithPath("body[].difficulty").type(JsonFieldType.STRING).description("코스 난이도 (EASY, MEDIUM, HARD)"),
+                                                fieldWithPath("body[].startLat").type(JsonFieldType.NUMBER).description("시작 지점 위도"),
+                                                fieldWithPath("body[].startLng").type(JsonFieldType.NUMBER).description("시작 지점 경도"),
+                                                fieldWithPath("body[].photo").type(JsonFieldType.STRING).description("코스 사진 URL").optional(),
+                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("코스 생성일시")
                                         )
                                         .build()
                         )

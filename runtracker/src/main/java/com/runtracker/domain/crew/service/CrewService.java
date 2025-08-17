@@ -26,7 +26,6 @@ import com.runtracker.domain.crew.exception.CrewNotFoundException;
 import com.runtracker.domain.crew.exception.InvalidCrewRoleException;
 import com.runtracker.domain.crew.exception.MemberNotFoundException;
 import com.runtracker.domain.crew.exception.NoPendingApplicationException;
-import com.runtracker.domain.crew.exception.NotCrewLeaderException;
 import com.runtracker.domain.crew.exception.SameRoleUpdateException;
 import com.runtracker.domain.crew.repository.CrewRepository;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
@@ -380,5 +379,4 @@ public class CrewService {
     private boolean isValidCrewRole(MemberRole role) {
         return role == MemberRole.CREW_MEMBER || role == MemberRole.CREW_MANAGER;
     }
-
 }

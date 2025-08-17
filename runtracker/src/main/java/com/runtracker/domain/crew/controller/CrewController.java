@@ -1,6 +1,7 @@
 package com.runtracker.domain.crew.controller;
 
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
+import com.runtracker.domain.crew.dto.CrewCourseRecommendationDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.dto.CrewDetailDTO;
 import com.runtracker.domain.crew.dto.CrewListDTO;
@@ -9,12 +10,15 @@ import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.service.CrewService;
+import com.runtracker.domain.crew.service.CrewRunningService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class CrewController {
 
     private final CrewService crewService;
+    private final CrewRunningService crewRunningService;
 
     @PostMapping("/create")
     public ApiResponse<Void> createCrew(
@@ -164,6 +169,20 @@ public class CrewController {
         
         MemberProfileDTO response = crewService.getMemberProfile(memberId, userDetails);
         
+        return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/{crewId}/recommended-courses")
+    public ApiResponse<List<CrewCourseRecommendationDTO.Response>> getRecommendedCourses(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) Double minDistance,
+            @RequestParam(required = false) Double maxDistance) {
+
+        List<CrewCourseRecommendationDTO.Response> response = 
+                crewRunningService.getRecommendedCourses(crewId, region, minDistance, maxDistance, userDetails);
+
         return ApiResponse.ok(response);
     }
 }
