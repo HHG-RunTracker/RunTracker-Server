@@ -93,4 +93,8 @@ public class Member extends BaseEntity {
     public void updatePhoto(String photo) {
         this.photo = photo;
     }
+    
+    public void updateTemperature(Double temperature) {
+        this.temperature = temperature;
+    }
 }
