@@ -3,6 +3,7 @@ package com.runtracker.domain.crew.controller;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCourseRecommendationDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
+import com.runtracker.domain.crew.dto.CrewRunningDTO;
 import com.runtracker.domain.crew.dto.CrewDetailDTO;
 import com.runtracker.domain.crew.dto.CrewListDTO;
 import com.runtracker.domain.crew.dto.CrewManagementDTO;
@@ -184,5 +185,70 @@ public class CrewController {
                 crewRunningService.getRecommendedCourses(crewId, region, minDistance, maxDistance, userDetails);
 
         return ApiResponse.ok(response);
+    }
+
+    @PostMapping("/{crewId}/running/create")
+    public ApiResponse<Void> createCrewRunning(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @RequestBody CrewRunningDTO.CreateRequest request) {
+        
+        crewRunningService.createCrewRunning(crewId, request, userDetails);
+        
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/{crewId}/running/list")
+    public ApiResponse<List<CrewRunningDTO.Response>> getCrewRunnings(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        List<CrewRunningDTO.Response> response = crewRunningService.getCrewRunnings(crewId, userDetails);
+        
+        return ApiResponse.ok(response);
+    }
+
+    @PostMapping("/{crewId}/running/{crewRunningId}/join")
+    public ApiResponse<Void> joinCrewRunning(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @PathVariable Long crewRunningId) {
+        
+        crewRunningService.joinCrewRunning(crewId, crewRunningId, userDetails);
+        
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/{crewId}/running/{crewRunningId}/leave")
+    public ApiResponse<Void> leaveCrewRunning(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @PathVariable Long crewRunningId) {
+        
+        crewRunningService.leaveCrewRunning(crewId, crewRunningId, userDetails);
+        
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/{crewId}/running/list/{crewRunningId}")
+    public ApiResponse<CrewRunningDTO.Response> getCrewRunningDetail(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @PathVariable Long crewRunningId) {
+        
+        CrewRunningDTO.Response response = crewRunningService.getCrewRunningDetail(crewId, crewRunningId, userDetails);
+        
+        return ApiResponse.ok(response);
+    }
+
+    @DeleteMapping("/{crewId}/running/{crewRunningId}")
+    public ApiResponse<Void> deleteCrewRunning(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @PathVariable Long crewRunningId) {
+        
+        crewRunningService.deleteCrewRunning(crewId, crewRunningId, userDetails);
+        
+        return ApiResponse.ok();
     }
 }
