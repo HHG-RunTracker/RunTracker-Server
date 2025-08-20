@@ -1,5 +1,7 @@
 package com.runtracker.domain.crew.dto;
 
+import com.runtracker.domain.course.enums.Difficulty;
+import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.crew.enums.CrewRunningStatus;
 import com.runtracker.domain.crew.enums.ParticipantStatus;
 import lombok.*;
@@ -17,6 +19,35 @@ public class CrewRunningDTO {
     public static class CreateRequest {
         private String title;
         private String description;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class StartRunningWithCourseRequest {
+        private Long courseId;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class StartFreeRunningRequest {
+        private String name;
+        private Difficulty difficulty;
+        private List<Coordinate> points;
+        private Double startLat;
+        private Double startLng;
+        private Double distance;
+        private Boolean round;
+        private String indexs;
+        private String region;
+        private String photo;
+        private Double photoLat;
+        private Double photoLng;
     }
 
     @Getter

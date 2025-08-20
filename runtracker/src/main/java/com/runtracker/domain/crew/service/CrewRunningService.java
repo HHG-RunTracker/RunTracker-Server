@@ -1,7 +1,10 @@
 package com.runtracker.domain.crew.service;
 
+import com.runtracker.domain.course.dto.CourseDetailDTO;
+import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.course.entity.Course;
 import com.runtracker.domain.course.repository.CourseRepository;
+import com.runtracker.domain.course.service.CourseService;
 import com.runtracker.domain.crew.dto.CrewCourseRecommendationDTO;
 import com.runtracker.domain.crew.dto.CrewRunningDTO;
 import com.runtracker.domain.crew.entity.Crew;
@@ -29,6 +32,7 @@ public class CrewRunningService {
 
     private final CrewRepository crewRepository;
     private final CourseRepository courseRepository;
+    private final CourseService courseService;
     private final CrewRunningRepository crewRunningRepository;
     private final CrewRunningParticipantRepository crewRunningParticipantRepository;
     private final MemberRepository memberRepository;
@@ -93,11 +97,50 @@ public class CrewRunningService {
         return regionMatch || difficultyMatch;
     }
 
+    private void startAllParticipants(Long crewRunningId) {
+        List<CrewRunningParticipant> participants = crewRunningParticipantRepository
+                .findByCrewRunningIdOrderByJoinedAtAsc(crewRunningId);
+
+        for (CrewRunningParticipant participant : participants) {
+            participant.startRunning();
+        }
+        crewRunningParticipantRepository.saveAll(participants);
+    }
+
+    private void createAndSaveParticipant(Long crewRunningId, Long memberId) {
+        CrewRunningParticipant participant = CrewRunningParticipant.builder()
+                .crewRunningId(crewRunningId)
+                .memberId(memberId)
+                .status(ParticipantStatus.JOINED)
+                .build();
+        participant.joinRunning();
+
+        crewRunningParticipantRepository.save(participant);
+    }
+
+    private void validateUserNotInActiveCrewRunning(Long memberId) {
+        List<CrewRunningParticipant> activeParticipations = crewRunningParticipantRepository
+                .findByMemberIdAndStatusIn(memberId, List.of(ParticipantStatus.JOINED, ParticipantStatus.RUNNING));
+
+        for (CrewRunningParticipant participation : activeParticipations) {
+            CrewRunning crewRunning = crewRunningRepository.findById(participation.getCrewRunningId())
+                    .orElse(null);
+            
+            if (crewRunning != null && 
+                (crewRunning.getStatus() == CrewRunningStatus.WAITING || 
+                 crewRunning.getStatus() == CrewRunningStatus.IN_PROGRESS)) {
+                throw new AlreadyInActiveCrewRunningException();
+            }
+        }
+    }
+
     public void createCrewRunning(Long crewId, CrewRunningDTO.CreateRequest request, UserDetailsImpl userDetails) {
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
 
         authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
+
+        validateUserNotInActiveCrewRunning(userDetails.getMemberId());
 
         try {
             // 크루 런닝 방 생성
@@ -113,15 +156,8 @@ public class CrewRunningService {
             CrewRunning savedCrewRunning = crewRunningRepository.save(crewRunning);
 
             // 크루 런닝방 생성 한 사람을 러닝 참여자로 추가
-            CrewRunningParticipant participant = CrewRunningParticipant.builder()
-                    .crewRunningId(savedCrewRunning.getId())
-                    .memberId(userDetails.getMemberId())
-                    .status(ParticipantStatus.JOINED)
-                    .build();
-            participant.joinRunning();
+            createAndSaveParticipant(savedCrewRunning.getId(), userDetails.getMemberId());
 
-            crewRunningParticipantRepository.save(participant);
-                    
         } catch (Exception e) {
             throw new CrewRunningCreationFailedException("Failed to create crew running for crew: " + crewId);
         }
@@ -132,7 +168,7 @@ public class CrewRunningService {
         authorizationUtil.validateCrewMemberAccess(userDetails, crewId);
 
         List<CrewRunning> crewRunnings = crewRunningRepository.findByCrewIdOrderByCreatedAtDesc(crewId);
-        
+
         return crewRunnings.stream()
                 .map(this::convertToCrewRunningResponseWithDetails)
                 .toList();
@@ -150,19 +186,14 @@ public class CrewRunningService {
 
         boolean alreadyJoined = crewRunningParticipantRepository
                 .existsByCrewRunningIdAndMemberId(crewRunningId, userDetails.getMemberId());
-        
+
         if (alreadyJoined) {
             throw new AlreadyJoinedCrewRunningException();
         }
 
-        CrewRunningParticipant participant = CrewRunningParticipant.builder()
-                .crewRunningId(crewRunningId)
-                .memberId(userDetails.getMemberId())
-                .status(ParticipantStatus.JOINED)
-                .build();
-        participant.joinRunning();
+        validateUserNotInActiveCrewRunning(userDetails.getMemberId());
 
-        crewRunningParticipantRepository.save(participant);
+        createAndSaveParticipant(crewRunningId, userDetails.getMemberId());
     }
 
     public void leaveCrewRunning(Long crewId, Long crewRunningId, UserDetailsImpl userDetails) {
@@ -186,7 +217,7 @@ public class CrewRunningService {
         String creatorName = memberRepository.findById(crewRunning.getCreatorId())
                 .map(member -> member.getName())
                 .orElse("알 수 없음");
-        
+
         return CrewRunningDTO.Response.builder()
                 .id(crewRunning.getId())
                 .crewId(crewRunning.getCrewId())
@@ -202,7 +233,7 @@ public class CrewRunningService {
                             String memberName = memberRepository.findById(p.getMemberId())
                                     .map(member -> member.getName())
                                     .orElse("알 수 없음");
-                            
+
                             return CrewRunningDTO.ParticipantInfo.builder()
                                     .memberId(p.getMemberId())
                                     .memberName(memberName)
@@ -249,5 +280,58 @@ public class CrewRunningService {
         crewRunningParticipantRepository.deleteAll(participants);
 
         crewRunningRepository.delete(crewRunning);
+    }
+
+    public CourseDetailDTO startCrewRunningWithCourse(Long crewId, Long crewRunningId, CrewRunningDTO.StartRunningWithCourseRequest request, UserDetailsImpl userDetails) {
+        authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
+
+        CrewRunning crewRunning = crewRunningRepository.findByIdAndCrewId(crewRunningId, crewId)
+                .orElseThrow(CrewRunningNotFoundException::new);
+
+        if (crewRunning.getStatus() != CrewRunningStatus.WAITING) {
+            throw new CrewRunningNotWaitingException();
+        }
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new CrewRunningCreationFailedException("Course not found: " + request.getCourseId()));
+
+        try {
+            crewRunning.setCourseId(request.getCourseId());
+            crewRunning.startRunning();
+            crewRunningRepository.save(crewRunning);
+
+            // 모든 참여자 상태를 RUNNING으로 변경
+            startAllParticipants(crewRunningId);
+
+            return courseService.convertToCourseDetailDTO(course);
+
+        } catch (Exception e) {
+            throw new CrewRunningCreationFailedException("Failed to start crew running with course: " + e.getMessage());
+        }
+    }
+
+    public void startCrewFreeRunning(Long crewId, Long crewRunningId, CourseDTO courseDTO, UserDetailsImpl userDetails) {
+        authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
+
+        CrewRunning crewRunning = crewRunningRepository.findByIdAndCrewId(crewRunningId, crewId)
+                .orElseThrow(CrewRunningNotFoundException::new);
+
+        if (crewRunning.getStatus() != CrewRunningStatus.WAITING) {
+            throw new CrewRunningNotWaitingException();
+        }
+
+        try {
+            courseDTO.setMemberId(userDetails.getMemberId());
+            Course savedCourse = courseService.createCourseFromDTO(courseDTO);
+
+            crewRunning.setCourseId(savedCourse.getId());
+            crewRunning.startRunning();
+            crewRunningRepository.save(crewRunning);
+
+            startAllParticipants(crewRunningId);
+
+        } catch (Exception e) {
+            throw new CrewRunningCreationFailedException("Failed to start crew free running: " + e.getMessage());
+        }
     }
 }

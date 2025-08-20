@@ -30,4 +30,6 @@ public interface CrewRunningParticipantRepository extends JpaRepository<CrewRunn
 
     @Query("SELECT COUNT(crp) FROM CrewRunningParticipant crp WHERE crp.crewRunningId = :crewRunningId")
     long countParticipantsByCrewRunningId(@Param("crewRunningId") Long crewRunningId);
+
+    List<CrewRunningParticipant> findByMemberIdAndStatusIn(Long memberId, List<ParticipantStatus> statuses);
 }

@@ -11,6 +11,9 @@ import com.runtracker.domain.crew.dto.CrewListDTO;
 import com.runtracker.domain.crew.dto.CrewManagementDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
+import com.runtracker.domain.course.dto.CourseDetailDTO;
+import com.runtracker.domain.course.dto.CourseDTO;
+import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.dto.CrewRunningDTO;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
@@ -25,7 +28,9 @@ import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
@@ -1216,6 +1221,164 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                         .pathParameters(
                                                 parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void startCrewRunningWithCourse() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(500L)
+                .socialId("kakao_500")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("500")).willReturn(mockUserDetails);
+
+        CourseDetailDTO mockCourseDetail = CourseDetailDTO.builder()
+                .id(123L)
+                .memberId(500L)
+                .name("테스트 코스")
+                .difficulty(Difficulty.MEDIUM)
+                .points(List.of(
+                        new Coordinate(37.5665, 126.9780),
+                        new Coordinate(37.5675, 126.9790)
+                ))
+                .startLat(37.5665)
+                .startLng(126.9780)
+                .distance(5000.0)
+                .round(false)
+                .region("서울시 중구")
+                .photo("https://example.com/course-photo.jpg")
+                .photoLat(37.5670)
+                .photoLng(126.9785)
+                .createdAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                .updatedAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                .build();
+
+        given(crewRunningService.startCrewRunningWithCourse(anyLong(), anyLong(), any(), any(UserDetailsImpl.class)))
+                .willReturn(mockCourseDetail);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/course/{courseId}", 1L, 1L, 123L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-start-with-course",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 시작 (기존 코스 선택)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID"),
+                                                parameterWithName("courseId").description("사용할 코스 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.OBJECT).description("선택된 코스 정보"),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body.memberId").type(JsonFieldType.NUMBER).description("코스 생성자 ID"),
+                                                fieldWithPath("body.name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("body.difficulty").type(JsonFieldType.STRING).description("코스 난이도"),
+                                                fieldWithPath("body.points").type(JsonFieldType.ARRAY).description("코스 좌표 리스트"),
+                                                fieldWithPath("body.points[].lat").type(JsonFieldType.NUMBER).description("위도"),
+                                                fieldWithPath("body.points[].lnt").type(JsonFieldType.NUMBER).description("경도"),
+                                                fieldWithPath("body.startLat").type(JsonFieldType.NUMBER).description("시작점 위도"),
+                                                fieldWithPath("body.startLng").type(JsonFieldType.NUMBER).description("시작점 경도"),
+                                                fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("코스 거리"),
+                                                fieldWithPath("body.round").type(JsonFieldType.BOOLEAN).description("왕복 여부"),
+                                                fieldWithPath("body.region").type(JsonFieldType.STRING).description("지역"),
+                                                fieldWithPath("body.photo").type(JsonFieldType.STRING).description("코스 사진"),
+                                                fieldWithPath("body.photoLat").type(JsonFieldType.NUMBER).description("사진 위도"),
+                                                fieldWithPath("body.photoLng").type(JsonFieldType.NUMBER).description("사진 경도"),
+                                                fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성일시"),
+                                                fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("수정일시")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void startCrewFreeRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(500L)
+                .socialId("kakao_500")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("500")).willReturn(mockUserDetails);
+
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("name", "한강 자유런닝");
+        request.put("difficulty", "EASY");
+
+        Map<String, Object> point1 = new LinkedHashMap<>();
+        point1.put("lat", 37.5512);
+        point1.put("lnt", 126.9882);
+        
+        Map<String, Object> point2 = new LinkedHashMap<>();
+        point2.put("lat", 37.5523);
+        point2.put("lnt", 126.9891);
+        
+        request.put("points", List.of(point1, point2));
+        request.put("startLat", 37.5665);
+        request.put("startLng", 126.9780);
+        request.put("distance", 5000.0);
+        request.put("round", false);
+        request.put("indexs", "[0,1,2]");
+        request.put("region", "서울특별시 중구");
+        request.put("photo", "https://example.com/photo.jpg");
+        request.put("photoLat", 37.567);
+        request.put("photoLng", 126.9785);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/free-running", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-start-free-running",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 시작 (자유런닝 - 현재 위치에서 코스 생성)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("코스 난이도"),
+                                                fieldWithPath("points").type(JsonFieldType.ARRAY).description("코스 좌표 리스트"),
+                                                fieldWithPath("points[].lat").type(JsonFieldType.NUMBER).description("위도"),
+                                                fieldWithPath("points[].lnt").type(JsonFieldType.NUMBER).description("경도"),
+                                                fieldWithPath("startLat").type(JsonFieldType.NUMBER).description("시작점 위도"),
+                                                fieldWithPath("startLng").type(JsonFieldType.NUMBER).description("시작점 경도"),
+                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("코스 거리"),
+                                                fieldWithPath("round").type(JsonFieldType.BOOLEAN).description("왕복 여부").optional(),
+                                                fieldWithPath("indexs").type(JsonFieldType.STRING).description("코스 인덱스").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("지역"),
+                                                fieldWithPath("photo").type(JsonFieldType.STRING).description("코스 사진").optional(),
+                                                fieldWithPath("photoLat").type(JsonFieldType.NUMBER).description("사진 위도").optional(),
+                                                fieldWithPath("photoLng").type(JsonFieldType.NUMBER).description("사진 경도").optional(),
+                                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("코스 ID (무시됨)").optional(),
+                                                fieldWithPath("memberId").type(JsonFieldType.NUMBER).description("멤버 ID (무시됨)").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

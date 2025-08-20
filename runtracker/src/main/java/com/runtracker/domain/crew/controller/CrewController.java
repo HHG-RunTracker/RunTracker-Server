@@ -3,6 +3,8 @@ package com.runtracker.domain.crew.controller;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
 import com.runtracker.domain.crew.dto.CrewCourseRecommendationDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
+import com.runtracker.domain.course.dto.CourseDetailDTO;
+import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.crew.dto.CrewRunningDTO;
 import com.runtracker.domain.crew.dto.CrewDetailDTO;
 import com.runtracker.domain.crew.dto.CrewListDTO;
@@ -251,4 +253,32 @@ public class CrewController {
         
         return ApiResponse.ok();
     }
+
+    @PostMapping("/{crewId}/running/{crewRunningId}/course/{courseId}")
+    public ApiResponse<CourseDetailDTO> startCrewRunningWithCourse(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @PathVariable Long crewRunningId,
+            @PathVariable Long courseId) {
+        
+        CrewRunningDTO.StartRunningWithCourseRequest request = CrewRunningDTO.StartRunningWithCourseRequest.builder()
+                .courseId(courseId)
+                .build();
+        CourseDetailDTO courseDetail = crewRunningService.startCrewRunningWithCourse(crewId, crewRunningId, request, userDetails);
+        
+        return ApiResponse.ok(courseDetail);
+    }
+
+    @PostMapping("/{crewId}/running/{crewRunningId}/free-running")
+    public ApiResponse<Void> startCrewFreeRunning(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @PathVariable Long crewRunningId,
+            @RequestBody CourseDTO courseDTO) {
+        
+        crewRunningService.startCrewFreeRunning(crewId, crewRunningId, courseDTO, userDetails);
+        
+        return ApiResponse.ok();
+    }
+
 }

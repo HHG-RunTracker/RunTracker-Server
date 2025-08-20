@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "crew_running")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -43,4 +44,14 @@ public class CrewRunning extends BaseEntity {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    public void startRunning() {
+        this.status = CrewRunningStatus.IN_PROGRESS;
+        this.startTime = LocalDateTime.now();
+    }
+
+    public void finishRunning() {
+        this.status = CrewRunningStatus.COMPLETED;
+        this.endTime = LocalDateTime.now();
+    }
 }

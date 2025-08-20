@@ -27,6 +27,16 @@ public class CourseService {
 
     public void createFreeRunningCourse(CourseDTO courseDTO) {
         try {
+            createCourseFromDTO(courseDTO);
+        } catch (Exception e) {
+            log.error("Failed to create free running course for member: {}, error: {}", 
+                    courseDTO.getMemberId(), e.getMessage(), e);
+            throw new CourseCreationFailedException();
+        }
+    }
+
+    public Course createCourseFromDTO(CourseDTO courseDTO) {
+        try {
             Course course = Course.builder()
                     .memberId(courseDTO.getMemberId())
                     .name(courseDTO.getName())
@@ -43,10 +53,10 @@ public class CourseService {
                     .photoLng(courseDTO.getPhotoLng())
                     .build();
 
-            courseRepository.save(course);
+            return courseRepository.save(course);
             
         } catch (Exception e) {
-            log.error("Failed to create free running course for member: {}, error: {}", 
+            log.error("Failed to create course from DTO for member: {}, error: {}", 
                     courseDTO.getMemberId(), e.getMessage(), e);
             throw new CourseCreationFailedException("Failed to create course for member: " + courseDTO.getMemberId());
         }
@@ -68,7 +78,7 @@ public class CourseService {
         return convertToCourseDetailDTO(course);
     }
 
-    private CourseDetailDTO convertToCourseDetailDTO(Course course) {
+    public CourseDetailDTO convertToCourseDetailDTO(Course course) {
         return CourseDetailDTO.builder()
                 .id(course.getId())
                 .memberId(course.getMemberId())
