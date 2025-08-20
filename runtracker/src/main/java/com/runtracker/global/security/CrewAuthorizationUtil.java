@@ -1,9 +1,8 @@
 package com.runtracker.global.security;
 
 import com.runtracker.domain.crew.exception.NotCrewLeaderException;
+import com.runtracker.domain.crew.exception.UnauthorizedCrewAccessException;
 import com.runtracker.domain.member.entity.enums.MemberRole;
-import com.runtracker.domain.schedule.enums.ScheduleErrorCode;
-import com.runtracker.global.exception.CustomException;
 import com.runtracker.global.security.dto.CrewMembership;
 import org.springframework.stereotype.Component;
 
@@ -56,11 +55,11 @@ public class CrewAuthorizationUtil {
         CrewMembership membership = userDetails.getCrewMembership();
         
         if (membership == null) {
-            throw new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS);
+            throw new UnauthorizedCrewAccessException();
         }
         
         if (!membership.getCrewId().equals(crewId)) {
-            throw new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS);
+            throw new UnauthorizedCrewAccessException();
         }
     }
 }

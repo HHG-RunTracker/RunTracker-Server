@@ -19,4 +19,6 @@ public interface RecordRepository extends JpaRepository<RunningRecord, Long> {
     
     @Query("SELECT r FROM RunningRecord r WHERE r.memberId = :memberId AND r.courseId = :courseId ORDER BY r.runningTime DESC")
     List<RunningRecord> findByMemberIdAndCourseId(@Param("memberId") Long memberId, @Param("courseId") Long courseId);
+
+    List<RunningRecord> findByCrewRunningId(Long crewRunningId);
 }

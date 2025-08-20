@@ -46,6 +46,8 @@ public class RecordService {
                 .memberId(memberId)
                 .courseId(createDTO.getCourseId())
                 .runningTime(createDTO.getRunningTime())
+                .startedAt(createDTO.getStartedAt())
+                .finishedAt(createDTO.getFinishedAt())
                 .distance(createDTO.getDistance())
                 .walk(createDTO.getWalk())
                 .calorie(createDTO.getCalorie())

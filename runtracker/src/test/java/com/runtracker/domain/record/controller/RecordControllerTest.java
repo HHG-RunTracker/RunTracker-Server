@@ -42,7 +42,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
         // given
         Map<String, Object> createRequest = new LinkedHashMap<>();
         createRequest.put("courseId", 1L);
-        createRequest.put("runningTime", "2025-08-16 07:30:00");
+        createRequest.put("runningTime", 2400);
+        createRequest.put("startedAt", "2025-08-16 07:30:00");
+        createRequest.put("finishedAt", "2025-08-16 08:10:00");
         createRequest.put("distance", 5000.0);
         createRequest.put("walk", 100);
         createRequest.put("calorie", 350);
@@ -74,7 +76,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                         )
                                         .requestFields(
                                                 fieldWithPath("courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
+                                                fieldWithPath("startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
                                                 fieldWithPath("walk").type(JsonFieldType.NUMBER).description("걸음 수"),
                                                 fieldWithPath("calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
@@ -96,7 +100,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         1L,
                         1L,
+                        1800,
                         LocalDateTime.of(2025, 8, 15, 6, 0, 0),
+                        LocalDateTime.of(2025, 8, 15, 6, 30, 0),
                         3000.0,
                         4500,
                         250
@@ -104,7 +110,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         2L,
                         2L,
+                        2400,
                         LocalDateTime.of(2025, 8, 16, 7, 30, 0),
+                        LocalDateTime.of(2025, 8, 16, 8, 10, 0),
                         5000.0,
                         7200,
                         400
@@ -147,7 +155,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body").type(JsonFieldType.ARRAY).description("러닝 기록 목록"),
                                                 fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
                                                 fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("body[].runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
+                                                fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
                                                 fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
                                                 fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
@@ -164,7 +174,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         1L,
                         1L,
+                        2100,
                         LocalDateTime.of(2025, 8, 11, 8, 0, 0),
+                        LocalDateTime.of(2025, 8, 11, 8, 35, 0),
                         4000.0,
                         6000,
                         320
@@ -172,7 +184,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         2L,
                         2L,
+                        3000,
                         LocalDateTime.of(2025, 8, 13, 18, 30, 0),
+                        LocalDateTime.of(2025, 8, 13, 19, 20, 0),
                         6000.0,
                         8500,
                         480
@@ -213,7 +227,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body").type(JsonFieldType.ARRAY).description("러닝 기록 목록"),
                                                 fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
                                                 fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("body[].runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
+                                                fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
                                                 fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
                                                 fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
@@ -230,7 +246,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         1L,
                         1L,
+                        3600,
                         LocalDateTime.of(2025, 8, 5, 7, 0, 0),
+                        LocalDateTime.of(2025, 8, 5, 8, 0, 0),
                         8000.0,
                         12000,
                         650
@@ -238,7 +256,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         2L,
                         2L,
+                        2700,
                         LocalDateTime.of(2025, 8, 25, 19, 0, 0),
+                        LocalDateTime.of(2025, 8, 25, 19, 45, 0),
                         5500.0,
                         8200,
                         420
@@ -279,7 +299,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body").type(JsonFieldType.ARRAY).description("러닝 기록 목록"),
                                                 fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
                                                 fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("body[].runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
+                                                fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
                                                 fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
                                                 fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
@@ -295,7 +317,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
         RunningRecordDTO mockRecord = new RunningRecordDTO(
                 1L,
                 1L,
+                2400,
                 LocalDateTime.of(2025, 8, 16, 7, 30, 0),
+                LocalDateTime.of(2025, 8, 16, 8, 10, 0),
                 5000.0,
                 7200,
                 400
@@ -334,7 +358,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body").type(JsonFieldType.OBJECT).description("러닝 기록 상세"),
                                                 fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
                                                 fieldWithPath("body.courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("body.runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body.runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
+                                                fieldWithPath("body.startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body.finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
                                                 fieldWithPath("body.walk").type(JsonFieldType.NUMBER).description("걸음 수"),
                                                 fieldWithPath("body.calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
@@ -351,7 +377,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         1L,
                         1L,
+                        2400,
                         LocalDateTime.of(2025, 8, 16, 7, 30, 0),
+                        LocalDateTime.of(2025, 8, 16, 8, 10, 0),
                         5000.0,
                         7200,
                         400
@@ -359,7 +387,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 new RunningRecordDTO(
                         2L,
                         2L,
+                        1800,
                         LocalDateTime.of(2025, 8, 15, 6, 0, 0),
+                        LocalDateTime.of(2025, 8, 15, 6, 30, 0),
                         3000.0,
                         4500,
                         250
@@ -396,7 +426,9 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body").type(JsonFieldType.ARRAY).description("러닝 기록 목록"),
                                                 fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
                                                 fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("body[].runningTime").type(JsonFieldType.STRING).description("러닝 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
+                                                fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
+                                                fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
                                                 fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
                                                 fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")

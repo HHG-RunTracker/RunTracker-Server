@@ -5,6 +5,12 @@ import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.course.entity.Course;
 import com.runtracker.domain.course.repository.CourseRepository;
 import com.runtracker.domain.course.service.CourseService;
+import com.runtracker.domain.record.dto.RunningRecordDTO;
+import com.runtracker.domain.crew.dto.CrewRunningFinishDTO;
+import com.runtracker.domain.record.entity.RunningRecord;
+import com.runtracker.domain.record.repository.RecordRepository;
+import com.runtracker.domain.crew.entity.CrewRecord;
+import com.runtracker.domain.crew.repository.CrewRecordRepository;
 import com.runtracker.domain.crew.dto.CrewCourseRecommendationDTO;
 import com.runtracker.domain.crew.dto.CrewRunningDTO;
 import com.runtracker.domain.crew.entity.Crew;
@@ -23,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -36,6 +44,8 @@ public class CrewRunningService {
     private final CrewRunningRepository crewRunningRepository;
     private final CrewRunningParticipantRepository crewRunningParticipantRepository;
     private final MemberRepository memberRepository;
+    private final RecordRepository recordRepository;
+    private final CrewRecordRepository crewRecordRepository;
     private final CrewAuthorizationUtil authorizationUtil;
 
     @Transactional(readOnly = true)
@@ -280,6 +290,90 @@ public class CrewRunningService {
         crewRunningParticipantRepository.deleteAll(participants);
 
         crewRunningRepository.delete(crewRunning);
+    }
+
+    public void finishCrewRunning(Long crewId, Long crewRunningId, CrewRunningFinishDTO finishDTO, UserDetailsImpl userDetails) {
+        authorizationUtil.validateCrewMemberAccess(userDetails, crewId);
+
+        CrewRunning crewRunning = crewRunningRepository.findByIdAndCrewId(crewRunningId, crewId)
+                .orElseThrow(CrewRunningNotFoundException::new);
+
+        if (crewRunning.getStatus() != CrewRunningStatus.IN_PROGRESS) {
+            throw new CannotFinishNotRunningException();
+        }
+
+        CrewRunningParticipant participant = crewRunningParticipantRepository
+                .findByCrewRunningIdAndMemberId(crewRunningId, userDetails.getMemberId())
+                .orElseThrow(NotJoinedCrewRunningException::new);
+
+        if (participant.getStatus() != ParticipantStatus.RUNNING) {
+            throw new CannotFinishNotRunningException();
+        }
+
+        participant.finishRunning();
+        crewRunningParticipantRepository.save(participant);
+
+        saveRunningRecord(crewRunningId, crewRunning.getCourseId(), finishDTO, participant, userDetails.getMemberId());
+
+        checkFinishCrewRunning(crewRunning);
+    }
+
+    private void saveRunningRecord(Long crewRunningId, Long courseId, CrewRunningFinishDTO finishDTO, CrewRunningParticipant participant, Long memberId) {
+        int runningTime = (int) Duration.between(participant.getStartedAt(), participant.getFinishedAt()).getSeconds();
+        
+        RunningRecord runningRecord = RunningRecord.builder()
+                .memberId(memberId)
+                .courseId(courseId)
+                .crewRunningId(crewRunningId)
+                .runningTime(runningTime)
+                .startedAt(participant.getStartedAt())
+                .finishedAt(participant.getFinishedAt())
+                .distance(finishDTO.getDistance())
+                .walk(finishDTO.getWalk())
+                .calorie(finishDTO.getCalorie())
+                .build();
+
+        recordRepository.save(runningRecord);
+    }
+
+    private void checkFinishCrewRunning(CrewRunning crewRunning) {
+        long totalParticipants = crewRunningParticipantRepository.countParticipantsByCrewRunningId(crewRunning.getId());
+        long finishedParticipants = crewRunningParticipantRepository.countByCrewRunningIdAndStatus(
+                crewRunning.getId(), ParticipantStatus.FINISHED);
+
+        if (totalParticipants > 0 && totalParticipants == finishedParticipants) {
+            crewRunning.finishRunning();
+            crewRunningRepository.save(crewRunning);
+
+            saveCrewRunningRecord(crewRunning);
+        }
+    }
+
+    private void saveCrewRunningRecord(CrewRunning crewRunning) {
+        List<RunningRecord> records = recordRepository.findByCrewRunningId(crewRunning.getId());
+        
+        if (records.isEmpty()) {
+            return;
+        }
+
+        double avgRunningTime = records.stream().mapToInt(RunningRecord::getRunningTime).average().orElse(0.0);
+        double avgDistance = records.stream().mapToDouble(RunningRecord::getDistance).average().orElse(0.0);
+        double avgWalk = records.stream().mapToInt(RunningRecord::getWalk).average().orElse(0.0);
+        double avgCalorie = records.stream().mapToInt(RunningRecord::getCalorie).average().orElse(0.0);
+
+        CrewRecord crewRecord = CrewRecord.builder()
+                .crewRunningId(crewRunning.getId())
+                .courseId(crewRunning.getCourseId())
+                .runningTime((int) avgRunningTime)
+                .distance(avgDistance)
+                .walk(avgWalk)
+                .calorie(avgCalorie)
+                .participantCount(records.size())
+                .startedAt(crewRunning.getStartTime())
+                .finishedAt(LocalDateTime.now())
+                .build();
+
+        crewRecordRepository.save(crewRecord);
     }
 
     public CourseDetailDTO startCrewRunningWithCourse(Long crewId, Long crewRunningId, CrewRunningDTO.StartRunningWithCourseRequest request, UserDetailsImpl userDetails) {

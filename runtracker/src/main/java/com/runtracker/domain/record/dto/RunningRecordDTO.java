@@ -18,9 +18,15 @@ public class RunningRecordDTO {
     private Long id;
     private Long courseId;
     
+    private Integer runningTime;
+    
     @DateTimeFormat(pattern = DateConstants.DATETIME_PATTERN)
     @JsonFormat(pattern = DateConstants.DATETIME_PATTERN)
-    private LocalDateTime runningTime;
+    private LocalDateTime startedAt;
+    
+    @DateTimeFormat(pattern = DateConstants.DATETIME_PATTERN)
+    @JsonFormat(pattern = DateConstants.DATETIME_PATTERN)
+    private LocalDateTime finishedAt;
     
     private Double distance;
     private Integer walk;
@@ -31,6 +37,8 @@ public class RunningRecordDTO {
                 runningRecord.getId(),
                 runningRecord.getCourseId(),
                 runningRecord.getRunningTime(),
+                runningRecord.getStartedAt(),
+                runningRecord.getFinishedAt(),
                 runningRecord.getDistance(),
                 runningRecord.getWalk(),
                 runningRecord.getCalorie()

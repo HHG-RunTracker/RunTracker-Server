@@ -1389,4 +1389,52 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                         )
                 ));
     }
+
+    @Test
+    void finishCrewRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(400L)
+                .socialId("kakao_400")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("400")).willReturn(mockUserDetails);
+
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("distance", 5000.0);
+        request.put("walk", 100);
+        request.put("calorie", 350);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/finish", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-finish",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 개별 완료")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("거리(미터)"),
+                                                fieldWithPath("walk").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
 }

@@ -34,7 +34,10 @@ public enum CrewErrorCode implements ResponseCode {
     NOT_JOINED_CREW_RUNNING("CR024", "참여하지 않은 크루 런닝입니다."),
     CANNOT_LEAVE_STARTED_RUNNING("CR025", "이미 시작된 크루 런닝은 나갈 수 없습니다."),
     CANNOT_DELETE_STARTED_RUNNING("CR026", "이미 시작된 크루 런닝은 삭제할 수 없습니다."),
-    ALREADY_IN_ACTIVE_CREW_RUNNING("CR027", "이미 진행 중인 크루 런닝에 참여 중입니다.");
+    ALREADY_IN_ACTIVE_CREW_RUNNING("CR027", "이미 진행 중인 크루 런닝에 참여 중입니다."),
+    CANNOT_FINISH_NOT_RUNNING("CR028", "런닝 중이 아닌 상태에서는 완료할 수 없습니다."),
+    ALREADY_FINISHED_CREW_RUNNING("CR029", "이미 완료된 크루 런닝입니다."),
+    UNAUTHORIZED_CREW_ACCESS("CR030", "크루에 대한 접근 권한이 없습니다.");
 
     private final String statusCode;
     private final String message;
