@@ -6,6 +6,7 @@ import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.crew.dto.CrewRunningFinishDTO;
+import com.runtracker.domain.crew.dto.CrewRecordDTO;
 import com.runtracker.domain.crew.dto.CrewRunningDTO;
 import com.runtracker.domain.crew.dto.CrewDetailDTO;
 import com.runtracker.domain.crew.dto.CrewListDTO;
@@ -292,6 +293,27 @@ public class CrewController {
         crewRunningService.finishCrewRunning(crewId, crewRunningId, finishDTO, userDetails);
         
         return ApiResponse.ok();
+    }
+
+    @GetMapping("/{crewId}/records")
+    public ApiResponse<List<CrewRecordDTO>> getCrewRecords(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        List<CrewRecordDTO> response = crewService.getCrewRecords(crewId, userDetails);
+        
+        return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/{crewId}/records/{crewRunningId}")
+    public ApiResponse<CrewRecordDTO> getCrewRecord(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId,
+            @PathVariable Long crewRunningId) {
+        
+        CrewRecordDTO response = crewService.getCrewRecord(crewId, crewRunningId, userDetails);
+        
+        return ApiResponse.ok(response);
     }
 
 }
