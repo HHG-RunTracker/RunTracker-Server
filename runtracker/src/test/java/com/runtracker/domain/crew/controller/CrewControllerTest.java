@@ -17,17 +17,20 @@ import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.dto.CrewRecordDTO;
 import com.runtracker.domain.crew.dto.CrewRunningDTO;
+import com.runtracker.domain.crew.dto.CrewRankingDTO;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.enums.CrewRunningStatus;
 import com.runtracker.domain.crew.enums.ParticipantStatus;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.crew.service.CrewRunningService;
+import com.runtracker.domain.crew.service.CrewRankingService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +58,9 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
     
     @MockitoBean
     private CrewRunningService crewRunningService;
+    
+    @MockitoBean
+    private CrewRankingService crewRankingService;
 
     @Test
     void createCrew() throws Exception {
@@ -1572,6 +1578,115 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.participantCount").type(JsonFieldType.NUMBER).description("참여자 수")
                                         )
                                         .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCrewRankingList() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(123L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(123L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+
+        // Mock ranking data
+        List<CrewRankingDTO.CrewRankInfo> rankings = List.of(
+                CrewRankingDTO.CrewRankInfo.builder()
+                        .crewId(1L)
+                        .crewName("러닝크루A")
+                        .crewPhoto("photo1.jpg")
+                        .rank(1)
+                        .totalDistance(25000.0)
+                        .totalRunningTime(7200)
+                        .participantCount(3)
+                        .build(),
+                CrewRankingDTO.CrewRankInfo.builder()
+                        .crewId(2L)
+                        .crewName("러닝크루B")
+                        .crewPhoto("photo2.jpg")
+                        .rank(2)
+                        .totalDistance(18000.0)
+                        .totalRunningTime(5400)
+                        .participantCount(2)
+                        .build()
+        );
+
+        CrewRankingDTO.Response response = CrewRankingDTO.Response.builder()
+                .date(LocalDate.now())
+                .rankings(rankings)
+                .lastUpdated(LocalDateTime.now())
+                .build();
+
+        given(crewRankingService.getDailyRanking(any())).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/crew/ranking/list")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-ranking-list",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 랭킹 조회")
+                                .description("오늘 날짜 기준 크루 랭킹을 조회합니다")
+                                .requestHeaders(
+                                        headerWithName("Authorization").description("JWT 토큰")
+                                )
+                                .responseFields(
+                                        fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                        fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                        fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                        fieldWithPath("body").type(JsonFieldType.OBJECT).description("랭킹 응답"),
+                                        fieldWithPath("body.date").type(JsonFieldType.STRING).description("랭킹 날짜"),
+                                        fieldWithPath("body.lastUpdated").type(JsonFieldType.STRING).description("최종 업데이트 시간"),
+                                        fieldWithPath("body.rankings").type(JsonFieldType.ARRAY).description("랭킹 리스트"),
+                                        fieldWithPath("body.rankings[].crewId").type(JsonFieldType.NUMBER).description("크루 ID"),
+                                        fieldWithPath("body.rankings[].crewName").type(JsonFieldType.STRING).description("크루 이름"),
+                                        fieldWithPath("body.rankings[].crewPhoto").type(JsonFieldType.STRING).description("크루 사진").optional(),
+                                        fieldWithPath("body.rankings[].rank").type(JsonFieldType.NUMBER).description("순위"),
+                                        fieldWithPath("body.rankings[].totalDistance").type(JsonFieldType.NUMBER).description("총 거리 (미터)"),
+                                        fieldWithPath("body.rankings[].totalRunningTime").type(JsonFieldType.NUMBER).description("총 런닝 시간 (초)"),
+                                        fieldWithPath("body.rankings[].participantCount").type(JsonFieldType.NUMBER).description("참여 횟수")
+                                )
+                                .build()
+                        )
+                ));
+    }
+
+    @Test
+    void recalculateCrewRanking() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(123L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(123L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+
+        // when & then
+        mockMvc.perform(post("/api/crew/ranking/recalculate")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-ranking-recalculate",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 랭킹 수동 재계산")
+                                .description("오늘 날짜 기준 크루 랭킹을 강제로 재계산합니다. (자동으로 랭킹 계산해주지만 필요시 사용)")
+                                .requestHeaders(
+                                        headerWithName("Authorization").description("JWT 토큰")
+                                )
+                                .responseFields(
+                                        fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                        fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                        fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                )
+                                .build()
                         )
                 ));
     }

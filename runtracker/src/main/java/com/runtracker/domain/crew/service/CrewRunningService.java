@@ -47,6 +47,7 @@ public class CrewRunningService {
     private final RecordRepository recordRepository;
     private final CrewRecordRepository crewRecordRepository;
     private final CrewAuthorizationUtil authorizationUtil;
+    private final CrewRankingService crewRankingService;
 
     @Transactional(readOnly = true)
     public List<CrewCourseRecommendationDTO.Response> getRecommendedCourses(
@@ -345,15 +346,22 @@ public class CrewRunningService {
             crewRunning.finishRunning();
             crewRunningRepository.save(crewRunning);
 
-            saveCrewRunningRecord(crewRunning);
+            CrewRecord crewRecord = saveCrewRunningRecord(crewRunning);
+            
+            // 크루 런닝 완료 시 효율적인 실시간 랭킹 업데이트
+            crewRankingService.updateRankingForCrewRecord(
+                crewRunning.getCrewId(), 
+                java.time.LocalDate.now(), 
+                crewRecord
+            );
         }
     }
 
-    private void saveCrewRunningRecord(CrewRunning crewRunning) {
+    private CrewRecord saveCrewRunningRecord(CrewRunning crewRunning) {
         List<RunningRecord> records = recordRepository.findByCrewRunningId(crewRunning.getId());
         
         if (records.isEmpty()) {
-            return;
+            return null;
         }
 
         double avgRunningTime = records.stream().mapToInt(RunningRecord::getRunningTime).average().orElse(0.0);
@@ -374,6 +382,7 @@ public class CrewRunningService {
                 .build();
 
         crewRecordRepository.save(crewRecord);
+        return crewRecord;
     }
 
     public CourseDetailDTO startCrewRunningWithCourse(Long crewId, Long crewRunningId, CrewRunningDTO.StartRunningWithCourseRequest request, UserDetailsImpl userDetails) {

@@ -14,8 +14,10 @@ import com.runtracker.domain.crew.dto.CrewManagementDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
+import com.runtracker.domain.crew.dto.CrewRankingDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.crew.service.CrewRunningService;
+import com.runtracker.domain.crew.service.CrewRankingService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -33,6 +36,7 @@ public class CrewController {
 
     private final CrewService crewService;
     private final CrewRunningService crewRunningService;
+    private final CrewRankingService crewRankingService;
 
     @PostMapping("/create")
     public ApiResponse<Void> createCrew(
@@ -314,6 +318,26 @@ public class CrewController {
         CrewRecordDTO response = crewService.getCrewRecord(crewId, crewRunningId, userDetails);
         
         return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/ranking/list")
+    public ApiResponse<CrewRankingDTO.Response> getCurrentRanking(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        LocalDate today = LocalDate.now();
+        CrewRankingDTO.Response response = crewRankingService.getDailyRanking(today);
+        
+        return ApiResponse.ok(response);
+    }
+
+    @PostMapping("/ranking/recalculate")
+    public ApiResponse<Void> recalculateRanking(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        LocalDate today = LocalDate.now();
+        crewRankingService.recalculateRanking(today);
+        
+        return ApiResponse.ok();
     }
 
 }
