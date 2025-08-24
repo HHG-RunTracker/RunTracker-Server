@@ -15,9 +15,11 @@ import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.dto.CrewRankingDTO;
+import com.runtracker.domain.crew.dto.CrewMemberRankingDTO;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.crew.service.CrewRunningService;
 import com.runtracker.domain.crew.service.CrewRankingService;
+import com.runtracker.domain.crew.service.CrewMemberRankingService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class CrewController {
     private final CrewService crewService;
     private final CrewRunningService crewRunningService;
     private final CrewRankingService crewRankingService;
+    private final CrewMemberRankingService crewMemberRankingService;
 
     @PostMapping("/create")
     public ApiResponse<Void> createCrew(
@@ -340,4 +343,25 @@ public class CrewController {
         return ApiResponse.ok();
     }
 
+    @GetMapping("/{crewId}/member-ranking")
+    public ApiResponse<CrewMemberRankingDTO.Response> getCrewMemberRanking(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        LocalDate today = LocalDate.now();
+        CrewMemberRankingDTO.Response response = crewMemberRankingService.getCrewMemberRanking(crewId, today);
+        
+        return ApiResponse.ok(response);
+    }
+
+    @PostMapping("/{crewId}/member-ranking/recalculate")
+    public ApiResponse<Void> recalculateCrewMemberRanking(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long crewId) {
+        
+        LocalDate today = LocalDate.now();
+        crewMemberRankingService.recalculateCrewMemberRanking(crewId, today);
+        
+        return ApiResponse.ok();
+    }
 }

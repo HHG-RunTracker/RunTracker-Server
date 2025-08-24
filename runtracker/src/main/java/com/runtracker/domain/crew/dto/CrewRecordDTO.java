@@ -18,15 +18,15 @@ public class CrewRecordDTO {
     private Long id;
     private Long crewRunningId;
     private Long courseId;
-    private Integer runningTime; // 평균 런닝 시간 (초 단위)
+    private Integer runningTime;
     
     @DateTimeFormat(pattern = DateConstants.DATETIME_PATTERN)
     @JsonFormat(pattern = DateConstants.DATETIME_PATTERN)
-    private LocalDateTime startedAt; // 크루 런닝 시작 시간
+    private LocalDateTime startedAt;
     
     @DateTimeFormat(pattern = DateConstants.DATETIME_PATTERN)
     @JsonFormat(pattern = DateConstants.DATETIME_PATTERN)
-    private LocalDateTime finishedAt; // 크루 런닝 완료 시간
+    private LocalDateTime finishedAt;
     
     private Double distance;
     private Double walk;

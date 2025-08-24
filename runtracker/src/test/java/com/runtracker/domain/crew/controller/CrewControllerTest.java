@@ -18,12 +18,14 @@ import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.dto.CrewRecordDTO;
 import com.runtracker.domain.crew.dto.CrewRunningDTO;
 import com.runtracker.domain.crew.dto.CrewRankingDTO;
+import com.runtracker.domain.crew.dto.CrewMemberRankingDTO;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.enums.CrewRunningStatus;
 import com.runtracker.domain.crew.enums.ParticipantStatus;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.crew.service.CrewRunningService;
 import com.runtracker.domain.crew.service.CrewRankingService;
+import com.runtracker.domain.crew.service.CrewMemberRankingService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
-import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -50,6 +51,9 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.mockito.Mockito.verify;
 
 class CrewControllerTest extends RunTrackerDocumentApiTester {
 
@@ -61,6 +65,9 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
     
     @MockitoBean
     private CrewRankingService crewRankingService;
+
+    @MockitoBean
+    private CrewMemberRankingService crewMemberRankingService;
 
     @Test
     void createCrew() throws Exception {
@@ -1677,7 +1684,7 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                         resource(ResourceSnippetParameters.builder()
                                 .tag("Crew-ranking")
                                 .summary("크루 랭킹 수동 재계산")
-                                .description("오늘 날짜 기준 크루 랭킹을 강제로 재계산합니다. (자동으로 랭킹 계산해주지만 필요시 사용)")
+                                .description("오늘 날짜 기준 크루 랭킹을 강제로 재계산합니다. (랭킹 조회시 자동으로 랭킹 계산해주지만 필요시 사용)")
                                 .requestHeaders(
                                         headerWithName("Authorization").description("JWT 토큰")
                                 )
@@ -1689,5 +1696,88 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                 .build()
                         )
                 ));
+    }
+
+    @Test
+    void getCrewMemberRanking() throws Exception {
+        // given
+        Long crewId = 1L;
+        LocalDate date = LocalDate.of(2024, 8, 15);
+        
+        CrewMemberRankingDTO.Response response = CrewMemberRankingDTO.Response.builder()
+                .date(date)
+                .crewId(crewId)
+                .crewName("테스트 크루")
+                .rankings(List.of(
+                        CrewMemberRankingDTO.MemberRankInfo.builder()
+                                .memberId(1L)
+                                .memberName("김철수")
+                                .memberPhoto("photo1.jpg")
+                                .rank(1)
+                                .totalDistance(25.5)
+                                .totalRunningTime(7200)
+                                .participationCount(3)
+                                .averageDistance(8.5)
+                                .averageRunningTime(2400)
+                                .build(),
+                        CrewMemberRankingDTO.MemberRankInfo.builder()
+                                .memberId(2L)
+                                .memberName("이영희")
+                                .memberPhoto("photo2.jpg")
+                                .rank(2)
+                                .totalDistance(18.0)
+                                .totalRunningTime(5400)
+                                .participationCount(2)
+                                .averageDistance(9.0)
+                                .averageRunningTime(2700)
+                                .build()
+                ))
+                .lastUpdated(LocalDateTime.of(2024, 8, 15, 12, 30, 0))
+                .build();
+        
+        given(crewMemberRankingService.getCrewMemberRanking(crewId, LocalDate.now())).willReturn(response);
+        
+        // when & then
+        mockMvc.perform(get("/api/crew/{crewId}/member-ranking", crewId)
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-member-ranking-get",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 멤버 랭킹 조회")
+                                .description("특정 크루 내 멤버들의 개별 랭킹을 조회합니다")
+                                .pathParameters(
+                                        parameterWithName("crewId").description("크루 ID")
+                                )
+                                .build()
+                        )
+                ));
+        
+        verify(crewMemberRankingService).getCrewMemberRanking(crewId, LocalDate.now());
+    }
+
+    @Test
+    void recalculateCrewMemberRanking() throws Exception {
+        // given
+        Long crewId = 1L;
+        LocalDate date = LocalDate.of(2024, 8, 15);
+        
+        // when & then
+        mockMvc.perform(post("/api/crew/{crewId}/member-ranking/recalculate", crewId)
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-member-ranking-recalculate",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 멤버 랭킹 수동 재계산")
+                                .description("특정 크루 내 멤버들의 랭킹을 강제로 재계산합니다. (랭킹 조회시 자동으로 랭킹 계산해주지만 필요시 사용)")
+                                .pathParameters(
+                                        parameterWithName("crewId").description("크루 ID")
+                                )
+                                .build()
+                        )
+                ));
+        
+        verify(crewMemberRankingService).recalculateCrewMemberRanking(crewId, LocalDate.now());
     }
 }
