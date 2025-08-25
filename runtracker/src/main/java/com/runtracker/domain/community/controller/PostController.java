@@ -1,5 +1,7 @@
 package com.runtracker.domain.community.controller;
 
+import com.runtracker.domain.community.dto.CommentCreateDTO;
+import com.runtracker.domain.community.dto.CommentUpdateDTO;
 import com.runtracker.domain.community.dto.PostCreateDTO;
 import com.runtracker.domain.community.dto.PostUpdateDTO;
 import com.runtracker.domain.community.service.PostService;
@@ -64,6 +66,40 @@ public class PostController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
         postService.unlikePost(postId, userDetails);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/crews/{crewId}/posts/{postId}/comments")
+    public ApiResponse<Void> createComment(
+            @PathVariable Long crewId,
+            @PathVariable Long postId,
+            @RequestBody CommentCreateDTO commentCreateDTO,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        postService.createComment(postId, commentCreateDTO, userDetails);
+        return ApiResponse.ok();
+    }
+
+    @PatchMapping("/crews/{crewId}/posts/{postId}/comments/{commentId}")
+    public ApiResponse<Void> updateComment(
+            @PathVariable Long crewId,
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestBody CommentUpdateDTO commentUpdateDTO,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        postService.updateComment(commentId, commentUpdateDTO, userDetails);
+        return ApiResponse.ok();
+    }
+
+    @DeleteMapping("/crews/{crewId}/posts/{postId}/comments/{commentId}")
+    public ApiResponse<Void> deleteComment(
+            @PathVariable Long crewId,
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        postService.deleteComment(commentId, userDetails);
         return ApiResponse.ok();
     }
 }

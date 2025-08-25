@@ -2,6 +2,8 @@ package com.runtracker.domain.community.controller;
 
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
+import com.runtracker.domain.community.dto.CommentCreateDTO;
+import com.runtracker.domain.community.dto.CommentUpdateDTO;
 import com.runtracker.domain.community.dto.PostCreateDTO;
 import com.runtracker.domain.community.dto.PostUpdateDTO;
 import com.runtracker.domain.community.service.PostService;
@@ -200,6 +202,118 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                         .pathParameters(
                                                 parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("postId").description("좋아요 취소할 게시글 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void createComment() throws Exception {
+        // given
+        doNothing().when(postService).createComment(anyLong(), any(CommentCreateDTO.class), any(UserDetailsImpl.class));
+
+        // when
+        this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/comments", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(CommentCreateDTO.builder()
+                                .comment("정말 대단하세요! 저도 5km 도전해봐야겠어요.")
+                                .build())))
+                .andExpect(status().isOk())
+                .andDo(document("community-comment-create",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("community")
+                                        .summary("크루 커뮤니티 댓글 작성")
+                                        .description("크루 멤버가 해당 크루의 게시글에 댓글을 작성합니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("postId").description("게시글 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("comment").type(JsonFieldType.STRING).description("댓글 내용")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void updateComment() throws Exception {
+        // given
+        doNothing().when(postService).updateComment(anyLong(), any(CommentUpdateDTO.class), any(UserDetailsImpl.class));
+
+        // when
+        this.mockMvc.perform(patch("/api/community/crews/{crewId}/posts/{postId}/comments/{commentId}", 1L, 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(CommentUpdateDTO.builder()
+                                .comment("수정된 댓글입니다. 정말 멋진 러닝이었네요!")
+                                .build())))
+                .andExpect(status().isOk())
+                .andDo(document("community-comment-update",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("community")
+                                        .summary("크루 커뮤니티 댓글 수정")
+                                        .description("크루 커뮤니티 댓글 수정")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("postId").description("게시글 ID"),
+                                                parameterWithName("commentId").description("수정할 댓글 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("comment").type(JsonFieldType.STRING).description("댓글 내용").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void deleteComment() throws Exception {
+        // given
+        doNothing().when(postService).deleteComment(anyLong(), any(UserDetailsImpl.class));
+
+        // when
+        this.mockMvc.perform(delete("/api/community/crews/{crewId}/posts/{postId}/comments/{commentId}", 1L, 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("community-comment-delete",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("community")
+                                        .summary("크루 커뮤니티 댓글 삭제")
+                                        .description("크루 커뮤니티 댓글 삭제")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("postId").description("게시글 ID"),
+                                                parameterWithName("commentId").description("삭제할 댓글 ID")
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
