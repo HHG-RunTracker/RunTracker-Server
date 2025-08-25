@@ -3,9 +3,13 @@ package com.runtracker.domain.community.service;
 import com.runtracker.domain.community.dto.PostCreateDTO;
 import com.runtracker.domain.community.dto.PostUpdateDTO;
 import com.runtracker.domain.community.entity.Post;
+import com.runtracker.domain.community.entity.PostLike;
+import com.runtracker.domain.community.exception.AlreadyLikedPostException;
+import com.runtracker.domain.community.exception.NotLikedPostException;
 import com.runtracker.domain.community.exception.PostCreationFailedException;
 import com.runtracker.domain.community.exception.PostNotFoundException;
 import com.runtracker.domain.community.exception.UnauthorizedPostAccessException;
+import com.runtracker.domain.community.repository.PostLikeRepository;
 import com.runtracker.domain.community.repository.PostRepository;
 import com.runtracker.global.security.CrewAuthorizationUtil;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -13,12 +17,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PostService {
 
     private final PostRepository postRepository;
+    private final PostLikeRepository postLikeRepository;
     private final CrewAuthorizationUtil crewAuthorizationUtil;
 
     @Transactional
@@ -74,5 +81,41 @@ public class PostService {
         }
 
         postRepository.deleteById(postId);
+    }
+
+    @Transactional
+    public void likePost(Long postId, UserDetailsImpl userDetails) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(PostNotFoundException::new);
+
+        crewAuthorizationUtil.validateCrewMemberAccess(userDetails, post.getCrewId());
+
+        Long memberId = userDetails.getMemberId();
+
+        if (postLikeRepository.existsByPostIdAndMemberId(postId, memberId)) {
+            throw new AlreadyLikedPostException();
+        }
+
+        PostLike postLike = PostLike.builder()
+                .postId(postId)
+                .memberId(memberId)
+                .build();
+        postLikeRepository.save(postLike);
+    }
+
+    @Transactional
+    public void unlikePost(Long postId, UserDetailsImpl userDetails) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(PostNotFoundException::new);
+
+        crewAuthorizationUtil.validateCrewMemberAccess(userDetails, post.getCrewId());
+
+        Long memberId = userDetails.getMemberId();
+
+        if (!postLikeRepository.existsByPostIdAndMemberId(postId, memberId)) {
+            throw new NotLikedPostException();
+        }
+
+        postLikeRepository.deleteByPostIdAndMemberId(postId, memberId);
     }
 }

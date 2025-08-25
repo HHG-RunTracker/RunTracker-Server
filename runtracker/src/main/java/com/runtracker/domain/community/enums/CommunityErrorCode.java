@@ -8,9 +8,11 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum CommunityErrorCode implements ResponseCode {
 
-    POST_NOT_FOUND("CM001", "Post not found"),
-    POST_CREATION_FAILED("CM002", "Failed to create post"),
-    UNAUTHORIZED_POST_ACCESS("CM003", "Unauthorized access to post");
+    POST_NOT_FOUND("CM001", "Post not found."),
+    POST_CREATION_FAILED("CM002", "Failed to create post."),
+    UNAUTHORIZED_POST_ACCESS("CM003", "Unauthorized access to post."),
+    ALREADY_LIKED_POST("CM004", "Already liked this post."),
+    NOT_LIKED_POST("CM005", "Not liked this post.");
 
     private final String statusCode;
     private final String message;

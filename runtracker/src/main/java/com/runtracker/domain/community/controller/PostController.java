@@ -46,4 +46,24 @@ public class PostController {
         postService.deletePost(postId, userDetails);
         return ApiResponse.ok();
     }
+
+    @PostMapping("/crews/{crewId}/posts/{postId}/like")
+    public ApiResponse<Void> likePost(
+            @PathVariable Long crewId,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        postService.likePost(postId, userDetails);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/crews/{crewId}/posts/{postId}/unlike")
+    public ApiResponse<Void> unlikePost(
+            @PathVariable Long crewId,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        postService.unlikePost(postId, userDetails);
+        return ApiResponse.ok();
+    }
 }

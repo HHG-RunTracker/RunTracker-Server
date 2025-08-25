@@ -146,4 +146,68 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                         )
                 ));
     }
+
+    @Test
+    void likePost() throws Exception {
+        // given
+        doNothing().when(postService).likePost(anyLong(), any(UserDetailsImpl.class));
+
+        // when
+        this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/like", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("community-post-like",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("community")
+                                        .summary("크루 커뮤니티 게시글 좋아요")
+                                        .description("크루 멤버가 해당 크루의 게시글에 좋아요를 표시합니다. 이미 좋아요한 게시글에는 중복으로 좋아요할 수 없습니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("postId").description("좋아요할 게시글 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void unlikePost() throws Exception {
+        // given
+        doNothing().when(postService).unlikePost(anyLong(), any(UserDetailsImpl.class));
+
+        // when
+        this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/unlike", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("community-post-unlike",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("community")
+                                        .summary("크루 커뮤니티 게시글 좋아요 취소")
+                                        .description("크루 멤버가 이전에 좋아요한 게시글의 좋아요를 취소합니다. 좋아요하지 않은 게시글은 취소할 수 없습니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("postId").description("좋아요 취소할 게시글 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
 }
