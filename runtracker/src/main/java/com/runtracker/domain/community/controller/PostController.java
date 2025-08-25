@@ -1,9 +1,7 @@
 package com.runtracker.domain.community.controller;
 
-import com.runtracker.domain.community.dto.CommentCreateDTO;
-import com.runtracker.domain.community.dto.CommentUpdateDTO;
-import com.runtracker.domain.community.dto.PostCreateDTO;
-import com.runtracker.domain.community.dto.PostUpdateDTO;
+import com.runtracker.domain.community.dto.CommentDTO;
+import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.service.PostService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -21,10 +19,10 @@ public class PostController {
     @PostMapping("/crews/{crewId}/posts")
     public ApiResponse<Void> createPost(
             @PathVariable Long crewId,
-            @RequestBody PostCreateDTO postCreateDTO,
+            @RequestBody PostDTO postDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.createPost(crewId, postCreateDTO, userDetails);
+        postService.createPost(crewId, postDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -32,10 +30,10 @@ public class PostController {
     public ApiResponse<Void> updatePost(
             @PathVariable Long crewId,
             @PathVariable Long postId,
-            @RequestBody PostUpdateDTO postUpdateDTO,
+            @RequestBody PostDTO postDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.updatePost(postId, postUpdateDTO, userDetails);
+        postService.updatePost(postId, postDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -73,10 +71,10 @@ public class PostController {
     public ApiResponse<Void> createComment(
             @PathVariable Long crewId,
             @PathVariable Long postId,
-            @RequestBody CommentCreateDTO commentCreateDTO,
+            @RequestBody CommentDTO commentDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.createComment(postId, commentCreateDTO, userDetails);
+        postService.createComment(postId, commentDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -85,10 +83,10 @@ public class PostController {
             @PathVariable Long crewId,
             @PathVariable Long postId,
             @PathVariable Long commentId,
-            @RequestBody CommentUpdateDTO commentUpdateDTO,
+            @RequestBody CommentDTO commentDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.updateComment(commentId, commentUpdateDTO, userDetails);
+        postService.updateComment(commentId, commentDTO, userDetails);
         return ApiResponse.ok();
     }
 

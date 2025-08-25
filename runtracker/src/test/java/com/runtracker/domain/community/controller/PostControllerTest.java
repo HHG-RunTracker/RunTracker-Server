@@ -2,10 +2,8 @@ package com.runtracker.domain.community.controller;
 
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
-import com.runtracker.domain.community.dto.CommentCreateDTO;
-import com.runtracker.domain.community.dto.CommentUpdateDTO;
-import com.runtracker.domain.community.dto.PostCreateDTO;
-import com.runtracker.domain.community.dto.PostUpdateDTO;
+import com.runtracker.domain.community.dto.CommentDTO;
+import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.service.PostService;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
@@ -35,13 +33,13 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void createPost() throws Exception {
         // given
-        doNothing().when(postService).createPost(anyLong(), any(PostCreateDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(postService).createPost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(post("/api/community/crews/{crewId}/posts", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
-                        .content(toJson(PostCreateDTO.builder()
+                        .content(toJson(PostDTO.builder()
                                 .title("오늘의 러닝 후기")
                                 .content("오늘 5km 완주했어요! 날씨가 러닝하기 딱 좋았습니다. 다음엔 더 먼 거리에 도전해보려고요.")
                                 .photos(List.of("https://example.com/running1.jpg", "https://example.com/running2.jpg"))
@@ -77,13 +75,13 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void updatePost() throws Exception {
         // given
-        doNothing().when(postService).updatePost(anyLong(), any(PostUpdateDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(postService).updatePost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(patch("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
-                        .content(toJson(PostUpdateDTO.builder()
+                        .content(toJson(PostDTO.builder()
                                 .title("수정된 러닝 후기")
                                 .content("오늘 10km 완주했어요! 목표를 달성해서 기분이 좋습니다.")
                                 .photos(List.of("https://example.com/updated1.jpg"))
@@ -216,13 +214,13 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void createComment() throws Exception {
         // given
-        doNothing().when(postService).createComment(anyLong(), any(CommentCreateDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(postService).createComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/comments", 1L, 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
-                        .content(toJson(CommentCreateDTO.builder()
+                        .content(toJson(CommentDTO.builder()
                                 .comment("정말 대단하세요! 저도 5km 도전해봐야겠어요.")
                                 .build())))
                 .andExpect(status().isOk())
@@ -255,13 +253,13 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void updateComment() throws Exception {
         // given
-        doNothing().when(postService).updateComment(anyLong(), any(CommentUpdateDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(postService).updateComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(patch("/api/community/crews/{crewId}/posts/{postId}/comments/{commentId}", 1L, 1L, 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
-                        .content(toJson(CommentUpdateDTO.builder()
+                        .content(toJson(CommentDTO.builder()
                                 .comment("수정된 댓글입니다. 정말 멋진 러닝이었네요!")
                                 .build())))
                 .andExpect(status().isOk())

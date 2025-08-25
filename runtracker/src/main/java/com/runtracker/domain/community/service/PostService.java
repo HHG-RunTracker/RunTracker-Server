@@ -1,9 +1,7 @@
 package com.runtracker.domain.community.service;
 
-import com.runtracker.domain.community.dto.CommentCreateDTO;
-import com.runtracker.domain.community.dto.CommentUpdateDTO;
-import com.runtracker.domain.community.dto.PostCreateDTO;
-import com.runtracker.domain.community.dto.PostUpdateDTO;
+import com.runtracker.domain.community.dto.CommentDTO;
+import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.entity.Post;
 import com.runtracker.domain.community.entity.PostComment;
 import com.runtracker.domain.community.entity.PostLike;
@@ -37,16 +35,16 @@ public class PostService {
     private final CrewAuthorizationUtil crewAuthorizationUtil;
 
     @Transactional
-    public void createPost(Long crewId, PostCreateDTO postCreateDTO, UserDetailsImpl userDetails) {
+    public void createPost(Long crewId, PostDTO postDTO, UserDetailsImpl userDetails) {
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
 
         try {
             Post post = Post.builder()
                     .memberId(userDetails.getMemberId())
                     .crewId(crewId)
-                    .title(postCreateDTO.getTitle())
-                    .content(postCreateDTO.getContent())
-                    .photos(postCreateDTO.getPhotos())
+                    .title(postDTO.getTitle())
+                    .content(postDTO.getContent())
+                    .photos(postDTO.getPhotos())
                     .build();
 
             postRepository.save(post);
@@ -56,7 +54,7 @@ public class PostService {
     }
 
     @Transactional
-    public void updatePost(Long postId, PostUpdateDTO postUpdateDTO, UserDetailsImpl userDetails) {
+    public void updatePost(Long postId, PostDTO postDTO, UserDetailsImpl userDetails) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(PostNotFoundException::new);
 
@@ -66,14 +64,14 @@ public class PostService {
             throw new UnauthorizedPostAccessException();
         }
 
-        if (postUpdateDTO.getTitle() != null) {
-            post.updateTitle(postUpdateDTO.getTitle());
+        if (postDTO.getTitle() != null) {
+            post.updateTitle(postDTO.getTitle());
         }
-        if (postUpdateDTO.getContent() != null) {
-            post.updateContent(postUpdateDTO.getContent());
+        if (postDTO.getContent() != null) {
+            post.updateContent(postDTO.getContent());
         }
-        if (postUpdateDTO.getPhotos() != null) {
-            post.updatePhotos(postUpdateDTO.getPhotos());
+        if (postDTO.getPhotos() != null) {
+            post.updatePhotos(postDTO.getPhotos());
         }
     }
 
@@ -128,7 +126,7 @@ public class PostService {
     }
 
     @Transactional
-    public void createComment(Long postId, CommentCreateDTO commentCreateDTO, UserDetailsImpl userDetails) {
+    public void createComment(Long postId, CommentDTO commentDTO, UserDetailsImpl userDetails) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(PostNotFoundException::new);
 
@@ -138,7 +136,7 @@ public class PostService {
             PostComment comment = PostComment.builder()
                     .postId(postId)
                     .memberId(userDetails.getMemberId())
-                    .comment(commentCreateDTO.getComment())
+                    .comment(commentDTO.getComment())
                     .build();
 
             commentRepository.save(comment);
@@ -148,11 +146,11 @@ public class PostService {
     }
 
     @Transactional
-    public void updateComment(Long commentId, CommentUpdateDTO commentUpdateDTO, UserDetailsImpl userDetails) {
+    public void updateComment(Long commentId, CommentDTO commentDTO, UserDetailsImpl userDetails) {
         PostComment comment = validateCommentAccess(commentId, userDetails);
 
-        if (commentUpdateDTO.getComment() != null) {
-            comment.updateComment(commentUpdateDTO.getComment());
+        if (commentDTO.getComment() != null) {
+            comment.updateComment(commentDTO.getComment());
         }
     }
 

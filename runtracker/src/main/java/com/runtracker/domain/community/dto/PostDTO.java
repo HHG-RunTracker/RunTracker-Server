@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostUpdateDTO {
+public class PostDTO {
     private String title;
     private String content;
     private List<String> photos;
