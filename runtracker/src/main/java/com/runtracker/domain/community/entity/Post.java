@@ -25,13 +25,25 @@ public class Post extends BaseEntity {
     @Column(name = "crew_id", nullable = false)
     private Long crewId;
 
-    @Column(name = "title", length = 100)
+    @Column(name = "title", length = 100, nullable = false)
     private String title;
 
-    @Column(name = "content", columnDefinition = "TEXT")
+    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
     @Column(name = "photos", columnDefinition = "JSON")
     @Convert(converter = StringListConverter.class)
     private List<String> photos;
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
+    public void updatePhotos(List<String> photos) {
+        this.photos = photos;
+    }
 }

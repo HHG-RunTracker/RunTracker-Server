@@ -1,8 +1,11 @@
 package com.runtracker.domain.community.service;
 
 import com.runtracker.domain.community.dto.PostCreateDTO;
+import com.runtracker.domain.community.dto.PostUpdateDTO;
 import com.runtracker.domain.community.entity.Post;
 import com.runtracker.domain.community.exception.PostCreationFailedException;
+import com.runtracker.domain.community.exception.PostNotFoundException;
+import com.runtracker.domain.community.exception.UnauthorizedPostAccessException;
 import com.runtracker.domain.community.repository.PostRepository;
 import com.runtracker.global.security.CrewAuthorizationUtil;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -34,6 +37,28 @@ public class PostService {
             postRepository.save(post);
         } catch (Exception e) {
             throw new PostCreationFailedException();
+        }
+    }
+
+    @Transactional
+    public void updatePost(Long postId, PostUpdateDTO postUpdateDTO, UserDetailsImpl userDetails) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(PostNotFoundException::new);
+
+        crewAuthorizationUtil.validateCrewMemberAccess(userDetails, post.getCrewId());
+
+        if (!post.getMemberId().equals(userDetails.getMemberId())) {
+            throw new UnauthorizedPostAccessException();
+        }
+
+        if (postUpdateDTO.getTitle() != null) {
+            post.updateTitle(postUpdateDTO.getTitle());
+        }
+        if (postUpdateDTO.getContent() != null) {
+            post.updateContent(postUpdateDTO.getContent());
+        }
+        if (postUpdateDTO.getPhotos() != null) {
+            post.updatePhotos(postUpdateDTO.getPhotos());
         }
     }
 }

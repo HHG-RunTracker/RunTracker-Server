@@ -1,6 +1,5 @@
 package com.runtracker.domain.community.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +11,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostCreateDTO {
+public class PostUpdateDTO {
     private String title;
     private String content;
     private List<String> photos;
