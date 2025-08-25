@@ -61,4 +61,18 @@ public class PostService {
             post.updatePhotos(postUpdateDTO.getPhotos());
         }
     }
+
+    @Transactional
+    public void deletePost(Long postId, UserDetailsImpl userDetails) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(PostNotFoundException::new);
+
+        crewAuthorizationUtil.validateCrewMemberAccess(userDetails, post.getCrewId());
+
+        if (!post.getMemberId().equals(userDetails.getMemberId())) {
+            throw new UnauthorizedPostAccessException();
+        }
+
+        postRepository.deleteById(postId);
+    }
 }

@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -103,6 +104,38 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("title").type(JsonFieldType.STRING).description("게시글 제목").optional(),
                                                 fieldWithPath("content").type(JsonFieldType.STRING).description("게시글 내용").optional(),
                                                 fieldWithPath("photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void deletePost() throws Exception {
+        // given
+        doNothing().when(postService).deletePost(anyLong(), any(UserDetailsImpl.class));
+
+        // when
+        this.mockMvc.perform(delete("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("community-post-delete",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("community")
+                                        .summary("크루 커뮤니티 게시글 삭제")
+                                        .description("크루 커뮤니티 게시글 삭제")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("postId").description("삭제할 게시글 ID")
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

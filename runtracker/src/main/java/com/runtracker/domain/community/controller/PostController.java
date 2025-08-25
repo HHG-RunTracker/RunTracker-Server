@@ -36,4 +36,14 @@ public class PostController {
         postService.updatePost(postId, postUpdateDTO, userDetails);
         return ApiResponse.ok();
     }
+
+    @DeleteMapping("/crews/{crewId}/posts/{postId}")
+    public ApiResponse<Void> deletePost(
+            @PathVariable Long crewId,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        postService.deletePost(postId, userDetails);
+        return ApiResponse.ok();
+    }
 }
