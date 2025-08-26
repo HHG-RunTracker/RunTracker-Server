@@ -187,32 +187,7 @@ public class PostService {
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
         
         List<Post> posts = postRepository.findByCrewIdOrderByCreatedAtDesc(crewId);
-        Long currentMemberId = userDetails.getMemberId();
-        
-        return posts.stream()
-                .map(post -> {
-                    String memberName = memberRepository.findById(post.getMemberId())
-                            .map(Member::getName)
-                            .orElse("Unknown");
-                    
-                    long likeCount = postLikeRepository.countLikesByPostId(post.getId());
-                    long commentCount = commentRepository.countByPostId(post.getId());
-                    boolean isLiked = postLikeRepository.existsByPostIdAndMemberId(post.getId(), currentMemberId);
-                    
-                    return PostListDTO.builder()
-                            .postId(post.getId())
-                            .title(post.getTitle())
-                            .content(post.getContent())
-                            .photos(post.getPhotos())
-                            .memberId(post.getMemberId())
-                            .memberName(memberName)
-                            .likeCount(likeCount)
-                            .commentCount(commentCount)
-                            .isLiked(isLiked)
-                            .createdAt(post.getCreatedAt())
-                            .build();
-                })
-                .collect(Collectors.toList());
+        return convertToPostListDTO(posts, userDetails.getMemberId());
     }
 
     public PostDetailDTO getPostDetail(Long crewId, Long postId, UserDetailsImpl userDetails) {
@@ -263,5 +238,39 @@ public class PostService {
                 .updatedAt(post.getUpdatedAt())
                 .comments(commentDTOs)
                 .build();
+    }
+
+    public List<PostListDTO> searchPosts(Long crewId, String keyword, UserDetailsImpl userDetails) {
+        crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
+        
+        List<Post> posts = postRepository.findByCrewIdAndTitleContainingIgnoreCaseOrderByCreatedAtDesc(crewId, keyword);
+        return convertToPostListDTO(posts, userDetails.getMemberId());
+    }
+
+    private List<PostListDTO> convertToPostListDTO(List<Post> posts, Long currentMemberId) {
+        return posts.stream()
+                .map(post -> {
+                    String memberName = memberRepository.findById(post.getMemberId())
+                            .map(Member::getName)
+                            .orElse("Unknown");
+                    
+                    long likeCount = postLikeRepository.countLikesByPostId(post.getId());
+                    long commentCount = commentRepository.countByPostId(post.getId());
+                    boolean isLiked = postLikeRepository.existsByPostIdAndMemberId(post.getId(), currentMemberId);
+                    
+                    return PostListDTO.builder()
+                            .postId(post.getId())
+                            .title(post.getTitle())
+                            .content(post.getContent())
+                            .photos(post.getPhotos())
+                            .memberId(post.getMemberId())
+                            .memberName(memberName)
+                            .likeCount(likeCount)
+                            .commentCount(commentCount)
+                            .isLiked(isLiked)
+                            .createdAt(post.getCreatedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }

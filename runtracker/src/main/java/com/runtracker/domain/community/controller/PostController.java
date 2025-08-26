@@ -123,4 +123,14 @@ public class PostController {
         PostDetailDTO post = postService.getPostDetail(crewId, postId, userDetails);
         return ApiResponse.ok(post);
     }
+
+    @GetMapping("/crews/{crewId}/posts/search")
+    public ApiResponse<List<PostListDTO>> searchPosts(
+            @PathVariable Long crewId,
+            @RequestParam String keyword,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        List<PostListDTO> posts = postService.searchPosts(crewId, keyword, userDetails);
+        return ApiResponse.ok(posts);
+    }
 }

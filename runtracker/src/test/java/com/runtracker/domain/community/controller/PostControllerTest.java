@@ -21,6 +21,7 @@ import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithNam
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -471,6 +472,78 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.comments[].memberName").type(JsonFieldType.STRING).description("댓글 작성자 이름"),
                                                 fieldWithPath("body.comments[].createdAt").type(JsonFieldType.STRING).description("댓글 작성일시"),
                                                 fieldWithPath("body.comments[].updatedAt").type(JsonFieldType.STRING).description("댓글 수정일시")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void searchPosts() throws Exception {
+        // given
+        List<PostListDTO> mockPosts = List.of(
+                PostListDTO.builder()
+                        .postId(1L)
+                        .title("러닝 완주 후기")
+                        .content("오늘 5km 러닝을 완주했어요! 정말 뿌듯합니다.")
+                        .photos(List.of("https://example.com/running1.jpg"))
+                        .memberId(1L)
+                        .memberName("김러너")
+                        .likeCount(12L)
+                        .commentCount(5L)
+                        .isLiked(true)
+                        .createdAt(LocalDateTime.of(2024, 12, 25, 16, 30))
+                        .build(),
+                PostListDTO.builder()
+                        .postId(2L)
+                        .title("마라톤 러닝 도전기")
+                        .content("처음으로 하프마라톤에 도전해봤습니다.")
+                        .photos(List.of())
+                        .memberId(2L)
+                        .memberName("박러너")
+                        .likeCount(8L)
+                        .commentCount(2L)
+                        .isLiked(false)
+                        .createdAt(LocalDateTime.of(2024, 12, 25, 12, 0))
+                        .build()
+        );
+        when(postService.searchPosts(anyLong(), anyString(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
+
+        // when
+        this.mockMvc.perform(get("/api/community/crews/{crewId}/posts/search", 1L)
+                        .param("keyword", "러닝")
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("community-post-search",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("community")
+                                        .summary("크루 커뮤니티 게시글 검색")
+                                        .description("해당 크루의 게시글을 제목으로 검색합니다. 키워드가 포함된 게시글을 최신순으로 반환하고 대소문자는 구분하지 않습니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID")
+                                        )
+                                        .queryParameters(
+                                                parameterWithName("keyword").description("검색할 키워드 (제목에서 검색)")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("검색된 게시글 목록"),
+                                                fieldWithPath("body[].postId").type(JsonFieldType.NUMBER).description("게시글 ID"),
+                                                fieldWithPath("body[].title").type(JsonFieldType.STRING).description("게시글 제목"),
+                                                fieldWithPath("body[].content").type(JsonFieldType.STRING).description("게시글 내용"),
+                                                fieldWithPath("body[].photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열"),
+                                                fieldWithPath("body[].memberId").type(JsonFieldType.NUMBER).description("작성자 ID"),
+                                                fieldWithPath("body[].memberName").type(JsonFieldType.STRING).description("작성자 이름"),
+                                                fieldWithPath("body[].likeCount").type(JsonFieldType.NUMBER).description("좋아요 수"),
+                                                fieldWithPath("body[].commentCount").type(JsonFieldType.NUMBER).description("댓글 수"),
+                                                fieldWithPath("body[].isLiked").type(JsonFieldType.BOOLEAN).description("현재 사용자의 좋아요 여부"),
+                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("작성일시")
                                         )
                                         .build()
                         )
