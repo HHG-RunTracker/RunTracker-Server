@@ -2,6 +2,10 @@ package com.runtracker.domain.community.controller;
 
 import com.runtracker.domain.community.dto.CommentDTO;
 import com.runtracker.domain.community.dto.PostDTO;
+import com.runtracker.domain.community.dto.PostDetailDTO;
+import com.runtracker.domain.community.dto.PostListDTO;
+
+import java.util.List;
 import com.runtracker.domain.community.service.PostService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -99,5 +103,24 @@ public class PostController {
         
         postService.deleteComment(commentId, userDetails);
         return ApiResponse.ok();
+    }
+
+    @GetMapping("/crews/{crewId}/posts")
+    public ApiResponse<List<PostListDTO>> getPostList(
+            @PathVariable Long crewId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        List<PostListDTO> posts = postService.getPostList(crewId, userDetails);
+        return ApiResponse.ok(posts);
+    }
+
+    @GetMapping("/crews/{crewId}/posts/{postId}")
+    public ApiResponse<PostDetailDTO> getPostDetail(
+            @PathVariable Long crewId,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        
+        PostDetailDTO post = postService.getPostDetail(crewId, postId, userDetails);
+        return ApiResponse.ok(post);
     }
 }

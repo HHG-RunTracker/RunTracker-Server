@@ -1,7 +1,10 @@
 package com.runtracker.domain.community.service;
 
 import com.runtracker.domain.community.dto.CommentDTO;
+import com.runtracker.domain.community.dto.CommentInfoDTO;
 import com.runtracker.domain.community.dto.PostDTO;
+import com.runtracker.domain.community.dto.PostDetailDTO;
+import com.runtracker.domain.community.dto.PostListDTO;
 import com.runtracker.domain.community.entity.Post;
 import com.runtracker.domain.community.entity.PostComment;
 import com.runtracker.domain.community.entity.PostLike;
@@ -16,13 +19,16 @@ import com.runtracker.domain.community.exception.UnauthorizedPostAccessException
 import com.runtracker.domain.community.repository.CommentRepository;
 import com.runtracker.domain.community.repository.PostLikeRepository;
 import com.runtracker.domain.community.repository.PostRepository;
+import com.runtracker.domain.member.entity.Member;
+import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.global.security.CrewAuthorizationUtil;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +38,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
     private final CrewAuthorizationUtil crewAuthorizationUtil;
 
     @Transactional
@@ -174,5 +181,87 @@ public class PostService {
         }
 
         return comment;
+    }
+
+    public List<PostListDTO> getPostList(Long crewId, UserDetailsImpl userDetails) {
+        crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
+        
+        List<Post> posts = postRepository.findByCrewIdOrderByCreatedAtDesc(crewId);
+        Long currentMemberId = userDetails.getMemberId();
+        
+        return posts.stream()
+                .map(post -> {
+                    String memberName = memberRepository.findById(post.getMemberId())
+                            .map(Member::getName)
+                            .orElse("Unknown");
+                    
+                    long likeCount = postLikeRepository.countLikesByPostId(post.getId());
+                    long commentCount = commentRepository.countByPostId(post.getId());
+                    boolean isLiked = postLikeRepository.existsByPostIdAndMemberId(post.getId(), currentMemberId);
+                    
+                    return PostListDTO.builder()
+                            .postId(post.getId())
+                            .title(post.getTitle())
+                            .content(post.getContent())
+                            .photos(post.getPhotos())
+                            .memberId(post.getMemberId())
+                            .memberName(memberName)
+                            .likeCount(likeCount)
+                            .commentCount(commentCount)
+                            .isLiked(isLiked)
+                            .createdAt(post.getCreatedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    public PostDetailDTO getPostDetail(Long crewId, Long postId, UserDetailsImpl userDetails) {
+        crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
+        
+        Post post = postRepository.findById(postId)
+                .orElseThrow(PostNotFoundException::new);
+        
+        if (!post.getCrewId().equals(crewId)) {
+            throw new PostNotFoundException();
+        }
+        
+        String memberName = memberRepository.findById(post.getMemberId())
+                .map(Member::getName)
+                .orElse("Unknown");
+        
+        long likeCount = postLikeRepository.countLikesByPostId(postId);
+        boolean isLiked = postLikeRepository.existsByPostIdAndMemberId(postId, userDetails.getMemberId());
+        
+        List<PostComment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+        List<CommentInfoDTO> commentDTOs = comments.stream()
+                .map(comment -> {
+                    String commentMemberName = memberRepository.findById(comment.getMemberId())
+                            .map(Member::getName)
+                            .orElse("Unknown");
+                    
+                    return CommentInfoDTO.builder()
+                            .commentId(comment.getCommentId())
+                            .comment(comment.getComment())
+                            .memberId(comment.getMemberId())
+                            .memberName(commentMemberName)
+                            .createdAt(comment.getCreatedAt())
+                            .updatedAt(comment.getUpdatedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
+        
+        return PostDetailDTO.builder()
+                .postId(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .photos(post.getPhotos())
+                .memberId(post.getMemberId())
+                .memberName(memberName)
+                .likeCount(likeCount)
+                .isLiked(isLiked)
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .comments(commentDTOs)
+                .build();
     }
 }
