@@ -4,6 +4,7 @@ import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
+import com.runtracker.domain.course.dto.FinishRunning;
 import com.runtracker.domain.course.service.CourseService;
 import com.runtracker.global.code.CommonResponseCode;
 import com.runtracker.global.exception.CustomException;
@@ -68,6 +69,20 @@ public class CourseController {
         try {
             CourseDetailDTO courseDetail = courseService.getCourseDetail(courseId);
             return ApiResponse.ok(courseDetail);
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/finish")
+    public ApiResponse<Void> finishRunning(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody FinishRunning request) {
+        try {
+            courseService.finishRunning(userDetails.getMemberId(), request);
+            return ApiResponse.ok();
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());
         } catch (Exception e) {

@@ -12,7 +12,10 @@ public enum CourseErrorCode implements ResponseCode {
     COURSE_SAVE_FAILED("CR002", "Course save failed"),
     NEARBY_COURSE_MAPPING_FAILED("CR003", "Nearby course mapping failed"),
     COORDINATES_PARSING_FAILED("CR004", "Coordinates parsing failed"),
-    COURSE_NOT_FOUND("CR005", "Course not found");
+    COURSE_NOT_FOUND("CR005", "Course not found"),
+    VALIDATION_ERROR("CR006", "validation error"),
+    MULTIPLE_ACTIVE_RUNNING("CR007", "Multiple active running found"),
+    ALREADY_RUNNING("CR008", "Already running");
     
     private final String statusCode;
     private final String message;

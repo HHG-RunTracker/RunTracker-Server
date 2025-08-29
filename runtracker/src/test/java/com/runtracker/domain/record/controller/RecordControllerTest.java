@@ -1,8 +1,6 @@
 package com.runtracker.domain.record.controller;
 
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.record.dto.RunningRecordDTO;
 import com.runtracker.domain.record.service.RecordService;
@@ -13,19 +11,15 @@ import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -34,64 +28,6 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
 
     @MockitoBean
     private RecordService recordService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-
-    @Test
-    void saveRunningRecordTest() throws Exception {
-        // given
-        Map<String, Object> createRequest = new LinkedHashMap<>();
-        createRequest.put("courseId", 1L);
-        createRequest.put("runningTime", 2400);
-        createRequest.put("startedAt", "2025-08-16 07:30:00");
-        createRequest.put("finishedAt", "2025-08-16 08:10:00");
-        createRequest.put("distance", 5000.0);
-        createRequest.put("walk", 100);
-        createRequest.put("calorie", 350);
-
-        doNothing().when(recordService).saveRunningRecord(anyLong(), any(RunningRecordDTO.class));
-        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
-        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
-
-        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
-                .memberId(1L)
-                .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
-                .build();
-        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
-
-        // when
-        this.mockMvc.perform(post("/api/records/save")
-                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
-                        .contentType(APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createRequest)))
-                .andExpect(status().isOk())
-                .andDo(document("record-save-running-record",
-                        resource(
-                                ResourceSnippetParameters.builder()
-                                        .tag("records")
-                                        .description("러닝 기록 저장")
-                                        .requestHeaders(
-                                                headerWithName("Authorization").description("엑세스 토큰")
-                                        )
-                                        .requestFields(
-                                                fieldWithPath("courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
-                                                fieldWithPath("startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
-                                                fieldWithPath("finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
-                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
-                                                fieldWithPath("walk").type(JsonFieldType.NUMBER).description("걸음 수"),
-                                                fieldWithPath("calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
-                                        )
-                                        .responseFields(
-                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
-                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
-                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
-                                        )
-                                        .build()
-                        )
-                ));
-    }
 
     @Test
     void getRunningRecordsByDateRangeTest() throws Exception {

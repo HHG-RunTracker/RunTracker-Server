@@ -9,6 +9,7 @@ import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.course.service.CourseService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
+import com.runtracker.domain.course.dto.FinishRunning;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
@@ -309,6 +310,59 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                         .build()
                         )
                 ));
+    }
+
+    @Test
+    void finishRunningTest() throws Exception {
+        // given
+        doNothing().when(courseService).finishRunning(anyLong(), any(FinishRunning.class));
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        Map<String, Object> finishRequest = createFinishRunningRequest();
+
+        this.mockMvc.perform(post("/api/courses/finish")
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(finishRequest)))
+                .andExpect(status().isOk())
+                .andDo(document("course-finish-running",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("courses")
+                                        .description("러닝 종료 및 기록 저장")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
+                                                fieldWithPath("walk").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    private Map<String, Object> createFinishRunningRequest() {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("distance", 5000.0);
+        request.put("walk", 7200);
+        request.put("calorie", 400);
+        return request;
     }
 
 }
