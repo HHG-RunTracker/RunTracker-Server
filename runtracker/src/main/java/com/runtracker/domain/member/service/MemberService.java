@@ -7,6 +7,7 @@ import com.runtracker.domain.course.repository.CourseRepository;
 import com.runtracker.domain.member.exception.MemberNotFoundException;
 import com.runtracker.domain.member.exception.InvalidDifficultyException;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -124,6 +125,12 @@ public class MemberService {
         } catch (IllegalArgumentException e) {
             throw new InvalidDifficultyException("Invalid difficulty value. Must be one of: EASY, MEDIUM, HARD");
         }
+    }
+
+    @Transactional
+    public void updateNotificationSetting(Long memberId, NotificationSettingDTO.Request request) {
+        Member member = getMemberById(memberId);
+        member.updateNotificationSetting(request.getNotifyBlock());
     }
 
     @Transactional

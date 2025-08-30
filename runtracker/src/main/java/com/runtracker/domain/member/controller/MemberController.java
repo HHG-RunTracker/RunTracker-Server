@@ -5,6 +5,7 @@ import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.domain.member.service.AuthService;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -67,6 +68,13 @@ public class MemberController {
     public ApiResponse<Void> updateProfile(@AuthenticationPrincipal UserDetailsImpl userDetails,
                                            @Valid @RequestBody MemberUpdateDTO.Request request) {
         memberService.updateProfile(userDetails.getMemberId(), request);
+        return ApiResponse.ok();
+    }
+
+    @PatchMapping("/notification")
+    public ApiResponse<Void> updateNotificationSetting(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                       @Valid @RequestBody NotificationSettingDTO.Request request) {
+        memberService.updateNotificationSetting(userDetails.getMemberId(), request);
         return ApiResponse.ok();
     }
 }

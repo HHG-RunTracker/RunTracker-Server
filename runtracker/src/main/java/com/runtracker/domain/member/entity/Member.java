@@ -100,4 +100,10 @@ public class Member extends BaseEntity {
     public void updateTemperature(Double temperature) {
         this.temperature = temperature;
     }
+    
+    public void updateNotificationSetting(Boolean notifyBlock) {
+        if (notifyBlock != null) {
+            this.notifyBlock = notifyBlock;
+        }
+    }
 }

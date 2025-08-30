@@ -4,6 +4,7 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import org.junit.jupiter.api.Test;
@@ -313,6 +314,39 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
     }
 
     @Test
+    void updateNotificationSettingTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateNotificationSetting(anyLong(), any(NotificationSettingDTO.Request.class));
+
+        // when & then
+        this.mockMvc.perform(patch("/api/members/notification")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of("notifyBlock", false))))
+                .andExpect(status().isOk())
+                .andDo(document("member-update-notification",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("알림 설정 수정")
+                                        .description("notifyBlock - 알림 차단 여부 (true: 알림 차단, false: 알림 허용")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("notifyBlock").type(JsonFieldType.BOOLEAN).description("알림 차단 여부 (true: 알림 차단/OFF, false: 알림 허용/ON)")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
     void withdrawMemberTest() throws Exception {
         // given
         doNothing().when(memberService).withdrawMember(anyLong());
@@ -325,7 +359,8 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                         resource(
                                 ResourceSnippetParameters.builder()
                                         .tag("users")
-                                        .description("회원 탈퇴")
+                                        .summary("회원 탈퇴")
+                                        .description("로그인한 사용자의 계정을 탈퇴합니다")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("Bearer 토큰")
                                         )
