@@ -5,6 +5,9 @@ import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.domain.course.repository.CourseRepository;
 import com.runtracker.domain.member.exception.MemberNotFoundException;
+import com.runtracker.domain.member.exception.InvalidDifficultyException;
+import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +94,36 @@ public class MemberService {
     public Member getMemberById(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+    }
+
+    @Transactional
+    public Member updateProfile(Long memberId, MemberUpdateDTO.Request request) {
+        Member member = getMemberById(memberId);
+
+        if (request.getDifficulty() != null) {
+            validateDifficulty(request.getDifficulty());
+        }
+        
+        member.updateProfile(
+                request.getPhoto(),
+                request.getName(),
+                request.getIntroduce(),
+                request.getAge(),
+                request.getGender(),
+                request.getRegion(),
+                request.getDifficulty(),
+                request.getSearchBlock(),
+                request.getProfileBlock()
+        );
+        return member;
+    }
+    
+    private void validateDifficulty(String difficulty) {
+        try {
+            Difficulty.valueOf(difficulty);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidDifficultyException("Invalid difficulty value. Must be one of: EASY, MEDIUM, HARD");
+        }
     }
 
     @Transactional

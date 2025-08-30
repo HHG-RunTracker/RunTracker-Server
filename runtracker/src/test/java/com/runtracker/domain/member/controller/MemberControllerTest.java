@@ -3,6 +3,7 @@ package com.runtracker.domain.member.controller;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.member.entity.Member;
+import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithNam
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -194,7 +196,7 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                 .age(25)
                 .gender(true)
                 .region("서울")
-                .difficulty("초급")
+                .difficulty("EASY")
                 .temperature(36.5)
                 .point(100)
                 .searchBlock(false)
@@ -237,6 +239,73 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.notifyBlock").type(JsonFieldType.BOOLEAN).description("알림 차단 여부"),
                                                 fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성 일시").optional(),
                                                 fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("수정 일시").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void updateProfileTest() throws Exception {
+        // given
+        Member updatedMember = Member.builder()
+                .socialAttr("kakao")
+                .socialId("kakao_12345")
+                .photo("https://example.com/new-photo.jpg")
+                .name("김철수")
+                .introduce("업데이트된 자기소개입니다.")
+                .age(30)
+                .gender(true)
+                .region("부산")
+                .difficulty("MEDIUM")
+                .temperature(36.5)
+                .point(100)
+                .searchBlock(true)
+                .profileBlock(false)
+                .notifyBlock(true)
+                .build();
+
+        given(memberService.updateProfile(anyLong(), any(MemberUpdateDTO.Request.class))).willReturn(updatedMember);
+
+        // when & then
+        this.mockMvc.perform(patch("/api/members/update")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of(
+                                "photo", "https://example.com/new-photo.jpg",
+                                "name", "김철수",
+                                "introduce", "업데이트된 자기소개입니다.",
+                                "age", 30,
+                                "gender", true,
+                                "region", "부산",
+                                "difficulty", "MEDIUM",
+                                "searchBlock", true,
+                                "profileBlock", false
+                        ))))
+                .andExpect(status().isOk())
+                .andDo(document("member-update-profile",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("로그인한 사용자 프로필 수정")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("photo").type(JsonFieldType.STRING).description("프로필 사진 URL").optional(),
+                                                fieldWithPath("name").type(JsonFieldType.STRING).description("닉네임").optional(),
+                                                fieldWithPath("introduce").type(JsonFieldType.STRING).description("자기소개").optional(),
+                                                fieldWithPath("age").type(JsonFieldType.NUMBER).description("나이").optional(),
+                                                fieldWithPath("gender").type(JsonFieldType.BOOLEAN).description("성별 (true: 남성, false: 여성)").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("지역").optional(),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("러닝 난이도 (EASY, MEDIUM, HARD)").optional(),
+                                                fieldWithPath("searchBlock").type(JsonFieldType.BOOLEAN).description("크루 검색 공개 여부").optional(),
+                                                fieldWithPath("profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 공개 여부").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
                                         )
                                         .build()
                         )
