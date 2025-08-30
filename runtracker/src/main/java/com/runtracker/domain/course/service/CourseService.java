@@ -42,11 +42,7 @@ public class CourseService {
 
     public void createFreeRunningCourse(CourseDTO courseDTO) {
         validateCourseDTO(courseDTO);
-
-        List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(courseDTO.getMemberId());
-        if (!activeRecords.isEmpty()) {
-            throw new AlreadyRunningException("Member already has active running record");
-        }
+        checkAlreadyRunning(courseDTO.getMemberId());
 
         try {
             Course course = createCourseFromDTO(courseDTO);
@@ -98,6 +94,13 @@ public class CourseService {
         }
     }
 
+    private void checkAlreadyRunning(Long memberId) {
+        List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(memberId);
+        if (!activeRecords.isEmpty()) {
+            throw new AlreadyRunningException("Member already has active running record");
+        }
+    }
+
     public Course createCourseFromDTO(CourseDTO courseDTO) {
         try {
             Course course = Course.builder()
@@ -122,6 +125,30 @@ public class CourseService {
             log.error("Failed to create course from DTO for member: {}, error: {}", 
                     courseDTO.getMemberId(), e.getMessage(), e);
             throw new CourseCreationFailedException("Failed to create course for member: " + courseDTO.getMemberId());
+        }
+    }
+
+    public void startRunningCourse(Long memberId, Long courseId) {
+        checkAlreadyRunning(memberId);
+
+        courseRepository.findById(courseId)
+                .orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
+
+        try {
+            RunningRecord runningRecord = RunningRecord.builder()
+                    .memberId(memberId)
+                    .courseId(courseId)
+                    .runningTime(null)
+                    .startedAt(LocalDateTime.now())
+                    .finishedAt(null)
+                    .distance(null)
+                    .walk(null)
+                    .calorie(null)
+                    .build();
+
+            recordRepository.save(runningRecord);
+        } catch (Exception e) {
+            throw new CourseCreationFailedException();
         }
     }
 

@@ -313,6 +313,45 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
     }
 
     @Test
+    void startRunningCourseTest() throws Exception {
+        // given
+        doNothing().when(courseService).startRunningCourse(anyLong(), anyLong());
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/courses/{courseId}/running", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("course-start-running",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("courses")
+                                        .description("기존 코스로 러닝 시작")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("courseId").description("시작할 코스 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
     void finishRunningTest() throws Exception {
         // given
         doNothing().when(courseService).finishRunning(anyLong(), any(FinishRunning.class));

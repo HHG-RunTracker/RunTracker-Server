@@ -76,6 +76,20 @@ public class CourseController {
         }
     }
 
+    @PostMapping("/{courseId}/running")
+    public ApiResponse<Void> startRunningWithCourse(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long courseId) {
+        try {
+            courseService.startRunningCourse(userDetails.getMemberId(), courseId);
+            return ApiResponse.ok();
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @PostMapping("/finish")
     public ApiResponse<Void> finishRunning(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
