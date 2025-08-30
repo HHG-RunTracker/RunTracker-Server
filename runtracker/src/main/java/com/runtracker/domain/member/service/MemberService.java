@@ -88,6 +88,11 @@ public class MemberService {
         }
     }
 
+    public Member getMemberById(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+    }
+
     @Transactional
     public void withdrawMember(Long memberId) {
         Member member = memberRepository.findById(memberId)

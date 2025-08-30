@@ -2,6 +2,7 @@ package com.runtracker.domain.member.controller;
 
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
+import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import org.junit.jupiter.api.Test;
@@ -175,6 +176,67 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
                                                 fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
                                                 fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getProfileTest() throws Exception {
+        // given
+        Member member = Member.builder()
+                .socialAttr("kakao")
+                .socialId("kakao_12345")
+                .photo("https://example.com/photo.jpg")
+                .name("홍길동")
+                .introduce("안녕하세요! 러닝을 좋아하는 홍길동입니다.")
+                .age(25)
+                .gender(true)
+                .region("서울")
+                .difficulty("초급")
+                .temperature(36.5)
+                .point(100)
+                .searchBlock(false)
+                .profileBlock(false)
+                .notifyBlock(true)
+                .build();
+
+        given(memberService.getMemberById(anyLong())).willReturn(member);
+
+        // when & then
+        this.mockMvc.perform(get("/api/members/profile")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-get-profile",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("로그인한 사용자 프로필 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("회원 ID").optional(),
+                                                fieldWithPath("body.socialAttr").type(JsonFieldType.STRING).description("소셜 로그인 제공자").optional(),
+                                                fieldWithPath("body.socialId").type(JsonFieldType.STRING).description("소셜 로그인 ID"),
+                                                fieldWithPath("body.photo").type(JsonFieldType.STRING).description("프로필 사진 URL").optional(),
+                                                fieldWithPath("body.name").type(JsonFieldType.STRING).description("이름").optional(),
+                                                fieldWithPath("body.introduce").type(JsonFieldType.STRING).description("자기소개").optional(),
+                                                fieldWithPath("body.age").type(JsonFieldType.NUMBER).description("나이").optional(),
+                                                fieldWithPath("body.gender").type(JsonFieldType.BOOLEAN).description("성별 (true: 남성, false: 여성)").optional(),
+                                                fieldWithPath("body.region").type(JsonFieldType.STRING).description("지역").optional(),
+                                                fieldWithPath("body.difficulty").type(JsonFieldType.STRING).description("러닝 난이도").optional(),
+                                                fieldWithPath("body.temperature").type(JsonFieldType.NUMBER).description("사용자 온도"),
+                                                fieldWithPath("body.point").type(JsonFieldType.NUMBER).description("포인트"),
+                                                fieldWithPath("body.searchBlock").type(JsonFieldType.BOOLEAN).description("검색 차단 여부"),
+                                                fieldWithPath("body.profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 차단 여부"),
+                                                fieldWithPath("body.notifyBlock").type(JsonFieldType.BOOLEAN).description("알림 차단 여부"),
+                                                fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성 일시").optional(),
+                                                fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("수정 일시").optional()
                                         )
                                         .build()
                         )
