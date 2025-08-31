@@ -4,26 +4,41 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.crew.dto.CrewApprovalDTO;
+import com.runtracker.domain.crew.dto.CrewCourseRecommendationDTO;
 import com.runtracker.domain.crew.dto.CrewCreateDTO;
 import com.runtracker.domain.crew.dto.CrewDetailDTO;
 import com.runtracker.domain.crew.dto.CrewListDTO;
 import com.runtracker.domain.crew.dto.CrewManagementDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
+import com.runtracker.domain.course.dto.CourseDetailDTO;
+import com.runtracker.domain.course.dto.CourseDTO;
+import com.runtracker.domain.course.entity.vo.Coordinate;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
+import com.runtracker.domain.crew.dto.CrewRecordDTO;
+import com.runtracker.domain.crew.dto.CrewRunningDTO;
+import com.runtracker.domain.crew.dto.CrewRankingDTO;
+import com.runtracker.domain.crew.dto.CrewMemberRankingDTO;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
+import com.runtracker.domain.crew.enums.CrewRunningStatus;
+import com.runtracker.domain.crew.enums.ParticipantStatus;
 import com.runtracker.domain.crew.service.CrewService;
+import com.runtracker.domain.crew.service.CrewRunningService;
+import com.runtracker.domain.crew.service.CrewRankingService;
+import com.runtracker.domain.crew.service.CrewMemberRankingService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.epages.restdocs.apispec.ResourceDocumentation.headerWithName;
-import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -36,11 +51,23 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.mockito.Mockito.verify;
 
 class CrewControllerTest extends RunTrackerDocumentApiTester {
 
     @MockitoBean
     private CrewService crewService;
+    
+    @MockitoBean
+    private CrewRunningService crewRunningService;
+    
+    @MockitoBean
+    private CrewRankingService crewRankingService;
+
+    @MockitoBean
+    private CrewMemberRankingService crewMemberRankingService;
 
     @Test
     void createCrew() throws Exception {
@@ -779,5 +806,978 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                         .build()
                         )
                 ));
+    }
+
+    @Test
+    void getRecommendedCourses() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(600L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_600");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(600L)
+                .socialId("kakao_600")
+                .roles(List.of(MemberRole.USER, MemberRole.CREW_MANAGER))
+                .build();
+        given(userDetailsService.loadUserByUsername("600")).willReturn(mockUserDetails);
+
+        List<CrewCourseRecommendationDTO.Response> mockRecommendations = List.of(
+                CrewCourseRecommendationDTO.Response.builder()
+                        .courseId(1L)
+                        .name("한강 러닝 코스")
+                        .region("서울시 강남구")
+                        .distance(5.2)
+                        .difficulty(Difficulty.EASY)
+                        .startLat(37.5172)
+                        .startLng(127.0473)
+                        .photo("https://example.com/course1.jpg")
+                        .createdAt(LocalDateTime.of(2024, 1, 1, 10, 0))
+                        .build(),
+                CrewCourseRecommendationDTO.Response.builder()
+                        .courseId(2L)
+                        .name("올림픽공원 코스")
+                        .region("서울시 송파구")
+                        .distance(3.8)
+                        .difficulty(Difficulty.MEDIUM)
+                        .startLat(37.5219)
+                        .startLng(127.1277)
+                        .photo("https://example.com/course2.jpg")
+                        .createdAt(LocalDateTime.of(2024, 1, 5, 14, 30))
+                        .build(),
+                CrewCourseRecommendationDTO.Response.builder()
+                        .courseId(3L)
+                        .name("남산 순환 코스")
+                        .region("서울시 중구")
+                        .distance(7.1)
+                        .difficulty(Difficulty.HARD)
+                        .startLat(37.5506)
+                        .startLng(126.9910)
+                        .photo("https://example.com/course3.jpg")
+                        .createdAt(LocalDateTime.of(2024, 1, 10, 16, 45))
+                        .build()
+        );
+
+        given(crewRunningService.getRecommendedCourses(anyLong(), anyString(), any(), any(), any(UserDetailsImpl.class)))
+                .willReturn(mockRecommendations);
+
+        // when
+        this.mockMvc.perform(get("/api/crew/{crewId}/recommended-courses", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .param("region", "서울시 강남구")
+                        .param("minDistance", "3.0")
+                        .param("maxDistance", "8.0"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-recommended-courses",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 코스 추천 조회 (크루장/매니저 전용)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("조회할 크루 ID")
+                                        )
+                                        .queryParameters(
+                                                parameterWithName("region").description("지역 필터 (선택사항)").optional(),
+                                                parameterWithName("minDistance").description("최소 거리 필터 (선택사항)").optional(),
+                                                parameterWithName("maxDistance").description("최대 거리 필터 (선택사항)").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("추천 코스 목록"),
+                                                fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body[].name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("body[].region").type(JsonFieldType.STRING).description("코스 지역"),
+                                                fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("코스 거리 (km)"),
+                                                fieldWithPath("body[].difficulty").type(JsonFieldType.STRING).description("코스 난이도 (EASY, MEDIUM, HARD)"),
+                                                fieldWithPath("body[].startLat").type(JsonFieldType.NUMBER).description("시작 지점 위도"),
+                                                fieldWithPath("body[].startLng").type(JsonFieldType.NUMBER).description("시작 지점 경도"),
+                                                fieldWithPath("body[].photo").type(JsonFieldType.STRING).description("코스 사진 URL").optional(),
+                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("코스 생성일시")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void createCrewRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(600L)
+                .socialId("kakao_600")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("600")).willReturn(mockUserDetails);
+
+        CrewRunningDTO.CreateRequest request = CrewRunningDTO.CreateRequest.builder()
+                .title("주말 한강 런닝")
+                .description("날씨 좋으니 다같이 뛰어요!")
+                .build();
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/create", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-create",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 방 생성 (크루장/매니저 전용)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("title").type(JsonFieldType.STRING).description("크루 런닝 제목"),
+                                                fieldWithPath("description").type(JsonFieldType.STRING).description("크루 런닝 설명")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCrewRunnings() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(600L)
+                .socialId("kakao_600")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("600")).willReturn(mockUserDetails);
+
+        List<CrewRunningDTO.Response> mockResponse = List.of(
+                CrewRunningDTO.Response.builder()
+                        .id(1L)
+                        .crewId(1L)
+                        .creatorId(600L)
+                        .creatorName("테스트 사용자")
+                        .status(CrewRunningStatus.WAITING)
+                        .title("주말 한강 런닝")
+                        .description("날씨 좋으니 다같이 뛰어요!")
+                        .participants(List.of(
+                                CrewRunningDTO.ParticipantInfo.builder()
+                                        .memberId(600L)
+                                        .memberName("테스트 사용자")
+                                        .status(ParticipantStatus.JOINED)
+                                        .joinedAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                                        .build()
+                        ))
+                        .createdAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                        .build(),
+                CrewRunningDTO.Response.builder()
+                        .id(2L)
+                        .crewId(1L)
+                        .creatorId(601L)
+                        .creatorName("매니저")
+                        .status(CrewRunningStatus.COMPLETED)
+                        .startTime(LocalDateTime.of(2024, 1, 14, 8, 0))
+                        .endTime(LocalDateTime.of(2024, 1, 14, 9, 30))
+                        .title("아침 러닝")
+                        .description("상쾌한 아침 런닝")
+                        .participants(List.of(
+                                CrewRunningDTO.ParticipantInfo.builder()
+                                        .memberId(601L)
+                                        .memberName("매니저")
+                                        .status(ParticipantStatus.FINISHED)
+                                        .joinedAt(LocalDateTime.of(2024, 1, 14, 7, 50))
+                                        .startedAt(LocalDateTime.of(2024, 1, 14, 8, 0))
+                                        .finishedAt(LocalDateTime.of(2024, 1, 14, 9, 30))
+                                        .build(),
+                                CrewRunningDTO.ParticipantInfo.builder()
+                                        .memberId(602L)
+                                        .memberName("크루원")
+                                        .status(ParticipantStatus.FINISHED)
+                                        .joinedAt(LocalDateTime.of(2024, 1, 14, 7, 55))
+                                        .startedAt(LocalDateTime.of(2024, 1, 14, 8, 0))
+                                        .finishedAt(LocalDateTime.of(2024, 1, 14, 9, 25))
+                                        .build()
+                        ))
+                        .createdAt(LocalDateTime.of(2024, 1, 14, 7, 45))
+                        .build()
+        );
+
+        given(crewRunningService.getCrewRunnings(anyLong(), any(UserDetailsImpl.class)))
+                .willReturn(mockResponse);
+
+        // when
+        this.mockMvc.perform(get("/api/crew/{crewId}/running/list", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-list",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 방 목록 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("크루 런닝 방 목록"),
+                                                fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("크루 런닝 방 ID"),
+                                                fieldWithPath("body[].crewId").type(JsonFieldType.NUMBER).description("크루 ID"),
+                                                fieldWithPath("body[].creatorId").type(JsonFieldType.NUMBER).description("생성자 ID"),
+                                                fieldWithPath("body[].creatorName").type(JsonFieldType.STRING).description("생성자 이름"),
+                                                fieldWithPath("body[].status").type(JsonFieldType.STRING).description("크루 런닝 상태"),
+                                                fieldWithPath("body[].startTime").type(JsonFieldType.STRING).description("시작 시간").optional(),
+                                                fieldWithPath("body[].endTime").type(JsonFieldType.STRING).description("종료 시간").optional(),
+                                                fieldWithPath("body[].title").type(JsonFieldType.STRING).description("크루 런닝 제목"),
+                                                fieldWithPath("body[].description").type(JsonFieldType.STRING).description("크루 런닝 설명"),
+                                                fieldWithPath("body[].participants").type(JsonFieldType.ARRAY).description("참여자 목록"),
+                                                fieldWithPath("body[].participants[].memberId").type(JsonFieldType.NUMBER).description("참여자 ID"),
+                                                fieldWithPath("body[].participants[].memberName").type(JsonFieldType.STRING).description("참여자 이름").optional(),
+                                                fieldWithPath("body[].participants[].status").type(JsonFieldType.STRING).description("참여자 상태"),
+                                                fieldWithPath("body[].participants[].joinedAt").type(JsonFieldType.STRING).description("참여 시간"),
+                                                fieldWithPath("body[].participants[].startedAt").type(JsonFieldType.STRING).description("시작 시간").optional(),
+                                                fieldWithPath("body[].participants[].finishedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
+                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("생성일시")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void joinCrewRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(600L)
+                .socialId("kakao_600")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("600")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/join", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-join",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 방 참여")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void leaveCrewRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(600L)
+                .socialId("kakao_600")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("600")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/leave", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-leave",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 방 나가기")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCrewRunningDetail() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(600L)
+                .socialId("kakao_600")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("600")).willReturn(mockUserDetails);
+
+        CrewRunningDTO.Response mockResponse = CrewRunningDTO.Response.builder()
+                .id(1L)
+                .crewId(1L)
+                .creatorId(600L)
+                .creatorName("테스트 사용자")
+                .status(CrewRunningStatus.WAITING)
+                .title("주말 한강 런닝")
+                .description("날씨 좋으니 다같이 뛰어요!")
+                .participants(List.of(
+                        CrewRunningDTO.ParticipantInfo.builder()
+                                .memberId(600L)
+                                .memberName("테스트 사용자")
+                                .status(ParticipantStatus.JOINED)
+                                .joinedAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                                .build(),
+                        CrewRunningDTO.ParticipantInfo.builder()
+                                .memberId(601L)
+                                .memberName("참여자1")
+                                .status(ParticipantStatus.JOINED)
+                                .joinedAt(LocalDateTime.of(2024, 1, 15, 10, 5))
+                                .build()
+                ))
+                .createdAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                .build();
+
+        given(crewRunningService.getCrewRunningDetail(anyLong(), anyLong(), any(UserDetailsImpl.class)))
+                .willReturn(mockResponse);
+
+        // when
+        this.mockMvc.perform(get("/api/crew/{crewId}/running/list/{crewRunningId}", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-detail",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 방 상세 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.OBJECT).description("크루 런닝 상세 정보"),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("크루 런닝 방 ID"),
+                                                fieldWithPath("body.crewId").type(JsonFieldType.NUMBER).description("크루 ID"),
+                                                fieldWithPath("body.creatorId").type(JsonFieldType.NUMBER).description("생성자 ID"),
+                                                fieldWithPath("body.creatorName").type(JsonFieldType.STRING).description("생성자 이름"),
+                                                fieldWithPath("body.status").type(JsonFieldType.STRING).description("크루 런닝 상태"),
+                                                fieldWithPath("body.startTime").type(JsonFieldType.STRING).description("시작 시간").optional(),
+                                                fieldWithPath("body.endTime").type(JsonFieldType.STRING).description("종료 시간").optional(),
+                                                fieldWithPath("body.title").type(JsonFieldType.STRING).description("크루 런닝 제목"),
+                                                fieldWithPath("body.description").type(JsonFieldType.STRING).description("크루 런닝 설명"),
+                                                fieldWithPath("body.participants").type(JsonFieldType.ARRAY).description("참여자 목록"),
+                                                fieldWithPath("body.participants[].memberId").type(JsonFieldType.NUMBER).description("참여자 ID"),
+                                                fieldWithPath("body.participants[].memberName").type(JsonFieldType.STRING).description("참여자 이름"),
+                                                fieldWithPath("body.participants[].status").type(JsonFieldType.STRING).description("참여자 상태"),
+                                                fieldWithPath("body.participants[].joinedAt").type(JsonFieldType.STRING).description("참여 시간"),
+                                                fieldWithPath("body.participants[].startedAt").type(JsonFieldType.STRING).description("시작 시간").optional(),
+                                                fieldWithPath("body.participants[].finishedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
+                                                fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성일시")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void deleteCrewRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(500L)
+                .socialId("kakao_500")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("500")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(delete("/api/crew/{crewId}/running/{crewRunningId}", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-delete",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 방 삭제 (크루장/매니저만)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void startCrewRunningWithCourse() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(500L)
+                .socialId("kakao_500")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("500")).willReturn(mockUserDetails);
+
+        CourseDetailDTO mockCourseDetail = CourseDetailDTO.builder()
+                .id(123L)
+                .memberId(500L)
+                .name("테스트 코스")
+                .difficulty(Difficulty.MEDIUM)
+                .points(List.of(
+                        new Coordinate(37.5665, 126.9780),
+                        new Coordinate(37.5675, 126.9790)
+                ))
+                .startLat(37.5665)
+                .startLng(126.9780)
+                .distance(5000.0)
+                .round(false)
+                .region("서울시 중구")
+                .photo("https://example.com/course-photo.jpg")
+                .photoLat(37.5670)
+                .photoLng(126.9785)
+                .createdAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                .updatedAt(LocalDateTime.of(2024, 1, 15, 10, 0))
+                .build();
+
+        given(crewRunningService.startCrewRunningWithCourse(anyLong(), anyLong(), any(), any(UserDetailsImpl.class)))
+                .willReturn(mockCourseDetail);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/course/{courseId}", 1L, 1L, 123L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-start-with-course",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 시작 (기존 코스 선택)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID"),
+                                                parameterWithName("courseId").description("사용할 코스 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.OBJECT).description("선택된 코스 정보"),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body.memberId").type(JsonFieldType.NUMBER).description("코스 생성자 ID"),
+                                                fieldWithPath("body.name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("body.difficulty").type(JsonFieldType.STRING).description("코스 난이도"),
+                                                fieldWithPath("body.points").type(JsonFieldType.ARRAY).description("코스 좌표 리스트"),
+                                                fieldWithPath("body.points[].lat").type(JsonFieldType.NUMBER).description("위도"),
+                                                fieldWithPath("body.points[].lnt").type(JsonFieldType.NUMBER).description("경도"),
+                                                fieldWithPath("body.startLat").type(JsonFieldType.NUMBER).description("시작점 위도"),
+                                                fieldWithPath("body.startLng").type(JsonFieldType.NUMBER).description("시작점 경도"),
+                                                fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("코스 거리"),
+                                                fieldWithPath("body.round").type(JsonFieldType.BOOLEAN).description("왕복 여부"),
+                                                fieldWithPath("body.region").type(JsonFieldType.STRING).description("지역"),
+                                                fieldWithPath("body.photo").type(JsonFieldType.STRING).description("코스 사진"),
+                                                fieldWithPath("body.photoLat").type(JsonFieldType.NUMBER).description("사진 위도"),
+                                                fieldWithPath("body.photoLng").type(JsonFieldType.NUMBER).description("사진 경도"),
+                                                fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성일시"),
+                                                fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("수정일시")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void startCrewFreeRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(500L)
+                .socialId("kakao_500")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("500")).willReturn(mockUserDetails);
+
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("name", "한강 자유런닝");
+        request.put("difficulty", "EASY");
+
+        Map<String, Object> point1 = new LinkedHashMap<>();
+        point1.put("lat", 37.5512);
+        point1.put("lnt", 126.9882);
+        
+        Map<String, Object> point2 = new LinkedHashMap<>();
+        point2.put("lat", 37.5523);
+        point2.put("lnt", 126.9891);
+        
+        request.put("points", List.of(point1, point2));
+        request.put("startLat", 37.5665);
+        request.put("startLng", 126.9780);
+        request.put("distance", 5000.0);
+        request.put("round", false);
+        request.put("indexs", "[0,1,2]");
+        request.put("region", "서울특별시 중구");
+        request.put("photo", "https://example.com/photo.jpg");
+        request.put("photoLat", 37.567);
+        request.put("photoLng", 126.9785);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/free-running", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-start-free-running",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 시작 (자유런닝 - 현재 위치에서 코스 생성)")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("코스 난이도"),
+                                                fieldWithPath("points").type(JsonFieldType.ARRAY).description("코스 좌표 리스트"),
+                                                fieldWithPath("points[].lat").type(JsonFieldType.NUMBER).description("위도"),
+                                                fieldWithPath("points[].lnt").type(JsonFieldType.NUMBER).description("경도"),
+                                                fieldWithPath("startLat").type(JsonFieldType.NUMBER).description("시작점 위도"),
+                                                fieldWithPath("startLng").type(JsonFieldType.NUMBER).description("시작점 경도"),
+                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("코스 거리"),
+                                                fieldWithPath("round").type(JsonFieldType.BOOLEAN).description("왕복 여부").optional(),
+                                                fieldWithPath("indexs").type(JsonFieldType.STRING).description("코스 인덱스").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("지역"),
+                                                fieldWithPath("photo").type(JsonFieldType.STRING).description("코스 사진").optional(),
+                                                fieldWithPath("photoLat").type(JsonFieldType.NUMBER).description("사진 위도").optional(),
+                                                fieldWithPath("photoLng").type(JsonFieldType.NUMBER).description("사진 경도").optional(),
+                                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("코스 ID (무시됨)").optional(),
+                                                fieldWithPath("memberId").type(JsonFieldType.NUMBER).description("멤버 ID (무시됨)").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void finishCrewRunning() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(400L)
+                .socialId("kakao_400")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("400")).willReturn(mockUserDetails);
+
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("distance", 5000.0);
+        request.put("walk", 100);
+        request.put("calorie", 350);
+
+        // when
+        this.mockMvc.perform(post("/api/crew/{crewId}/running/{crewRunningId}/finish", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andDo(document("crew-running-finish",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-running")
+                                        .description("크루 런닝 개별 완료")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 방 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("거리(미터)"),
+                                                fieldWithPath("walk").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCrewRecords() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(400L)
+                .socialId("kakao_400")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("400")).willReturn(mockUserDetails);
+
+        List<CrewRecordDTO> mockRecords = List.of(
+                new CrewRecordDTO(
+                        1L,
+                        1L,
+                        1L,
+                        1800,
+                        LocalDateTime.of(2025, 8, 16, 7, 0, 0),
+                        LocalDateTime.of(2025, 8, 16, 7, 30, 0),
+                        5000.0,
+                        7500.0,
+                        350.0,
+                        3
+                ),
+                new CrewRecordDTO(
+                        2L,
+                        2L,
+                        2L,
+                        2100,
+                        LocalDateTime.of(2025, 8, 15, 6, 0, 0),
+                        LocalDateTime.of(2025, 8, 15, 6, 35, 0),
+                        3000.0,
+                        4500.0,
+                        250.0,
+                        2
+                )
+        );
+
+        given(crewService.getCrewRecords(anyLong(), any(UserDetailsImpl.class))).willReturn(mockRecords);
+
+        // when
+        this.mockMvc.perform(get("/api/crew/{crewId}/records", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-records-list",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-records")
+                                        .description("크루 기록 전체 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("크루 기록 목록"),
+                                                fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("크루 기록 ID"),
+                                                fieldWithPath("body[].crewRunningId").type(JsonFieldType.NUMBER).description("크루 런닝 ID"),
+                                                fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body[].runningTime").type(JsonFieldType.NUMBER).description("평균 런닝 시간 (초 단위)"),
+                                                fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("크루 런닝 시작 시간"),
+                                                fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("크루 런닝 완료 시간"),
+                                                fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("평균 거리 (미터)"),
+                                                fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("평균 걸음 수"),
+                                                fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("평균 소모 칼로리"),
+                                                fieldWithPath("body[].participantCount").type(JsonFieldType.NUMBER).description("참여자 수")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCrewRecord() throws Exception {
+        // given
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(400L)
+                .socialId("kakao_400")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("400")).willReturn(mockUserDetails);
+
+        CrewRecordDTO mockRecord = new CrewRecordDTO(
+                1L,
+                1L,
+                1L,
+                1800,
+                LocalDateTime.of(2025, 8, 16, 7, 0, 0),
+                LocalDateTime.of(2025, 8, 16, 7, 30, 0),
+                5000.0,
+                7500.0,
+                350.0,
+                3
+        );
+
+        given(crewService.getCrewRecord(anyLong(), anyLong(), any(UserDetailsImpl.class))).willReturn(mockRecord);
+
+        // when
+        this.mockMvc.perform(get("/api/crew/{crewId}/records/{crewRunningId}", 1L, 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("crew-record-detail",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew-records")
+                                        .description("크루 기록 상세 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("crewId").description("크루 ID"),
+                                                parameterWithName("crewRunningId").description("크루 런닝 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.OBJECT).description("크루 기록 상세"),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("크루 기록 ID"),
+                                                fieldWithPath("body.crewRunningId").type(JsonFieldType.NUMBER).description("크루 런닝 ID"),
+                                                fieldWithPath("body.courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body.runningTime").type(JsonFieldType.NUMBER).description("평균 런닝 시간 (초 단위)"),
+                                                fieldWithPath("body.startedAt").type(JsonFieldType.STRING).description("크루 런닝 시작 시간"),
+                                                fieldWithPath("body.finishedAt").type(JsonFieldType.STRING).description("크루 런닝 완료 시간"),
+                                                fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("평균 거리 (미터)"),
+                                                fieldWithPath("body.walk").type(JsonFieldType.NUMBER).description("평균 걸음 수"),
+                                                fieldWithPath("body.calorie").type(JsonFieldType.NUMBER).description("평균 소모 칼로리"),
+                                                fieldWithPath("body.participantCount").type(JsonFieldType.NUMBER).description("참여자 수")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCrewRankingList() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(123L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(123L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+
+        // Mock ranking data
+        List<CrewRankingDTO.CrewRankInfo> rankings = List.of(
+                CrewRankingDTO.CrewRankInfo.builder()
+                        .crewId(1L)
+                        .crewName("러닝크루A")
+                        .crewPhoto("photo1.jpg")
+                        .rank(1)
+                        .totalDistance(25000.0)
+                        .totalRunningTime(7200)
+                        .participantCount(3)
+                        .build(),
+                CrewRankingDTO.CrewRankInfo.builder()
+                        .crewId(2L)
+                        .crewName("러닝크루B")
+                        .crewPhoto("photo2.jpg")
+                        .rank(2)
+                        .totalDistance(18000.0)
+                        .totalRunningTime(5400)
+                        .participantCount(2)
+                        .build()
+        );
+
+        CrewRankingDTO.Response response = CrewRankingDTO.Response.builder()
+                .date(LocalDate.now())
+                .rankings(rankings)
+                .lastUpdated(LocalDateTime.now())
+                .build();
+
+        given(crewRankingService.getDailyRanking(any())).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/crew/ranking/list")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-ranking-list",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 랭킹 조회")
+                                .description("오늘 날짜 기준 크루 랭킹을 조회합니다")
+                                .requestHeaders(
+                                        headerWithName("Authorization").description("JWT 토큰")
+                                )
+                                .responseFields(
+                                        fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                        fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                        fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                        fieldWithPath("body").type(JsonFieldType.OBJECT).description("랭킹 응답"),
+                                        fieldWithPath("body.date").type(JsonFieldType.STRING).description("랭킹 날짜"),
+                                        fieldWithPath("body.lastUpdated").type(JsonFieldType.STRING).description("최종 업데이트 시간"),
+                                        fieldWithPath("body.rankings").type(JsonFieldType.ARRAY).description("랭킹 리스트"),
+                                        fieldWithPath("body.rankings[].crewId").type(JsonFieldType.NUMBER).description("크루 ID"),
+                                        fieldWithPath("body.rankings[].crewName").type(JsonFieldType.STRING).description("크루 이름"),
+                                        fieldWithPath("body.rankings[].crewPhoto").type(JsonFieldType.STRING).description("크루 사진").optional(),
+                                        fieldWithPath("body.rankings[].rank").type(JsonFieldType.NUMBER).description("순위"),
+                                        fieldWithPath("body.rankings[].totalDistance").type(JsonFieldType.NUMBER).description("총 거리 (미터)"),
+                                        fieldWithPath("body.rankings[].totalRunningTime").type(JsonFieldType.NUMBER).description("총 런닝 시간 (초)"),
+                                        fieldWithPath("body.rankings[].participantCount").type(JsonFieldType.NUMBER).description("참여 횟수")
+                                )
+                                .build()
+                        )
+                ));
+    }
+
+    @Test
+    void recalculateCrewRanking() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(123L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(123L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+
+        // when & then
+        mockMvc.perform(post("/api/crew/ranking/recalculate")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-ranking-recalculate",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 랭킹 수동 재계산")
+                                .description("오늘 날짜 기준 크루 랭킹을 강제로 재계산합니다. (랭킹 조회시 자동으로 랭킹 계산해주지만 필요시 사용)")
+                                .requestHeaders(
+                                        headerWithName("Authorization").description("JWT 토큰")
+                                )
+                                .responseFields(
+                                        fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                        fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                        fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                )
+                                .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getCrewMemberRanking() throws Exception {
+        // given
+        Long crewId = 1L;
+        LocalDate date = LocalDate.of(2024, 8, 15);
+        
+        CrewMemberRankingDTO.Response response = CrewMemberRankingDTO.Response.builder()
+                .date(date)
+                .crewId(crewId)
+                .crewName("테스트 크루")
+                .rankings(List.of(
+                        CrewMemberRankingDTO.MemberRankInfo.builder()
+                                .memberId(1L)
+                                .memberName("김철수")
+                                .memberPhoto("photo1.jpg")
+                                .rank(1)
+                                .totalDistance(25.5)
+                                .totalRunningTime(7200)
+                                .participationCount(3)
+                                .averageDistance(8.5)
+                                .averageRunningTime(2400)
+                                .build(),
+                        CrewMemberRankingDTO.MemberRankInfo.builder()
+                                .memberId(2L)
+                                .memberName("이영희")
+                                .memberPhoto("photo2.jpg")
+                                .rank(2)
+                                .totalDistance(18.0)
+                                .totalRunningTime(5400)
+                                .participationCount(2)
+                                .averageDistance(9.0)
+                                .averageRunningTime(2700)
+                                .build()
+                ))
+                .lastUpdated(LocalDateTime.of(2024, 8, 15, 12, 30, 0))
+                .build();
+        
+        given(crewMemberRankingService.getCrewMemberRanking(crewId, LocalDate.now())).willReturn(response);
+        
+        // when & then
+        mockMvc.perform(get("/api/crew/{crewId}/member-ranking", crewId)
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-member-ranking-get",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 멤버 랭킹 조회")
+                                .description("특정 크루 내 멤버들의 개별 랭킹을 조회합니다")
+                                .pathParameters(
+                                        parameterWithName("crewId").description("크루 ID")
+                                )
+                                .build()
+                        )
+                ));
+        
+        verify(crewMemberRankingService).getCrewMemberRanking(crewId, LocalDate.now());
+    }
+
+    @Test
+    void recalculateCrewMemberRanking() throws Exception {
+        // given
+        Long crewId = 1L;
+        LocalDate date = LocalDate.of(2024, 8, 15);
+        
+        // when & then
+        mockMvc.perform(post("/api/crew/{crewId}/member-ranking/recalculate", crewId)
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-member-ranking-recalculate",
+                        resource(ResourceSnippetParameters.builder()
+                                .tag("Crew-ranking")
+                                .summary("크루 멤버 랭킹 수동 재계산")
+                                .description("특정 크루 내 멤버들의 랭킹을 강제로 재계산합니다. (랭킹 조회시 자동으로 랭킹 계산해주지만 필요시 사용)")
+                                .pathParameters(
+                                        parameterWithName("crewId").description("크루 ID")
+                                )
+                                .build()
+                        )
+                ));
+        
+        verify(crewMemberRankingService).recalculateCrewMemberRanking(crewId, LocalDate.now());
     }
 }

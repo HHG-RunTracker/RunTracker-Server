@@ -4,7 +4,6 @@ import com.runtracker.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,8 +24,17 @@ public class RunningRecord extends BaseEntity {
     @Column(name = "course_id", nullable = false)
     private Long courseId;
 
+    @Column(name = "crew_running_id")
+    private Long crewRunningId;
+
     @Column(name = "running_time")
-    private LocalDateTime runningTime;
+    private Integer runningTime;
+    
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+    
+    @Column(name = "finished_at")
+    private LocalDateTime finishedAt;
 
     @Column(name = "distance")
     private Double distance;
@@ -36,4 +44,12 @@ public class RunningRecord extends BaseEntity {
 
     @Column(name = "calorie")
     private Integer calorie;
+    
+    public void updateFinishRunning(Integer runningTime, LocalDateTime finishedAt, Double distance, Integer walk, Integer calorie) {
+        this.runningTime = runningTime;
+        this.finishedAt = finishedAt;
+        this.distance = distance;
+        this.walk = walk;
+        this.calorie = calorie;
+    }
 }

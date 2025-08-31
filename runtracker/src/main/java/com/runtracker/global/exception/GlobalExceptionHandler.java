@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 
 @Slf4j
@@ -48,6 +49,14 @@ public class GlobalExceptionHandler {
     public ApiResponse<Object> handleMissingParameter(MissingServletRequestParameterException e) {
         log.warn("Missing required parameter: {}", e.getMessage());
         String message = "Missing required parameter : " + e.getParameterName();
+        return ApiResponse.error(CommonResponseCode.NOT_VALID_ERROR, message);
+    }
+    
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("Request body missing or malformed: {}", e.getMessage());
+        String message = "Required request body is missing or malformed";
         return ApiResponse.error(CommonResponseCode.NOT_VALID_ERROR, message);
     }
     

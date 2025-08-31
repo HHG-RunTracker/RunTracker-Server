@@ -25,7 +25,19 @@ public enum CrewErrorCode implements ResponseCode {
     CANNOT_KICK_YOURSELF("CR015", "자기 자신을 추방할 수 없습니다."),
     CANNOT_KICK_MANAGER_AS_MANAGER("CR016", "매니저는 다른 매니저를 추방할 수 없습니다."),
     BANNED_FROM_CREW("CR017", "해당 크루에서 차단된 회원입니다."),
-    CANNOT_LEAVE_AS_CREW_LEADER("CR018", "크루장은 크루를 나갈 수 없습니다.");
+    CANNOT_LEAVE_AS_CREW_LEADER("CR018", "크루장은 크루를 나갈 수 없습니다."),
+    CREW_RUNNING_NOT_FOUND("CR019", "크루 런닝방을 찾을 수 없습니다."),
+    CREW_RUNNING_NOT_WAITING("CR020", "참여할 수 없는 크루 런닝 상태입니다."),
+    ALREADY_JOINED_CREW_RUNNING("CR021", "이미 참여한 크루 런닝입니다."),
+    CREW_RUNNING_CREATION_FAILED("CR022", "크루 런닝 생성에 실패했습니다."),
+    CREW_RUNNING_JOIN_FAILED("CR023", "크루 런닝 참여에 실패했습니다."),
+    NOT_JOINED_CREW_RUNNING("CR024", "참여하지 않은 크루 런닝입니다."),
+    CANNOT_LEAVE_STARTED_RUNNING("CR025", "이미 시작된 크루 런닝은 나갈 수 없습니다."),
+    CANNOT_DELETE_STARTED_RUNNING("CR026", "이미 시작된 크루 런닝은 삭제할 수 없습니다."),
+    ALREADY_IN_ACTIVE_CREW_RUNNING("CR027", "이미 진행 중인 크루 런닝에 참여 중입니다."),
+    CANNOT_FINISH_NOT_RUNNING("CR028", "런닝 중이 아닌 상태에서는 완료할 수 없습니다."),
+    ALREADY_FINISHED_CREW_RUNNING("CR029", "이미 완료된 크루 런닝입니다."),
+    UNAUTHORIZED_CREW_ACCESS("CR030", "크루에 대한 접근 권한이 없습니다.");
 
     private final String statusCode;
     private final String message;

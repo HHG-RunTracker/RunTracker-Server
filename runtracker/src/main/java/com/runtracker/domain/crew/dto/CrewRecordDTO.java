@@ -1,25 +1,23 @@
-package com.runtracker.domain.record.dto;
+package com.runtracker.domain.crew.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.runtracker.domain.record.entity.RunningRecord;
+import com.runtracker.domain.crew.entity.CrewRecord;
 import com.runtracker.global.code.DateConstants;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RunningRecordDTO {
+public class CrewRecordDTO {
     
     private Long id;
+    private Long crewRunningId;
     private Long courseId;
-    
     private Integer runningTime;
     
     @DateTimeFormat(pattern = DateConstants.DATETIME_PATTERN)
@@ -31,19 +29,22 @@ public class RunningRecordDTO {
     private LocalDateTime finishedAt;
     
     private Double distance;
-    private Integer walk;
-    private Integer calorie;
+    private Double walk;
+    private Double calorie;
+    private Integer participantCount;
     
-    public static RunningRecordDTO from(RunningRecord runningRecord) {
-        return new RunningRecordDTO(
-                runningRecord.getId(),
-                runningRecord.getCourseId(),
-                runningRecord.getRunningTime(),
-                runningRecord.getStartedAt(),
-                runningRecord.getFinishedAt(),
-                runningRecord.getDistance(),
-                runningRecord.getWalk(),
-                runningRecord.getCalorie()
+    public static CrewRecordDTO from(CrewRecord crewRecord) {
+        return new CrewRecordDTO(
+                crewRecord.getId(),
+                crewRecord.getCrewRunningId(),
+                crewRecord.getCourseId(),
+                crewRecord.getRunningTime(),
+                crewRecord.getStartedAt(),
+                crewRecord.getFinishedAt(),
+                crewRecord.getDistance(),
+                crewRecord.getWalk(),
+                crewRecord.getCalorie(),
+                crewRecord.getParticipantCount()
         );
     }
 }

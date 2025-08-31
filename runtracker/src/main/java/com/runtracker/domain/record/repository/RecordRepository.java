@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RecordRepository extends JpaRepository<RunningRecord, Long> {
@@ -16,7 +17,8 @@ public interface RecordRepository extends JpaRepository<RunningRecord, Long> {
     
     @Query("SELECT r FROM RunningRecord r WHERE r.memberId = :memberId AND DATE(r.runningTime) BETWEEN :startDate AND :endDate ORDER BY r.runningTime DESC")
     List<RunningRecord> findByMemberIdAndRunningTimeBetween(@Param("memberId") Long memberId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    List<RunningRecord> findByCrewRunningId(Long crewRunningId);
     
-    @Query("SELECT r FROM RunningRecord r WHERE r.memberId = :memberId AND r.courseId = :courseId ORDER BY r.runningTime DESC")
-    List<RunningRecord> findByMemberIdAndCourseId(@Param("memberId") Long memberId, @Param("courseId") Long courseId);
+    List<RunningRecord> findAllByMemberIdAndFinishedAtIsNull(Long memberId);
 }

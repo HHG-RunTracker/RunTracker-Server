@@ -22,20 +22,6 @@ public class RecordController {
     
     private final RecordService recordService;
 
-    @PostMapping("/save")
-    public ApiResponse<Void> saveRunningRecord(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestBody RunningRecordDTO createDTO) {
-        try {
-            recordService.saveRunningRecord(userDetails.getMemberId(), createDTO);
-            return ApiResponse.ok();
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     @GetMapping("/date")
     public ApiResponse<List<RunningRecordDTO>> getRunningRecordsByDateRange(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
