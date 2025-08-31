@@ -5,6 +5,7 @@ import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
+import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import org.junit.jupiter.api.Test;
@@ -369,6 +370,104 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
                                                 fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
                                                 fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void createBackupTest() throws Exception {
+        // given
+        doNothing().when(memberService).createBackup(anyLong());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/backup")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-backup-create",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("backup")
+                                        .summary("데이터 백업 생성")
+                                        .description("사용자의 러닝 기록을 백업합니다. backup_type이 ORIGINAL이면 복원 가능한 상태, RESTORED이면 이미 복원된 상태라 다시 백업해야함.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void restoreBackupTest() throws Exception {
+        // given
+        doNothing().when(memberService).restoreRunningRecords(anyLong());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/restore")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-backup-restore",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("backup")
+                                        .summary("데이터 백업 복원")
+                                        .description("백업된 러닝 기록 중 현재 없는 기록만 복원합니다. 기존 기록은 변경되지 않습니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getBackupInfoTest() throws Exception {
+        // given
+        RunningBackupDTO.BackupInfo backupInfo = RunningBackupDTO.BackupInfo.builder()
+                .backupId(1L)
+                .backupType("ORIGINAL")
+                .recordCount(15)
+                .updatedAt("2024-01-15T14:30:00")
+                .build();
+
+        given(memberService.getBackupInfo(anyLong())).willReturn(backupInfo);
+
+        // when & then
+        this.mockMvc.perform(get("/api/members/backup/info")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-backup-info",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("backup")
+                                        .summary("백업 정보 조회")
+                                        .description("사용자의 백업 정보를 조회합니다. 백업이 없으면 null을 반환합니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.OBJECT).description("백업 정보").optional(),
+                                                fieldWithPath("body.backupId").type(JsonFieldType.NUMBER).description("백업 ID").optional(),
+                                                fieldWithPath("body.backupType").type(JsonFieldType.STRING).description("백업 타입").optional(),
+                                                fieldWithPath("body.recordCount").type(JsonFieldType.NUMBER).description("백업된 기록 수").optional(),
+                                                fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("백업 업데이트 시간").optional()
                                         )
                                         .build()
                         )

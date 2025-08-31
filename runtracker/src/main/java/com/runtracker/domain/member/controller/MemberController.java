@@ -6,6 +6,7 @@ import com.runtracker.domain.member.service.AuthService;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
+import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -76,5 +77,23 @@ public class MemberController {
                                                        @Valid @RequestBody NotificationSettingDTO.Request request) {
         memberService.updateNotificationSetting(userDetails.getMemberId(), request);
         return ApiResponse.ok();
+    }
+
+    @PostMapping("/backup")
+    public ApiResponse<Void> createOrUpdateBackup(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.createBackup(userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/restore")
+    public ApiResponse<Void> restoreRunningRecords(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.restoreRunningRecords(userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/backup/info")
+    public ApiResponse<RunningBackupDTO.BackupInfo> getBackupInfo(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        RunningBackupDTO.BackupInfo backupInfo = memberService.getBackupInfo(userDetails.getMemberId());
+        return ApiResponse.ok(backupInfo);
     }
 }
