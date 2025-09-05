@@ -7,7 +7,7 @@ import com.runtracker.domain.community.dto.CommentInfoDTO;
 import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
-import com.runtracker.domain.community.service.PostService;
+import com.runtracker.domain.community.service.CommunityService;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
@@ -35,12 +35,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PostControllerTest extends RunTrackerDocumentApiTester {
 
     @MockitoBean
-    private PostService postService;
+    private CommunityService communityService;
 
     @Test
     void createPost() throws Exception {
         // given
-        doNothing().when(postService).createPost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(communityService).createPost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(post("/api/community/crews/{crewId}/posts", 1L)
@@ -82,7 +82,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void updatePost() throws Exception {
         // given
-        doNothing().when(postService).updatePost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(communityService).updatePost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(patch("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
@@ -125,7 +125,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void deletePost() throws Exception {
         // given
-        doNothing().when(postService).deletePost(anyLong(), any(UserDetailsImpl.class));
+        doNothing().when(communityService).deletePost(anyLong(), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(delete("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
@@ -157,7 +157,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void likePost() throws Exception {
         // given
-        doNothing().when(postService).likePost(anyLong(), any(UserDetailsImpl.class));
+        doNothing().when(communityService).likePost(anyLong(), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/like", 1L, 1L)
@@ -189,7 +189,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void unlikePost() throws Exception {
         // given
-        doNothing().when(postService).unlikePost(anyLong(), any(UserDetailsImpl.class));
+        doNothing().when(communityService).unlikePost(anyLong(), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/unlike", 1L, 1L)
@@ -221,7 +221,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void createComment() throws Exception {
         // given
-        doNothing().when(postService).createComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(communityService).createComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/comments", 1L, 1L)
@@ -260,7 +260,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void updateComment() throws Exception {
         // given
-        doNothing().when(postService).updateComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(communityService).updateComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(patch("/api/community/crews/{crewId}/posts/{postId}/comments/{commentId}", 1L, 1L, 1L)
@@ -300,7 +300,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void deleteComment() throws Exception {
         // given
-        doNothing().when(postService).deleteComment(anyLong(), any(UserDetailsImpl.class));
+        doNothing().when(communityService).deleteComment(anyLong(), any(UserDetailsImpl.class));
 
         // when
         this.mockMvc.perform(delete("/api/community/crews/{crewId}/posts/{postId}/comments/{commentId}", 1L, 1L, 1L)
@@ -359,7 +359,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                         .createdAt(LocalDateTime.of(2024, 12, 25, 10, 15))
                         .build()
         );
-        when(postService.getPostList(anyLong(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
+        when(communityService.getPostList(anyLong(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
 
         // when
         this.mockMvc.perform(get("/api/community/crews/{crewId}/posts", 1L)
@@ -431,7 +431,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                 .build()
                 ))
                 .build();
-        when(postService.getPostDetail(anyLong(), anyLong(), any(UserDetailsImpl.class))).thenReturn(mockPost);
+        when(communityService.getPostDetail(anyLong(), anyLong(), any(UserDetailsImpl.class))).thenReturn(mockPost);
 
         // when
         this.mockMvc.perform(get("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
@@ -507,7 +507,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                         .createdAt(LocalDateTime.of(2024, 12, 25, 12, 0))
                         .build()
         );
-        when(postService.searchPosts(anyLong(), anyString(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
+        when(communityService.searchPosts(anyLong(), anyString(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
 
         // when
         this.mockMvc.perform(get("/api/community/crews/{crewId}/posts/search", 1L)

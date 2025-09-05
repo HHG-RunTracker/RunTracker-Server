@@ -6,7 +6,8 @@ import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
 
 import java.util.List;
-import com.runtracker.domain.community.service.PostService;
+
+import com.runtracker.domain.community.service.CommunityService;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,9 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/community")
 @RequiredArgsConstructor
-public class PostController {
+public class CommunityController {
 
-    private final PostService postService;
+    private final CommunityService communityService;
 
     @PostMapping("/crews/{crewId}/posts")
     public ApiResponse<Void> createPost(
@@ -26,7 +27,7 @@ public class PostController {
             @RequestBody PostDTO postDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.createPost(crewId, postDTO, userDetails);
+        communityService.createPost(crewId, postDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -37,7 +38,7 @@ public class PostController {
             @RequestBody PostDTO postDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.updatePost(postId, postDTO, userDetails);
+        communityService.updatePost(postId, postDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -47,7 +48,7 @@ public class PostController {
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.deletePost(postId, userDetails);
+        communityService.deletePost(postId, userDetails);
         return ApiResponse.ok();
     }
 
@@ -57,7 +58,7 @@ public class PostController {
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.likePost(postId, userDetails);
+        communityService.likePost(postId, userDetails);
         return ApiResponse.ok();
     }
 
@@ -67,7 +68,7 @@ public class PostController {
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.unlikePost(postId, userDetails);
+        communityService.unlikePost(postId, userDetails);
         return ApiResponse.ok();
     }
 
@@ -78,7 +79,7 @@ public class PostController {
             @RequestBody CommentDTO commentDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.createComment(postId, commentDTO, userDetails);
+        communityService.createComment(postId, commentDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -90,7 +91,7 @@ public class PostController {
             @RequestBody CommentDTO commentDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.updateComment(commentId, commentDTO, userDetails);
+        communityService.updateComment(commentId, commentDTO, userDetails);
         return ApiResponse.ok();
     }
 
@@ -101,7 +102,7 @@ public class PostController {
             @PathVariable Long commentId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        postService.deleteComment(commentId, userDetails);
+        communityService.deleteComment(commentId, userDetails);
         return ApiResponse.ok();
     }
 
@@ -110,7 +111,7 @@ public class PostController {
             @PathVariable Long crewId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        List<PostListDTO> posts = postService.getPostList(crewId, userDetails);
+        List<PostListDTO> posts = communityService.getPostList(crewId, userDetails);
         return ApiResponse.ok(posts);
     }
 
@@ -120,7 +121,7 @@ public class PostController {
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        PostDetailDTO post = postService.getPostDetail(crewId, postId, userDetails);
+        PostDetailDTO post = communityService.getPostDetail(crewId, postId, userDetails);
         return ApiResponse.ok(post);
     }
 
@@ -130,7 +131,7 @@ public class PostController {
             @RequestParam String keyword,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         
-        List<PostListDTO> posts = postService.searchPosts(crewId, keyword, userDetails);
+        List<PostListDTO> posts = communityService.searchPosts(crewId, keyword, userDetails);
         return ApiResponse.ok(posts);
     }
 }

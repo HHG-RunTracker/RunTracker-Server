@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class PostService {
+public class CommunityService {
 
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
