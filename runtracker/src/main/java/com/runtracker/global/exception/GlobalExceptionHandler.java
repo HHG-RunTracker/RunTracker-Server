@@ -81,6 +81,13 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(CommonResponseCode.BAD_REQUEST_ERROR, "데이터 무결성 예외가 발생했습니다.");
     }
     
+    @ExceptionHandler(CustomException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Object> handleCustomException(CustomException e) {
+        log.warn("Custom exception occurred: {}", e.getMessage());
+        return ApiResponse.error(e.getResponseCode());
+    }
+    
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Object> handleRuntimeException(RuntimeException e) {
