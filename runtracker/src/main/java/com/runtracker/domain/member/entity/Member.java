@@ -35,7 +35,7 @@ public class Member extends BaseEntity {
     @Column(name = "age")
     private Integer age;
 
-    @Column(name = "gender")
+    @Column(name = "gender", columnDefinition = "TINYINT(1)")
     private Boolean gender;
 
     @Column(name = "region", length = 100)
@@ -80,14 +80,17 @@ public class Member extends BaseEntity {
         this.notifyBlock = notifyBlock != null ? notifyBlock : true;
     }
 
-    public void updateProfile(String name, String introduce, Integer age, Boolean gender, 
-                            String region, String difficulty) {
-        this.name = name;
-        this.introduce = introduce;
-        this.age = age;
-        this.gender = gender;
-        this.region = region;
-        this.difficulty = difficulty;
+    public void updateProfile(String photo, String name, String introduce, Integer age, Boolean gender, 
+                            String region, String difficulty, Boolean searchBlock, Boolean profileBlock) {
+        if (photo != null) this.photo = photo;
+        if (name != null) this.name = name;
+        if (introduce != null) this.introduce = introduce;
+        if (age != null) this.age = age;
+        if (gender != null) this.gender = gender;
+        if (region != null) this.region = region;
+        if (difficulty != null) this.difficulty = difficulty;
+        if (searchBlock != null) this.searchBlock = searchBlock;
+        if (profileBlock != null) this.profileBlock = profileBlock;
     }
 
     public void updatePhoto(String photo) {
@@ -96,5 +99,11 @@ public class Member extends BaseEntity {
     
     public void updateTemperature(Double temperature) {
         this.temperature = temperature;
+    }
+    
+    public void updateNotificationSetting(Boolean notifyBlock) {
+        if (notifyBlock != null) {
+            this.notifyBlock = notifyBlock;
+        }
     }
 }

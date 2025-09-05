@@ -3,6 +3,10 @@ package com.runtracker.domain.member.controller;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.domain.member.service.AuthService;
+import com.runtracker.domain.member.entity.Member;
+import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.NotificationSettingDTO;
+import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -53,5 +57,43 @@ public class MemberController {
     public ApiResponse<Void> withdrawMember(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         memberService.withdrawMember(userDetails.getMemberId());
         return ApiResponse.ok();
+    }
+
+    @GetMapping("/profile")
+    public ApiResponse<Member> getProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Member member = memberService.getMemberById(userDetails.getMemberId());
+        return ApiResponse.ok(member);
+    }
+
+    @PatchMapping("/update")
+    public ApiResponse<Void> updateProfile(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                           @Valid @RequestBody MemberUpdateDTO.Request request) {
+        memberService.updateProfile(userDetails.getMemberId(), request);
+        return ApiResponse.ok();
+    }
+
+    @PatchMapping("/notification")
+    public ApiResponse<Void> updateNotificationSetting(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                       @Valid @RequestBody NotificationSettingDTO.Request request) {
+        memberService.updateNotificationSetting(userDetails.getMemberId(), request);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/backup")
+    public ApiResponse<Void> createOrUpdateBackup(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.createBackup(userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/restore")
+    public ApiResponse<Void> restoreRunningRecords(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.restoreRunningRecords(userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/backup/info")
+    public ApiResponse<RunningBackupDTO.BackupInfo> getBackupInfo(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        RunningBackupDTO.BackupInfo backupInfo = memberService.getBackupInfo(userDetails.getMemberId());
+        return ApiResponse.ok(backupInfo);
     }
 }

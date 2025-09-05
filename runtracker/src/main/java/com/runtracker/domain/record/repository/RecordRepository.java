@@ -13,6 +13,8 @@ import java.util.Optional;
 @Repository
 public interface RecordRepository extends JpaRepository<RunningRecord, Long> {
     
+    List<RunningRecord> findByMemberId(Long memberId);
+    
     List<RunningRecord> findByMemberIdOrderByRunningTimeDesc(Long memberId);
     
     @Query("SELECT r FROM RunningRecord r WHERE r.memberId = :memberId AND DATE(r.runningTime) BETWEEN :startDate AND :endDate ORDER BY r.runningTime DESC")
