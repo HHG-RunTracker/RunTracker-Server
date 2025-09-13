@@ -2,6 +2,7 @@ package com.runtracker.domain.course.service;
 
 import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
+import com.runtracker.domain.course.dto.CourseCreateDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
@@ -40,45 +41,7 @@ public class CourseService {
     private final RecordRepository recordRepository;
     private final TempCalcService temperatureCalculationService;
 
-    public void createFreeRunningCourse(CourseDTO courseDTO) {
-        validateCourseDTO(courseDTO);
-        checkAlreadyRunning(courseDTO.getMemberId());
 
-        try {
-            Course course = createCourseFromDTO(courseDTO);
-            
-            RunningRecord runningRecord = RunningRecord.builder()
-                    .memberId(courseDTO.getMemberId())
-                    .courseId(course.getId())
-                    .runningTime(null)
-                    .startedAt(LocalDateTime.now())
-                    .finishedAt(null)
-                    .distance(null)
-                    .walk(null)
-                    .calorie(null)
-                    .build();
-
-            recordRepository.save(runningRecord);
-        } catch (Exception e) {
-            log.error("Failed to create free running course for member: {}, error: {}", 
-                    courseDTO.getMemberId(), e.getMessage(), e);
-            throw new CourseCreationFailedException();
-        }
-    }
-
-    private void validateCourseDTO(CourseDTO courseDTO) {
-        if (courseDTO.getName() == null || courseDTO.getName().trim().isEmpty()) {
-            throw new ValidationException("Course name is required");
-        }
-        
-        if (courseDTO.getDifficulty() == null) {
-            throw new ValidationException("Course difficulty is required");
-        }
-        
-        if (courseDTO.getPoints() == null || courseDTO.getPoints().isEmpty()) {
-            throw new ValidationException("Course points are required");
-        }
-    }
 
     private void validateFinishRunning(FinishRunning finishRunning) {
         if (finishRunning.getDistance() == null || finishRunning.getDistance() < 0) {
@@ -98,6 +61,24 @@ public class CourseService {
         List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(memberId);
         if (!activeRecords.isEmpty()) {
             throw new AlreadyRunningException("Member already has active running record");
+        }
+    }
+
+    public Course saveCourse(Long memberId, CourseCreateDTO request) {
+        try {
+            Course course = Course.builder()
+                    .memberId(memberId)
+                    .name(request.getName())
+                    .points(request.getPath())
+                    .distance(request.getDistance())
+                    .build();
+
+            return courseRepository.save(course);
+            
+        } catch (Exception e) {
+            log.error("Failed to save course for member: {}, error: {}", 
+                    memberId, e.getMessage(), e);
+            throw new CourseCreationFailedException("Failed to save course for member: " + memberId);
         }
     }
 
