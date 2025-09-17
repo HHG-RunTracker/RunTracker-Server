@@ -5,7 +5,7 @@ import com.runtracker.domain.crew.dto.MemberRankingData;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.entity.CrewMemberRanking;
-import com.runtracker.domain.crew.entity.CrewRunning;
+import com.runtracker.domain.crew.exception.CrewNotFoundException;
 import com.runtracker.domain.crew.repository.*;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.repository.MemberRepository;
@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.DayOfWeek;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,7 +29,6 @@ public class CrewMemberRankingService {
     private final CrewMemberRankingRepository crewMemberRankingRepository;
     private final CrewMemberRepository crewMemberRepository;
     private final CrewRepository crewRepository;
-    private final CrewRunningRepository crewRunningRepository;
     private final RecordRepository recordRepository;
     private final MemberRepository memberRepository;
 
@@ -36,13 +36,15 @@ public class CrewMemberRankingService {
      * 특정 크루의 멤버 랭킹 조회
      */
     public CrewMemberRankingDTO.Response getCrewMemberRanking(Long crewId, LocalDate date) {
+        validateCrewExists(crewId);
+
         List<CrewMemberRanking> rankings = findExistingMemberRankings(crewId, date);
-        
+
         if (rankings.isEmpty()) {
             calculateCrewMemberRanking(crewId, date);
             rankings = findExistingMemberRankings(crewId, date);
         }
-        
+
         return buildMemberRankingResponse(crewId, date, rankings);
     }
 
@@ -50,6 +52,7 @@ public class CrewMemberRankingService {
      * 특정 크루의 멤버 랭킹 강제 재계산
      */
     public void recalculateCrewMemberRanking(Long crewId, LocalDate date) {
+        validateCrewExists(crewId);
         calculateCrewMemberRanking(crewId, date);
     }
 
@@ -62,32 +65,32 @@ public class CrewMemberRankingService {
     }
 
     /**
-     * 크루 내 멤버별 누적 데이터 계산
+     * 크루 내 멤버별 누적 데이터 계산 (일주일 기준)
      */
     private Map<Long, MemberRankingData> calculateMemberRankingData(Long crewId, LocalDate date) {
         Map<Long, MemberRankingData> memberDataMap = new HashMap<>();
-        LocalDateTime endOfDay = date.atTime(23, 59, 59);
-
-        List<CrewRunning> crewRunnings = crewRunningRepository.findAll().stream()
-                .filter(cr -> cr.getCrewId().equals(crewId))
-                .filter(cr -> !cr.getCreatedAt().isAfter(endOfDay))
-                .toList();
-        
-        List<Long> crewRunningIds = crewRunnings.stream()
-                .map(CrewRunning::getId)
-                .toList();
-
-        List<RunningRecord> memberRecords = recordRepository.findAll().stream()
-                .filter(record -> crewRunningIds.contains(record.getCrewRunningId()))
-                .toList();
-
-        for (RunningRecord record : memberRecords) {
-            memberDataMap.computeIfAbsent(record.getMemberId(), MemberRankingData::new)
-                    .addRecord(record.getDistance(), record.getRunningTime());
-        }
 
         includeAllCrewMembers(crewId, memberDataMap);
-        
+
+        LocalDate weekStart = date.with(DayOfWeek.MONDAY);
+        LocalDate weekEnd = date.with(DayOfWeek.SUNDAY);
+
+        LocalDateTime weekStartDateTime = weekStart.atStartOfDay();
+        LocalDateTime weekEndDateTime = weekEnd.plusDays(1).atStartOfDay();
+
+        for (Long memberId : memberDataMap.keySet()) {
+            MemberRankingData memberData = memberDataMap.get(memberId);
+
+            List<RunningRecord> weeklyRecords = recordRepository.findByMemberIdAndCreatedAtBetweenAndFinishedAtIsNotNull(
+                memberId, weekStartDateTime, weekEndDateTime);
+
+            for (RunningRecord record : weeklyRecords) {
+                if (record.getDistance() != null && record.getRunningTime() != null) {
+                    memberData.addRecord(record.getDistance(), record.getRunningTime());
+                }
+            }
+        }
+
         return memberDataMap;
     }
 
@@ -179,14 +182,20 @@ public class CrewMemberRankingService {
         }
     }
 
+    private void validateCrewExists(Long crewId) {
+        if (!crewRepository.existsById(crewId)) {
+            throw new CrewNotFoundException();
+        }
+    }
+
     private CrewMemberRankingDTO.MemberRankInfo convertToMemberRankInfo(CrewMemberRanking ranking) {
         Optional<Member> member = memberRepository.findById(ranking.getMemberId());
-        
-        double averageDistance = ranking.getParticipationCount() > 0 ? 
+
+        double averageDistance = ranking.getParticipationCount() > 0 ?
                 ranking.getTotalDistance() / ranking.getParticipationCount() : 0.0;
-        int averageRunningTime = ranking.getParticipationCount() > 0 ? 
+        int averageRunningTime = ranking.getParticipationCount() > 0 ?
                 ranking.getTotalRunningTime() / ranking.getParticipationCount() : 0;
-        
+
         return CrewMemberRankingDTO.MemberRankInfo.builder()
                 .memberId(ranking.getMemberId())
                 .memberName(member.map(Member::getName).orElse("Unknown"))
@@ -194,7 +203,6 @@ public class CrewMemberRankingService {
                 .rank(ranking.getRankPosition())
                 .totalDistance(ranking.getTotalDistance())
                 .totalRunningTime(ranking.getTotalRunningTime())
-                .participationCount(ranking.getParticipationCount())
                 .averageDistance(averageDistance)
                 .averageRunningTime(averageRunningTime)
                 .build();

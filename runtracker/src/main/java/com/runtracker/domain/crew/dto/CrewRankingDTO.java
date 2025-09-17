@@ -2,6 +2,7 @@ package com.runtracker.domain.crew.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.runtracker.domain.crew.entity.CrewRanking;
+import com.runtracker.global.code.DateConstants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,7 +25,6 @@ public class CrewRankingDTO {
         private Double totalDistance;
         private Integer totalRunningTime;
         private Integer rank;
-        private Integer participantCount;
     }
 
     @Getter
@@ -32,10 +32,10 @@ public class CrewRankingDTO {
     @AllArgsConstructor
     @Builder
     public static class Response {
-        @JsonFormat(pattern = "yyyy-MM-dd")
+        @JsonFormat(pattern = DateConstants.DATE_PATTERN)
         private LocalDate date;
         private List<CrewRankInfo> rankings;
-        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @JsonFormat(pattern = DateConstants.DATETIME_PATTERN)
         private LocalDateTime lastUpdated;
         
     }

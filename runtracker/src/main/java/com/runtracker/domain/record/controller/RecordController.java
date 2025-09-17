@@ -22,41 +22,14 @@ public class RecordController {
     
     private final RecordService recordService;
 
-    @GetMapping("/date")
-    public ApiResponse<List<RunningRecordDTO>> getRunningRecordsByDateRange(
+    @GetMapping("/summary")
+    public ApiResponse<List<RunningRecordDTO>> getRunningRecordsSummary(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate startDate,
-            @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate endDate) {
+            @RequestParam(required = true) String type,
+            @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate date,
+            @RequestParam(required = false) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate endDate) {
         try {
-            List<RunningRecordDTO> records = recordService.getRunningRecordsByDate(userDetails.getMemberId(), startDate, endDate);
-            return ApiResponse.ok(records);
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/week")
-    public ApiResponse<List<RunningRecordDTO>> getRunningRecordsByWeek(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate weekDate) {
-        try {
-            List<RunningRecordDTO> records = recordService.getRunningRecordsByWeek(userDetails.getMemberId(), weekDate);
-            return ApiResponse.ok(records);
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/month")
-    public ApiResponse<List<RunningRecordDTO>> getRunningRecordsByMonth(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestParam(required = true) @DateTimeFormat(pattern = DateConstants.DATE_PATTERN) LocalDate monthDate) {
-        try {
-            List<RunningRecordDTO> records = recordService.getRunningRecordsByMonth(userDetails.getMemberId(), monthDate);
+            List<RunningRecordDTO> records = recordService.getRunningRecordsSummary(userDetails.getMemberId(), type, date, endDate);
             return ApiResponse.ok(records);
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());

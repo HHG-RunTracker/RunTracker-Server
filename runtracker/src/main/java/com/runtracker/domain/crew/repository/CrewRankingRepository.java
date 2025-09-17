@@ -12,17 +12,5 @@ import java.util.Optional;
 
 @Repository
 public interface CrewRankingRepository extends JpaRepository<CrewRanking, Long> {
-    
     List<CrewRanking> findByDateOrderByRankPosition(LocalDate date);
-    
-    Optional<CrewRanking> findByDateAndCrewId(LocalDate date, Long crewId);
-    
-    List<CrewRanking> findByCrewIdOrderByDateDesc(Long crewId);
-    
-    @Query("SELECT cr FROM CrewRanking cr WHERE cr.date = :date AND cr.rankPosition <= :topN ORDER BY cr.rankPosition")
-    List<CrewRanking> findTopNByDate(@Param("date") LocalDate date, @Param("topN") int topN);
-    
-    List<CrewRanking> findByDateOrderByTotalDistanceDesc(LocalDate date);
-    
-    void deleteByDate(LocalDate date);
 }

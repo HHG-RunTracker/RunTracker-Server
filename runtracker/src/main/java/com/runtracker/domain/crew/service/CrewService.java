@@ -8,11 +8,8 @@ import com.runtracker.domain.crew.dto.CrewManagementDTO;
 import com.runtracker.domain.crew.dto.CrewMemberUpdateDTO;
 import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
-import com.runtracker.domain.crew.dto.CrewRecordDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
-import com.runtracker.domain.crew.entity.CrewRecord;
-import com.runtracker.domain.crew.entity.CrewRunning;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
@@ -32,8 +29,6 @@ import com.runtracker.domain.crew.exception.NoPendingApplicationException;
 import com.runtracker.domain.crew.exception.SameRoleUpdateException;
 import com.runtracker.domain.crew.repository.CrewRepository;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
-import com.runtracker.domain.crew.repository.CrewRecordRepository;
-import com.runtracker.domain.crew.repository.CrewRunningRepository;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.repository.MemberRepository;
@@ -53,8 +48,6 @@ public class CrewService {
 
     private final CrewRepository crewRepository;
     private final CrewMemberRepository crewMemberRepository;
-    private final CrewRecordRepository crewRecordRepository;
-    private final CrewRunningRepository crewRunningRepository;
     private final MemberRepository memberRepository;
     private final CrewAuthorizationUtil authorizationUtil;
     private final TokenBlacklistService tokenBlacklistService;
@@ -385,34 +378,5 @@ public class CrewService {
     
     private boolean isValidCrewRole(MemberRole role) {
         return role == MemberRole.CREW_MEMBER || role == MemberRole.CREW_MANAGER;
-    }
-
-    @Transactional(readOnly = true)
-    public List<CrewRecordDTO> getCrewRecords(Long crewId, UserDetailsImpl userDetails) {
-        authorizationUtil.validateCrewMemberAccess(userDetails, crewId);
-
-        List<CrewRecord> crewRecords = crewRecordRepository.findByCrewRunningIdIn(
-                getCrewRunningIds(crewId));
-        
-        return crewRecords.stream()
-                .map(CrewRecordDTO::from)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public CrewRecordDTO getCrewRecord(Long crewId, Long crewRunningId, UserDetailsImpl userDetails) {
-        authorizationUtil.validateCrewMemberAccess(userDetails, crewId);
-
-        CrewRecord crewRecord = crewRecordRepository.findByCrewRunningId(crewRunningId)
-                .orElseThrow(() -> new RuntimeException("크루 기록을 찾을 수 없습니다."));
-        
-        return CrewRecordDTO.from(crewRecord);
-    }
-
-    private List<Long> getCrewRunningIds(Long crewId) {
-        return crewRunningRepository.findByCrewIdOrderByCreatedAtDesc(crewId)
-                .stream()
-                .map(CrewRunning::getId)
-                .toList();
     }
 }

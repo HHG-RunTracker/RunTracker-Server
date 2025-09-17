@@ -1,7 +1,7 @@
 package com.runtracker.domain.course.dto;
 
 import com.runtracker.domain.course.enums.Difficulty;
-import com.runtracker.domain.course.entity.vo.Coordinate;
+import com.runtracker.global.vo.Coordinate;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -21,9 +21,6 @@ public class CourseDetailDTO {
     private Double distance;
     private Boolean round;
     private String region;
-    private String photo;
-    private Double photoLat;
-    private Double photoLng;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

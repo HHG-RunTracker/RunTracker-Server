@@ -1,8 +1,8 @@
 package com.runtracker.domain.course.entity;
 
-import com.runtracker.domain.course.entity.converter.CoordinatesConverter;
+import com.runtracker.global.converter.CoordinatesConverter;
 import com.runtracker.domain.course.enums.Difficulty;
-import com.runtracker.domain.course.entity.vo.Coordinate;
+import com.runtracker.global.vo.Coordinate;
 import com.runtracker.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,7 +25,7 @@ public class Course extends BaseEntity {
     @Column(name = "member_id", nullable = false)
     private Long memberId;
 
-    @Column(length = 255)
+    @Column
     private String name;
 
     @Enumerated(EnumType.STRING)
@@ -34,7 +34,7 @@ public class Course extends BaseEntity {
     @Convert(converter = CoordinatesConverter.class)
     @Column(columnDefinition = "json")
     @Builder.Default
-    private List<Coordinate> points = new ArrayList<>();
+    private List<Coordinate> paths = new ArrayList<>();
 
     @Column(name = "start_lat")
     private Double startLat;
@@ -47,18 +47,6 @@ public class Course extends BaseEntity {
     @Column(name = "round", columnDefinition = "TINYINT(1)")
     private Boolean round;
 
-    @Column(columnDefinition = "json")
-    private String indexs;
-
     @Column(length = 100)
     private String region;
-
-    @Column(length = 255)
-    private String photo;
-
-    @Column(name = "photo_lat")
-    private Double photoLat;
-
-    @Column(name = "photo_lng")
-    private Double photoLng;
 }

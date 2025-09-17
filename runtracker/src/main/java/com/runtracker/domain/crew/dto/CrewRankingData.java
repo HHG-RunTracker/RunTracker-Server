@@ -1,6 +1,5 @@
 package com.runtracker.domain.crew.dto;
 
-import com.runtracker.domain.crew.entity.CrewRecord;
 import lombok.Getter;
 
 @Getter
@@ -14,9 +13,9 @@ public class CrewRankingData {
         this.crewId = crewId;
     }
 
-    public void addRecord(CrewRecord record) {
-        this.totalDistance += record.getDistance();
-        this.totalRunningTime += record.getRunningTime();
+    public void addRecord(double distance, int runningTime) {
+        this.totalDistance += distance;
+        this.totalRunningTime += runningTime;
         this.participantCount++;
     }
 }

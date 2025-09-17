@@ -2,6 +2,7 @@ package com.runtracker.domain.crew.entity;
 
 import com.runtracker.global.entity.BaseEntity;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,8 @@ import java.time.LocalDate;
 @Table(name = "crew_ranking")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CrewRanking extends BaseEntity {
 
     @Id
@@ -37,31 +40,8 @@ public class CrewRanking extends BaseEntity {
     @Column(name = "participant_count", nullable = false)
     private Integer participantCount;
 
-    @Builder
-    public CrewRanking(LocalDate date, Long crewId, Integer rankPosition, 
-                      Double totalDistance, Integer totalRunningTime, Integer participantCount) {
-        this.date = date;
-        this.crewId = crewId;
-        this.rankPosition = rankPosition;
-        this.totalDistance = totalDistance;
-        this.totalRunningTime = totalRunningTime;
-        this.participantCount = participantCount;
-    }
-
     public void updateRankPosition(Integer rankPosition) {
         this.rankPosition = rankPosition;
-    }
-
-    public void addCrewRecord(Double distance, Integer runningTime) {
-        this.totalDistance += distance;
-        this.totalRunningTime += runningTime;
-        this.participantCount += 1;
-    }
-
-    public void updateTotalData(Double totalDistance, Integer totalRunningTime, Integer participantCount) {
-        this.totalDistance = totalDistance;
-        this.totalRunningTime = totalRunningTime;
-        this.participantCount = participantCount;
     }
     
     public void updateTotalDistance(Double totalDistance) {
@@ -70,9 +50,5 @@ public class CrewRanking extends BaseEntity {
     
     public void updateTotalRunningTime(Integer totalRunningTime) {
         this.totalRunningTime = totalRunningTime;
-    }
-    
-    public void updateParticipantCount(Integer participantCount) {
-        this.participantCount = participantCount;
     }
 }

@@ -1,5 +1,7 @@
 package com.runtracker.domain.member.dto;
 
+import com.runtracker.global.vo.Coordinate;
+import com.runtracker.global.vo.SegmentPace;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -25,13 +27,21 @@ public class RunningBackupDTO {
         private Long id;
         private Long memberId;
         private Long courseId;
-        private Long crewRunningId;
         private Integer runningTime;
         private LocalDateTime startedAt;
         private LocalDateTime finishedAt;
         private Double distance;
-        private Integer walk;
-        private Integer calorie;
+        private Double avgPace;
+        private Double avgSpeed;
+        private Integer kcal;
+        private Integer walkCnt;
+        private Integer avgHeartRate;
+        private Integer maxHeartRate;
+        private Integer avgCadence;
+        private Integer maxCadence;
+        private List<Coordinate> path;
+        private List<SegmentPace> segmentPaces;
+        private List<List<Coordinate>> segmentPaths;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }

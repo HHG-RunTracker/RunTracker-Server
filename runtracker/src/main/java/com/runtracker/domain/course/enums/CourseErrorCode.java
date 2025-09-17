@@ -15,7 +15,8 @@ public enum CourseErrorCode implements ResponseCode {
     COURSE_NOT_FOUND("CR005", "Course not found"),
     VALIDATION_ERROR("CR006", "validation error"),
     MULTIPLE_ACTIVE_RUNNING("CR007", "Multiple active running found"),
-    ALREADY_RUNNING("CR008", "Already running");
+    ALREADY_RUNNING("CR008", "Already running"),
+    INVALID_START_TIME("CR009", "Start time cannot be in the future");
     
     private final String statusCode;
     private final String message;

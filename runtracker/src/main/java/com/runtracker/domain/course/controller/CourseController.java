@@ -1,7 +1,7 @@
 package com.runtracker.domain.course.controller;
 
-import com.runtracker.domain.course.dto.CourseDTO;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
+import com.runtracker.domain.course.dto.CourseCreateDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
@@ -23,13 +23,12 @@ public class CourseController {
 
     private final CourseService courseService;
 
-    @PostMapping("/free-running")
-    public ApiResponse<Void> createFreeRunningCourse(
+    @PostMapping("/save")
+    public ApiResponse<Void> saveCourse(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
-            @RequestBody CourseDTO courseDTO) {
+            @RequestBody CourseCreateDTO request) {
         try {
-            courseDTO.setMemberId(userDetails.getMemberId());
-            courseService.createFreeRunningCourse(courseDTO);
+            courseService.saveCourse(userDetails.getMemberId(), request);
             return ApiResponse.ok();
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());

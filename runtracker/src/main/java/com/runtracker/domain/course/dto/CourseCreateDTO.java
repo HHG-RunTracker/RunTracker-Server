@@ -11,17 +11,11 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
-@ToString
-public class CourseDTO {
-    private Long id;
-    private Long memberId;
+public class CourseCreateDTO {
     private String name;
     private Difficulty difficulty;
-    private List<Coordinate> points;
-    private Double startLat;
-    private Double startLng;
+    private List<Coordinate> path;
     private Double distance;
     private Boolean round;
-    private String indexs;
     private String region;
 }
