@@ -15,7 +15,9 @@ import com.runtracker.domain.schedule.dto.ScheduleParticipantDTO;
 import com.runtracker.domain.schedule.dto.ScheduleUpdateDTO;
 import com.runtracker.domain.schedule.entity.Schedule;
 import com.runtracker.domain.schedule.enums.ScheduleErrorCode;
+import com.runtracker.domain.schedule.exception.InvalidScheduleDateException;
 import com.runtracker.domain.schedule.exception.ScheduleNotFoundException;
+import com.runtracker.domain.schedule.exception.UnauthorizedScheduleAccessException;
 import com.runtracker.domain.schedule.repository.ScheduleRepository;
 import com.runtracker.global.code.DateConstants;
 import com.runtracker.global.exception.CustomException;
@@ -59,21 +61,23 @@ public class ScheduleService {
 
     private LocalDateTime parseAndValidateDate(String dateString) {
         if (dateString == null || dateString.trim().isEmpty()) {
-            throw new CustomException(ScheduleErrorCode.INVALID_SCHEDULE_DATE);
+            throw new InvalidScheduleDateException("Date string is null or empty");
         }
-        
+
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DateConstants.SHORT_DATETIME_PATTERN);
             LocalDateTime parsedDate = LocalDateTime.parse(dateString, formatter);
-            
+
             LocalDateTime now = LocalDateTime.now(ZoneId.of(DateConstants.TIME_ZONE));
             if (parsedDate.isBefore(now)) {
-                throw new CustomException(ScheduleErrorCode.INVALID_SCHEDULE_DATE);
+                throw new InvalidScheduleDateException("Schedule date cannot be in the past");
             }
-            
+
             return parsedDate;
+        } catch (InvalidScheduleDateException e) {
+            throw e;
         } catch (Exception e) {
-            throw new CustomException(ScheduleErrorCode.INVALID_SCHEDULE_DATE);
+            throw new InvalidScheduleDateException("Invalid date format: " + dateString);
         }
     }
 
@@ -97,7 +101,7 @@ public class ScheduleService {
     public ScheduleListDTO.ListResponse getCrewSchedulesByMemberId(UserDetailsImpl userDetails) {
         CrewMembership membership = userDetails.getCrewMembership();
         if (membership == null) {
-            throw new CustomException(ScheduleErrorCode.UNAUTHORIZED_SCHEDULE_ACCESS);
+            throw new UnauthorizedScheduleAccessException("User is not a member of any crew");
         }
         
         Long crewId = membership.getCrewId();

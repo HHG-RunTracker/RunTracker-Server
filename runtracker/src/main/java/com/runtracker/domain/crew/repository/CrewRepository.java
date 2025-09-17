@@ -8,6 +8,5 @@ import java.util.List;
 
 @Repository
 public interface CrewRepository extends JpaRepository<Crew, Long> {
-    
     List<Crew> findByLeaderId(Long leaderId);
 }

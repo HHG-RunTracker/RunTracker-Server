@@ -21,8 +21,8 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
         return queryFactory
             .select(Projections.constructor(Response.class,
                 course.id, course.memberId, course.name, course.difficulty,
-                course.points, course.startLat, course.startLng, course.distance,
-                course.round, course.region, course.photo, course.photoLat, course.photoLng,
+                course.paths, course.startLat, course.startLng, course.distance,
+                course.round, course.region,
                 Expressions.numberTemplate(Double.class,
                     "ST_Distance_Sphere(POINT({0}, {1}), POINT({2}, {3}))",
                     lng, lat, course.startLng, course.startLat

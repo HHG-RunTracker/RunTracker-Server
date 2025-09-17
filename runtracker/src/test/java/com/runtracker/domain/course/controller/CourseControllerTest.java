@@ -6,7 +6,7 @@ import com.runtracker.domain.course.dto.CourseCreateDTO;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO;
 import com.runtracker.domain.course.enums.Difficulty;
-import com.runtracker.domain.course.entity.vo.Coordinate;
+import com.runtracker.global.vo.Coordinate;
 import com.runtracker.domain.course.service.CourseService;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.course.dto.FinishRunning;
@@ -71,10 +71,13 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                         )
                                         .requestFields(
                                                 fieldWithPath("name").type(JsonFieldType.STRING).description("코스 이름"),
-                                                fieldWithPath("path").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트"),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("난이도 (EASY, MEDIUM, HARD)").optional(),
+                                                fieldWithPath("path").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트 (첫 번째 좌표가 시작점으로 자동 설정됨)"),
                                                 fieldWithPath("path[].lat").type(JsonFieldType.NUMBER).description("좌표 위도"),
                                                 fieldWithPath("path[].lnt").type(JsonFieldType.NUMBER).description("좌표 경도"),
-                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)")
+                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
+                                                fieldWithPath("round").type(JsonFieldType.BOOLEAN).description("왕복 여부 (true: 왕복, false: 편도)").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("지역 정보").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
@@ -89,18 +92,21 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
     private Map<String, Object> createCourseRequest() {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("name", "한강 러닝 코스");
+        request.put("difficulty", "MEDIUM");
 
         Map<String, Object> point1 = new LinkedHashMap<>();
         point1.put("lat", 37.5512);
         point1.put("lnt", 126.9882);
-        
+
         Map<String, Object> point2 = new LinkedHashMap<>();
         point2.put("lat", 37.5523);
         point2.put("lnt", 126.9891);
-        
+
         request.put("path", List.of(point1, point2));
         request.put("distance", 5000.0);
-        
+        request.put("round", false);
+        request.put("region", "서울특별시 영등포구");
+
         return request;
     }
 
@@ -122,9 +128,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                         .distance(3000.0)
                         .round(false)
                         .region("서울특별시 영등포구")
-                        .photo("https://example.com/photo1.jpg")
-                        .photoLat(37.5515)
-                        .photoLng(126.9885)
                         .distanceFromUser(1200.5)
                         .build(),
                 NearbyCoursesDTO.Response.builder()
@@ -141,9 +144,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                         .distance(4500.0)
                         .round(true)
                         .region("서울특별시 영등포구")
-                        .photo("https://example.com/photo2.jpg")
-                        .photoLat(37.5668)
-                        .photoLng(126.9783)
                         .distanceFromUser(2100.3)
                         .build()
         );
@@ -201,9 +201,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
                                                 fieldWithPath("body[].round").type(JsonFieldType.BOOLEAN).description("왕복 여부"),
                                                 fieldWithPath("body[].region").type(JsonFieldType.STRING).description("지역"),
-                                                fieldWithPath("body[].photo").type(JsonFieldType.STRING).description("코스 사진 URL").optional(),
-                                                fieldWithPath("body[].photoLat").type(JsonFieldType.NUMBER).description("사진 촬영 위치 위도").optional(),
-                                                fieldWithPath("body[].photoLng").type(JsonFieldType.NUMBER).description("사진 촬영 위치 경도").optional(),
                                                 fieldWithPath("body[].distanceFromUser").type(JsonFieldType.NUMBER).description("사용자로부터의 거리 (미터)")
                                         )
                                         .build()
@@ -229,9 +226,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                 .distance(7000.0)
                 .round(false)
                 .region("서울특별시 성동구")
-                .photo("https://example.com/photo2.jpg")
-                .photoLat(37.5315)
-                .photoLng(127.0675)
                 .createdAt(LocalDateTime.of(2025, 8, 9, 3, 45, 54))
                 .updatedAt(LocalDateTime.of(2025, 8, 9, 3, 45, 54))
                 .build();
@@ -278,9 +272,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
                                                 fieldWithPath("body.round").type(JsonFieldType.BOOLEAN).description("왕복 여부"),
                                                 fieldWithPath("body.region").type(JsonFieldType.STRING).description("코스 지역"),
-                                                fieldWithPath("body.photo").type(JsonFieldType.STRING).description("코스 사진 URL").optional(),
-                                                fieldWithPath("body.photoLat").type(JsonFieldType.NUMBER).description("사진 촬영 위치 위도").optional(),
-                                                fieldWithPath("body.photoLng").type(JsonFieldType.NUMBER).description("사진 촬영 위치 경도").optional(),
                                                 fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("코스 생성 시간"),
                                                 fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("코스 수정 시간")
                                         )
@@ -359,9 +350,31 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("엑세스 토큰")
                                         )
                                         .requestFields(
+                                                fieldWithPath("startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간"),
                                                 fieldWithPath("distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
-                                                fieldWithPath("walk").type(JsonFieldType.NUMBER).description("걸음 수"),
-                                                fieldWithPath("calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                                fieldWithPath("avgPace").type(JsonFieldType.NUMBER).description("평균 페이스").optional(),
+                                                fieldWithPath("avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도").optional(),
+                                                fieldWithPath("kcal").type(JsonFieldType.NUMBER).description("소모 칼로리"),
+                                                fieldWithPath("walkCnt").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("avgHeartRate").type(JsonFieldType.NUMBER).description("평균 심박수").optional(),
+                                                fieldWithPath("maxHeartRate").type(JsonFieldType.NUMBER).description("최대 심박수").optional(),
+                                                fieldWithPath("avgCadence").type(JsonFieldType.NUMBER).description("평균 케이던스").optional(),
+                                                fieldWithPath("maxCadence").type(JsonFieldType.NUMBER).description("최대 케이던스").optional(),
+                                                fieldWithPath("userFinishLocation").type(JsonFieldType.ARRAY).description("사용자 종료 지점 좌표").optional(),
+                                                fieldWithPath("userFinishLocation[].lat").type(JsonFieldType.NUMBER).description("위도").optional(),
+                                                fieldWithPath("userFinishLocation[].lng").type(JsonFieldType.NUMBER).description("경도").optional(),
+                                                fieldWithPath("lastCoursePath").type(JsonFieldType.ARRAY).description("마지막 코스 경로 좌표").optional(),
+                                                fieldWithPath("lastCoursePath[].lat").type(JsonFieldType.NUMBER).description("위도").optional(),
+                                                fieldWithPath("lastCoursePath[].lng").type(JsonFieldType.NUMBER).description("경도").optional(),
+                                                fieldWithPath("segmentPaces").type(JsonFieldType.ARRAY).description("구간별 페이스").optional(),
+                                                fieldWithPath("segmentPaces[].distance").type(JsonFieldType.NUMBER).description("구간 거리 (km)").optional(),
+                                                fieldWithPath("segmentPaces[].time").type(JsonFieldType.NUMBER).description("구간 소요 시간 (초)").optional(),
+                                                fieldWithPath("segmentPaths").type(JsonFieldType.ARRAY).description("구간별 경로 좌표 배열의 배열").optional(),
+                                                fieldWithPath("segmentPaths[].[]").type(JsonFieldType.ARRAY).description("구간 내 좌표 배열").optional(),
+                                                fieldWithPath("segmentPaths[][].lat").type(JsonFieldType.NUMBER).description("위도").optional(),
+                                                fieldWithPath("segmentPaths[][].lnt").type(JsonFieldType.NUMBER).description("경도").optional(),
+                                                fieldWithPath("photo").type(JsonFieldType.STRING).description("러닝 사진 URL").optional(),
+                                                fieldWithPath("isGoalAchieved").type(JsonFieldType.BOOLEAN).description("목표 달성 여부").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
@@ -375,9 +388,48 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
 
     private Map<String, Object> createFinishRunningRequest() {
         Map<String, Object> request = new LinkedHashMap<>();
+        request.put("startedAt", "2023-12-01 10:00:00");
         request.put("distance", 5000.0);
-        request.put("walk", 7200);
-        request.put("calorie", 400);
+        request.put("avgPace", 5.5);
+        request.put("avgSpeed", 10.9);
+        request.put("kcal", 400);
+        request.put("walkCnt", 2);
+        request.put("avgHeartRate", 150);
+        request.put("maxHeartRate", 180);
+        request.put("avgCadence", 170);
+        request.put("maxCadence", 190);
+        request.put("userFinishLocation", List.of(
+                Map.of("lat", 37.5305, "lng", 127.0665)
+        ));
+        request.put("lastCoursePath", List.of(
+                Map.of("lat", 37.5315, "lng", 127.0675)
+        ));
+        request.put("segmentPaces", List.of(
+                Map.of("distance", 1.2, "time", 450),
+                Map.of("distance", 1.5, "time", 560),
+                Map.of("distance", 1.5, "time", 565),
+                Map.of("distance", 1.9, "time", 705)
+        ));
+        request.put("segmentPaths", List.of(
+                List.of(
+                        Map.of("lat", 37.57, "lnt", 126.98),
+                        Map.of("lat", 37.5711, "lnt", 126.9812)
+                ),
+                List.of(
+                        Map.of("lat", 37.5711, "lnt", 126.9812),
+                        Map.of("lat", 37.5723, "lnt", 126.9825)
+                ),
+                List.of(
+                        Map.of("lat", 37.5723, "lnt", 126.9825),
+                        Map.of("lat", 37.5736, "lnt", 126.9839)
+                ),
+                List.of(
+                        Map.of("lat", 37.5736, "lnt", 126.9839),
+                        Map.of("lat", 37.5751, "lnt", 126.9855)
+                )
+        ));
+        request.put("photo", "https://example.com/running-photo.jpg");
+        request.put("isGoalAchieved", true);
         return request;
     }
 

@@ -22,7 +22,6 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 class RecordControllerTest extends RunTrackerDocumentApiTester {
 
@@ -30,7 +29,7 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
     private RecordService recordService;
 
     @Test
-    void getRunningRecordsByDateRangeTest() throws Exception {
+    void getRunningRecordsSummaryTest() throws Exception {
         // given
         List<RunningRecordDTO> mockRecords = List.of(
                 new RunningRecordDTO(
@@ -40,8 +39,17 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                         LocalDateTime.of(2025, 8, 15, 6, 0, 0),
                         LocalDateTime.of(2025, 8, 15, 6, 30, 0),
                         3000.0,
+                        5.5,
+                        10.9,
+                        250,
                         4500,
-                        250
+                        145,
+                        170,
+                        165,
+                        185,
+                        null,
+                        null,
+                        null
                 ),
                 new RunningRecordDTO(
                         2L,
@@ -50,12 +58,21 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                         LocalDateTime.of(2025, 8, 16, 7, 30, 0),
                         LocalDateTime.of(2025, 8, 16, 8, 10, 0),
                         5000.0,
+                        4.8,
+                        12.5,
+                        400,
                         7200,
-                        400
+                        155,
+                        180,
+                        170,
+                        190,
+                        null,
+                        null,
+                        null
                 )
         );
 
-        given(recordService.getRunningRecordsByDate(anyLong(), any(), any())).willReturn(mockRecords);
+        given(recordService.getRunningRecordsSummary(anyLong(), anyString(), any(), any())).willReturn(mockRecords);
         given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
         given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
 
@@ -67,22 +84,25 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
         // when
-        this.mockMvc.perform(get("/api/records/date")
+        this.mockMvc.perform(get("/api/records/summary")
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
-                        .param("startDate", "2025-08-15")
+                        .param("type", "date")
+                        .param("date", "2025-08-15")
                         .param("endDate", "2025-08-16"))
                 .andExpect(status().isOk())
-                .andDo(document("record-get-running-records-by-date-range",
+                .andDo(document("record-get-running-records-summary",
                         resource(
                                 ResourceSnippetParameters.builder()
                                         .tag("records")
-                                        .description("날짜 범위로 러닝 기록 조회")
+                                        .summary("러닝 기록 날짜 범위 조회")
+                                        .description("지정된 조건에 따라 러닝 기록을 조회합니다. type에 따라 날짜 범위(date), 주간(week), 월간(month) 조회가 가능합니다. ")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("엑세스 토큰")
                                         )
                                         .queryParameters(
-                                                parameterWithName("startDate").description("시작 날짜 (yyyy-MM-dd)"),
-                                                parameterWithName("endDate").description("종료 날짜 (yyyy-MM-dd)")
+                                                parameterWithName("type").description("조회 타입 (date: 날짜 범위, week: 주간, month: 월간)"),
+                                                parameterWithName("date").description("기준 날짜 (yyyy-MM-dd)"),
+                                                parameterWithName("endDate").description("종료 날짜 (yyyy-MM-dd) - type이 date인 경우에만 필수로 사용").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
@@ -95,152 +115,14 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
-                                                fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
-                                                fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
-                                        )
-                                        .build()
-                        )
-                ));
-    }
-
-    @Test
-    void getRunningRecordsByWeekTest() throws Exception {
-        // given
-        List<RunningRecordDTO> mockRecords = List.of(
-                new RunningRecordDTO(
-                        1L,
-                        1L,
-                        2100,
-                        LocalDateTime.of(2025, 8, 11, 8, 0, 0),
-                        LocalDateTime.of(2025, 8, 11, 8, 35, 0),
-                        4000.0,
-                        6000,
-                        320
-                ),
-                new RunningRecordDTO(
-                        2L,
-                        2L,
-                        3000,
-                        LocalDateTime.of(2025, 8, 13, 18, 30, 0),
-                        LocalDateTime.of(2025, 8, 13, 19, 20, 0),
-                        6000.0,
-                        8500,
-                        480
-                )
-        );
-
-        given(recordService.getRunningRecordsByWeek(anyLong(), any())).willReturn(mockRecords);
-        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
-        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
-
-        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
-                .memberId(1L)
-                .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
-                .build();
-        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
-
-        // when
-        this.mockMvc.perform(get("/api/records/week")
-                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
-                        .param("weekDate", "2025-08-11"))
-                .andExpect(status().isOk())
-                .andDo(document("record-get-running-records-by-week",
-                        resource(
-                                ResourceSnippetParameters.builder()
-                                        .tag("records")
-                                        .description("주 범위로 러닝 기록 조회")
-                                        .requestHeaders(
-                                                headerWithName("Authorization").description("엑세스 토큰")
-                                        )
-                                        .queryParameters(
-                                                parameterWithName("weekDate").description("주간 기준 날짜 (yyyy-MM-dd) - 해당 날짜가 포함된 주(월~일)의 기록을 조회")
-                                        )
-                                        .responseFields(
-                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
-                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
-                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
-                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("러닝 기록 목록"),
-                                                fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
-                                                fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("body[].runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
-                                                fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
-                                                fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
-                                                fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
-                                                fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
-                                                fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
-                                        )
-                                        .build()
-                        )
-                ));
-    }
-
-    @Test
-    void getRunningRecordsByMonthTest() throws Exception {
-        // given
-        List<RunningRecordDTO> mockRecords = List.of(
-                new RunningRecordDTO(
-                        1L,
-                        1L,
-                        3600,
-                        LocalDateTime.of(2025, 8, 5, 7, 0, 0),
-                        LocalDateTime.of(2025, 8, 5, 8, 0, 0),
-                        8000.0,
-                        12000,
-                        650
-                ),
-                new RunningRecordDTO(
-                        2L,
-                        2L,
-                        2700,
-                        LocalDateTime.of(2025, 8, 25, 19, 0, 0),
-                        LocalDateTime.of(2025, 8, 25, 19, 45, 0),
-                        5500.0,
-                        8200,
-                        420
-                )
-        );
-
-        given(recordService.getRunningRecordsByMonth(anyLong(), any())).willReturn(mockRecords);
-        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
-        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
-
-        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
-                .memberId(1L)
-                .socialId("kakao_123")
-                .roles(List.of(MemberRole.USER))
-                .build();
-        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
-
-        // when
-        this.mockMvc.perform(get("/api/records/month")
-                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
-                        .param("monthDate", "2025-08-15"))
-                .andExpect(status().isOk())
-                .andDo(document("record-get-running-records-by-month",
-                        resource(
-                                ResourceSnippetParameters.builder()
-                                        .tag("records")
-                                        .description("월별 러닝 기록 조회")
-                                        .requestHeaders(
-                                                headerWithName("Authorization").description("엑세스 토큰")
-                                        )
-                                        .queryParameters(
-                                                parameterWithName("monthDate").description("월간 기준 날짜 (yyyy-MM-dd) - 해당 날짜가 포함된 월의 기록을 조회")
-                                        )
-                                        .responseFields(
-                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
-                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
-                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
-                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("러닝 기록 목록"),
-                                                fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("러닝 기록 ID"),
-                                                fieldWithPath("body[].courseId").type(JsonFieldType.NUMBER).description("코스 ID"),
-                                                fieldWithPath("body[].runningTime").type(JsonFieldType.NUMBER).description("러닝 시간 (초 단위)"),
-                                                fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
-                                                fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
-                                                fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
-                                                fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
-                                                fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                                fieldWithPath("body[].avgPace").type(JsonFieldType.NUMBER).description("평균 페이스").optional(),
+                                                fieldWithPath("body[].avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도").optional(),
+                                                fieldWithPath("body[].kcal").type(JsonFieldType.NUMBER).description("소모 칼로리"),
+                                                fieldWithPath("body[].walkCnt").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("body[].avgHeartRate").type(JsonFieldType.NUMBER).description("평균 심박수").optional(),
+                                                fieldWithPath("body[].maxHeartRate").type(JsonFieldType.NUMBER).description("최대 심박수").optional(),
+                                                fieldWithPath("body[].avgCadence").type(JsonFieldType.NUMBER).description("평균 케이던스").optional(),
+                                                fieldWithPath("body[].maxCadence").type(JsonFieldType.NUMBER).description("최대 케이던스").optional()
                                         )
                                         .build()
                         )
@@ -257,8 +139,33 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                 LocalDateTime.of(2025, 8, 16, 7, 30, 0),
                 LocalDateTime.of(2025, 8, 16, 8, 10, 0),
                 5000.0,
+                4.8,
+                12.5,
+                400,
                 7200,
-                400
+                155,
+                180,
+                170,
+                190,
+                List.of(
+                        new com.runtracker.global.vo.Coordinate(37.5665, 126.9780),
+                        new com.runtracker.global.vo.Coordinate(37.5670, 126.9785),
+                        new com.runtracker.global.vo.Coordinate(37.5675, 126.9790)
+                ),
+                List.of(
+                        new com.runtracker.global.vo.SegmentPace(1000.0, 300),
+                        new com.runtracker.global.vo.SegmentPace(1500.0, 450)
+                ),
+                List.of(
+                        List.of(
+                                new com.runtracker.global.vo.Coordinate(37.5665, 126.9780),
+                                new com.runtracker.global.vo.Coordinate(37.5670, 126.9785)
+                        ),
+                        List.of(
+                                new com.runtracker.global.vo.Coordinate(37.5670, 126.9785),
+                                new com.runtracker.global.vo.Coordinate(37.5675, 126.9790)
+                        )
+                )
         );
 
         given(recordService.getRunningRecordById(anyLong(), anyLong())).willReturn(mockRecord);
@@ -280,7 +187,8 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                         resource(
                                 ResourceSnippetParameters.builder()
                                         .tag("records")
-                                        .description("러닝 기록 ID로 상세 조회")
+                                        .summary("러닝 기록 상세 조회")
+                                        .description("러닝 기록 ID를 사용하여 특정 기록의 상세 정보를 조회합니다.")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("엑세스 토큰")
                                         )
@@ -298,8 +206,24 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body.finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body.distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
-                                                fieldWithPath("body.walk").type(JsonFieldType.NUMBER).description("걸음 수"),
-                                                fieldWithPath("body.calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                                fieldWithPath("body.avgPace").type(JsonFieldType.NUMBER).description("평균 페이스").optional(),
+                                                fieldWithPath("body.avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도").optional(),
+                                                fieldWithPath("body.kcal").type(JsonFieldType.NUMBER).description("소모 칼로리"),
+                                                fieldWithPath("body.walkCnt").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("body.avgHeartRate").type(JsonFieldType.NUMBER).description("평균 심박수").optional(),
+                                                fieldWithPath("body.maxHeartRate").type(JsonFieldType.NUMBER).description("최대 심박수").optional(),
+                                                fieldWithPath("body.avgCadence").type(JsonFieldType.NUMBER).description("평균 케이던스").optional(),
+                                                fieldWithPath("body.maxCadence").type(JsonFieldType.NUMBER).description("최대 케이던스").optional(),
+                                                fieldWithPath("body.path").type(JsonFieldType.ARRAY).description("완전한 러닝 경로 (코스 경로 + 사용자 종료 지점 통합)").optional(),
+                                                fieldWithPath("body.path[].lat").type(JsonFieldType.NUMBER).description("위도").optional(),
+                                                fieldWithPath("body.path[].lnt").type(JsonFieldType.NUMBER).description("경도").optional(),
+                                                fieldWithPath("body.segmentPaces").type(JsonFieldType.ARRAY).description("구간별 페이스").optional(),
+                                                fieldWithPath("body.segmentPaces[].distance").type(JsonFieldType.NUMBER).description("구간 거리").optional(),
+                                                fieldWithPath("body.segmentPaces[].time").type(JsonFieldType.NUMBER).description("구간 시간").optional(),
+                                                fieldWithPath("body.segmentPaths").type(JsonFieldType.ARRAY).description("구간별 경로").optional(),
+                                                fieldWithPath("body.segmentPaths[].[]").type(JsonFieldType.ARRAY).description("구간 내 좌표 배열").optional(),
+                                                fieldWithPath("body.segmentPaths[][].lat").type(JsonFieldType.NUMBER).description("위도").optional(),
+                                                fieldWithPath("body.segmentPaths[][].lnt").type(JsonFieldType.NUMBER).description("경도").optional()
                                         )
                                         .build()
                         )
@@ -317,8 +241,17 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                         LocalDateTime.of(2025, 8, 16, 7, 30, 0),
                         LocalDateTime.of(2025, 8, 16, 8, 10, 0),
                         5000.0,
+                        4.8,
+                        12.5,
+                        400,
                         7200,
-                        400
+                        155,
+                        180,
+                        170,
+                        190,
+                        null,
+                        null,
+                        null
                 ),
                 new RunningRecordDTO(
                         2L,
@@ -327,8 +260,17 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                         LocalDateTime.of(2025, 8, 15, 6, 0, 0),
                         LocalDateTime.of(2025, 8, 15, 6, 30, 0),
                         3000.0,
+                        5.5,
+                        10.9,
+                        250,
                         4500,
-                        250
+                        145,
+                        170,
+                        165,
+                        185,
+                        null,
+                        null,
+                        null
                 )
         );
 
@@ -351,7 +293,8 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                         resource(
                                 ResourceSnippetParameters.builder()
                                         .tag("records")
-                                        .description("사용자의 전체 러닝 기록 조회")
+                                        .summary("전체 러닝 기록 조회")
+                                        .description("사용자의 모든 러닝 기록을 조회합니다. 기록은 러닝 시간 기준 내림차순으로 정렬됩니다.")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("엑세스 토큰")
                                         )
@@ -366,8 +309,14 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].startedAt").type(JsonFieldType.STRING).description("러닝 시작 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].finishedAt").type(JsonFieldType.STRING).description("러닝 종료 시간 (yyyy-MM-dd HH:mm:ss)"),
                                                 fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("러닝 거리 (미터)"),
-                                                fieldWithPath("body[].walk").type(JsonFieldType.NUMBER).description("걸음 수"),
-                                                fieldWithPath("body[].calorie").type(JsonFieldType.NUMBER).description("소모 칼로리")
+                                                fieldWithPath("body[].avgPace").type(JsonFieldType.NUMBER).description("평균 페이스").optional(),
+                                                fieldWithPath("body[].avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도").optional(),
+                                                fieldWithPath("body[].kcal").type(JsonFieldType.NUMBER).description("소모 칼로리"),
+                                                fieldWithPath("body[].walkCnt").type(JsonFieldType.NUMBER).description("걸음 수"),
+                                                fieldWithPath("body[].avgHeartRate").type(JsonFieldType.NUMBER).description("평균 심박수").optional(),
+                                                fieldWithPath("body[].maxHeartRate").type(JsonFieldType.NUMBER).description("최대 심박수").optional(),
+                                                fieldWithPath("body[].avgCadence").type(JsonFieldType.NUMBER).description("평균 케이던스").optional(),
+                                                fieldWithPath("body[].maxCadence").type(JsonFieldType.NUMBER).description("최대 케이던스").optional()
                                         )
                                         .build()
                         )

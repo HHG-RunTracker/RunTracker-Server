@@ -1,4 +1,4 @@
-package com.runtracker.domain.course.entity.vo;
+package com.runtracker.global.vo;
 
 import lombok.*;
 

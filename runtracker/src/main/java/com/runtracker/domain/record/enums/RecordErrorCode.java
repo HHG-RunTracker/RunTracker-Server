@@ -13,7 +13,8 @@ public enum RecordErrorCode implements ResponseCode {
     DATE_RANGE_TOO_LARGE("RC003", "Date range cannot exceed 365 days"),
     DATE_PARAMETER_REQUIRED("RC004", "Date parameters are required"),
     RECORD_NOT_FOUND("RC005", "Running record not found"),
-    UNAUTHORIZED_RECORD_ACCESS("RC006", "Unauthorized access to running record");
+    UNAUTHORIZED_RECORD_ACCESS("RC006", "Unauthorized access to running record"),
+    INVALID_SUMMARY_TYPE("RC007", "Invalid summary type");
     
     private final String statusCode;
     private final String message;

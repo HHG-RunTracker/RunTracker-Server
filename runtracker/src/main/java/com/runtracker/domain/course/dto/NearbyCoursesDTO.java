@@ -1,7 +1,7 @@
 package com.runtracker.domain.course.dto;
 
 import com.runtracker.domain.course.enums.Difficulty;
-import com.runtracker.domain.course.entity.vo.Coordinate;
+import com.runtracker.global.vo.Coordinate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -35,15 +35,11 @@ public class NearbyCoursesDTO {
         private Double distance;
         private Boolean round;
         private String region;
-        private String photo;
-        private Double photoLat;
-        private Double photoLng;
         private Double distanceFromUser;
 
-        public Response(Long id, Long memberId, String name, Difficulty difficulty, 
-                       List<Coordinate> points, Double startLat, Double startLng, 
-                       Double distance, Boolean round, String region, String photo, 
-                       Double photoLat, Double photoLng, Double distanceFromUser) {
+        public Response(Long id, Long memberId, String name, Difficulty difficulty,
+                       List<Coordinate> points, Double startLat, Double startLng,
+                       Double distance, Boolean round, String region, Double distanceFromUser) {
             this.id = id;
             this.memberId = memberId;
             this.name = name;
@@ -54,9 +50,6 @@ public class NearbyCoursesDTO {
             this.distance = distance;
             this.round = round;
             this.region = region;
-            this.photo = photo;
-            this.photoLat = photoLat;
-            this.photoLng = photoLng;
             this.distanceFromUser = distanceFromUser;
         }
     }
