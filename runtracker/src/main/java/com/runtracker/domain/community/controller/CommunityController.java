@@ -21,117 +21,104 @@ public class CommunityController {
 
     private final CommunityService communityService;
 
-    @PostMapping("/crews/{crewId}/posts")
+    @PostMapping("/posts")
     public ApiResponse<Void> createPost(
-            @PathVariable Long crewId,
             @RequestBody PostDTO postDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
-        communityService.createPost(crewId, postDTO, userDetails);
+
+        communityService.createPost(postDTO, userDetails);
         return ApiResponse.ok();
     }
 
-    @PatchMapping("/crews/{crewId}/posts/{postId}")
+    @PatchMapping("/posts/{postId}")
     public ApiResponse<Void> updatePost(
-            @PathVariable Long crewId,
             @PathVariable Long postId,
             @RequestBody PostDTO postDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         communityService.updatePost(postId, postDTO, userDetails);
         return ApiResponse.ok();
     }
 
-    @DeleteMapping("/crews/{crewId}/posts/{postId}")
+    @DeleteMapping("/posts/{postId}")
     public ApiResponse<Void> deletePost(
-            @PathVariable Long crewId,
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         communityService.deletePost(postId, userDetails);
         return ApiResponse.ok();
     }
 
-    @PostMapping("/crews/{crewId}/posts/{postId}/like")
+    @PostMapping("/posts/{postId}/like")
     public ApiResponse<Void> likePost(
-            @PathVariable Long crewId,
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         communityService.likePost(postId, userDetails);
         return ApiResponse.ok();
     }
 
-    @PostMapping("/crews/{crewId}/posts/{postId}/unlike")
+    @PostMapping("/posts/{postId}/unlike")
     public ApiResponse<Void> unlikePost(
-            @PathVariable Long crewId,
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         communityService.unlikePost(postId, userDetails);
         return ApiResponse.ok();
     }
 
-    @PostMapping("/crews/{crewId}/posts/{postId}/comments")
+    @PostMapping("/posts/{postId}/comments")
     public ApiResponse<Void> createComment(
-            @PathVariable Long crewId,
             @PathVariable Long postId,
             @RequestBody CommentDTO commentDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         communityService.createComment(postId, commentDTO, userDetails);
         return ApiResponse.ok();
     }
 
-    @PatchMapping("/crews/{crewId}/posts/{postId}/comments/{commentId}")
+    @PatchMapping("/comments/{commentId}")
     public ApiResponse<Void> updateComment(
-            @PathVariable Long crewId,
-            @PathVariable Long postId,
             @PathVariable Long commentId,
             @RequestBody CommentDTO commentDTO,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         communityService.updateComment(commentId, commentDTO, userDetails);
         return ApiResponse.ok();
     }
 
-    @DeleteMapping("/crews/{crewId}/posts/{postId}/comments/{commentId}")
+    @DeleteMapping("/comments/{commentId}")
     public ApiResponse<Void> deleteComment(
-            @PathVariable Long crewId,
-            @PathVariable Long postId,
             @PathVariable Long commentId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         communityService.deleteComment(commentId, userDetails);
         return ApiResponse.ok();
     }
 
-    @GetMapping("/crews/{crewId}/posts")
+    @GetMapping("/posts")
     public ApiResponse<List<PostListDTO>> getPostList(
-            @PathVariable Long crewId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
-        List<PostListDTO> posts = communityService.getPostList(crewId, userDetails);
+
+        List<PostListDTO> posts = communityService.getPostList(userDetails);
         return ApiResponse.ok(posts);
     }
 
-    @GetMapping("/crews/{crewId}/posts/{postId}")
+    @GetMapping("/posts/{postId}")
     public ApiResponse<PostDetailDTO> getPostDetail(
-            @PathVariable Long crewId,
             @PathVariable Long postId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
-        PostDetailDTO post = communityService.getPostDetail(crewId, postId, userDetails);
+
+        PostDetailDTO post = communityService.getPostDetail(postId, userDetails);
         return ApiResponse.ok(post);
     }
 
-    @GetMapping("/crews/{crewId}/posts/search")
+    @GetMapping("/posts/search")
     public ApiResponse<List<PostListDTO>> searchPosts(
-            @PathVariable Long crewId,
             @RequestParam String keyword,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
-        List<PostListDTO> posts = communityService.searchPosts(crewId, keyword, userDetails);
+
+        List<PostListDTO> posts = communityService.searchPosts(keyword, userDetails);
         return ApiResponse.ok(posts);
     }
 }
