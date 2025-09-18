@@ -23,6 +23,7 @@ import com.runtracker.domain.crew.exception.CannotModifyLeaderRoleException;
 import com.runtracker.domain.crew.exception.CrewAlreadyExistsException;
 import com.runtracker.domain.crew.exception.CrewApplicationPendingException;
 import com.runtracker.domain.crew.exception.CrewNotFoundException;
+import com.runtracker.domain.crew.exception.CrewSearchResultNotFoundException;
 import com.runtracker.domain.crew.exception.InvalidCrewRoleException;
 import com.runtracker.domain.crew.exception.MemberNotFoundException;
 import com.runtracker.domain.crew.exception.NoPendingApplicationException;
@@ -298,7 +299,21 @@ public class CrewService {
     @Transactional(readOnly = true)
     public CrewListDTO.ListResponse getAllCrews() {
         List<Crew> crews = crewRepository.findAll();
-        
+        return convertToCrewListResponse(crews);
+    }
+
+    @Transactional(readOnly = true)
+    public CrewListDTO.ListResponse searchCrewsByName(String name) {
+        List<Crew> crews = crewRepository.findByTitleContainingIgnoreCase(name);
+
+        if (crews.isEmpty()) {
+            throw new CrewSearchResultNotFoundException();
+        }
+
+        return convertToCrewListResponse(crews);
+    }
+
+    private CrewListDTO.ListResponse convertToCrewListResponse(List<Crew> crews) {
         List<CrewListDTO.Response> crewResponses = crews.stream()
                 .map(crew -> {
                     List<CrewMember> activeMembers = crewMemberRepository.findByCrewId(crew.getId()).stream()
@@ -307,7 +322,7 @@ public class CrewService {
                     return CrewListDTO.Response.from(crew, activeMembers.size());
                 })
                 .toList();
-        
+
         return CrewListDTO.ListResponse.of(crewResponses);
     }
     

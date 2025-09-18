@@ -17,6 +17,7 @@ import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.service.CrewService;
 import com.runtracker.domain.crew.service.CrewRankingService;
 import com.runtracker.domain.crew.service.CrewMemberRankingService;
+import com.runtracker.domain.crew.exception.CrewSearchResultNotFoundException;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWit
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.willThrow;
 
 class CrewControllerTest extends RunTrackerDocumentApiTester {
 
@@ -489,6 +491,84 @@ class CrewControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.crews[].memberCount").type(JsonFieldType.NUMBER).description("크루 멤버 수"),
                                                 fieldWithPath("body.crews[].createdAt").type(JsonFieldType.STRING).description("크루 생성일시"),
                                                 fieldWithPath("body.totalCount").type(JsonFieldType.NUMBER).description("전체 크루 개수")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void searchCrewsByName() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(any())).willReturn(201L);
+        given(jwtUtil.getSocialIdFromToken(any())).willReturn("kakao_201");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(201L)
+                .socialId("kakao_201")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("201")).willReturn(mockUserDetails);
+
+        List<CrewListDTO.Response> mockSearchResults = List.of(
+                CrewListDTO.Response.builder()
+                        .id(1L)
+                        .title("러닝크루 초급자")
+                        .photo("https://example.com/crew1.jpg")
+                        .introduce("초급자를 위한 러닝크루입니다.")
+                        .region("서울시 강남구")
+                        .difficulty(Difficulty.EASY)
+                        .leaderId(123L)
+                        .memberCount(5)
+                        .createdAt(LocalDateTime.of(2024, 1, 1, 10, 0))
+                        .build(),
+                CrewListDTO.Response.builder()
+                        .id(3L)
+                        .title("아침 러닝 클럽")
+                        .photo("https://example.com/crew3.jpg")
+                        .introduce("아침에 함께 뛰는 러닝 클럽입니다.")
+                        .region("서울시 마포구")
+                        .difficulty(Difficulty.MEDIUM)
+                        .leaderId(789L)
+                        .memberCount(8)
+                        .createdAt(LocalDateTime.of(2024, 1, 20, 8, 0))
+                        .build()
+        );
+
+        CrewListDTO.ListResponse mockResponse = CrewListDTO.ListResponse.of(mockSearchResults);
+        given(crewService.searchCrewsByName("러닝")).willReturn(mockResponse);
+
+        // when
+        this.mockMvc.perform(get("/api/crew/search")
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .param("name", "러닝"))
+                .andExpect(status().isOk())
+                .andDo(document("crew-search-by-name",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("crew")
+                                        .description("크루 이름으로 검색")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("액세스 토큰")
+                                        )
+                                        .queryParameters(
+                                                parameterWithName("name").description("검색할 크루 이름 (부분 일치)")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.crews").type(JsonFieldType.ARRAY).description("검색된 크루 목록"),
+                                                fieldWithPath("body.crews[].id").type(JsonFieldType.NUMBER).description("크루 ID"),
+                                                fieldWithPath("body.crews[].title").type(JsonFieldType.STRING).description("크루 이름"),
+                                                fieldWithPath("body.crews[].photo").type(JsonFieldType.STRING).description("크루 대표 사진 URL").optional(),
+                                                fieldWithPath("body.crews[].introduce").type(JsonFieldType.STRING).description("크루 소개").optional(),
+                                                fieldWithPath("body.crews[].region").type(JsonFieldType.STRING).description("크루 활동 지역").optional(),
+                                                fieldWithPath("body.crews[].difficulty").type(JsonFieldType.STRING).description("크루 난이도 (EASY, MEDIUM, HARD)").optional(),
+                                                fieldWithPath("body.crews[].leaderId").type(JsonFieldType.NUMBER).description("크루장 ID"),
+                                                fieldWithPath("body.crews[].memberCount").type(JsonFieldType.NUMBER).description("크루 멤버 수"),
+                                                fieldWithPath("body.crews[].createdAt").type(JsonFieldType.STRING).description("크루 생성일시"),
+                                                fieldWithPath("body.totalCount").type(JsonFieldType.NUMBER).description("검색된 크루 개수")
                                         )
                                         .build()
                         )

@@ -26,7 +26,8 @@ public enum CrewErrorCode implements ResponseCode {
     CANNOT_KICK_MANAGER_AS_MANAGER("CR016", "Manager cannot kick another manager"),
     BANNED_FROM_CREW("CR017", "Banned from crew"),
     CANNOT_LEAVE_AS_CREW_LEADER("CR018", "Crew leader cannot leave crew"),
-    UNAUTHORIZED_CREW_ACCESS("CR019", "Unauthorized crew access");
+    UNAUTHORIZED_CREW_ACCESS("CR019", "Unauthorized crew access"),
+    CREW_SEARCH_RESULT_NOT_FOUND("CR020", "No crews found matching the search criteria");
 
     private final String statusCode;
     private final String message;
