@@ -35,6 +35,18 @@ public class Post extends BaseEntity {
     @Convert(converter = StringListConverter.class)
     private List<String> photos;
 
+    @Column(name = "distance")
+    private Double distance;
+
+    @Column(name = "time")
+    private Integer time;
+
+    @Column(name = "avg_pace")
+    private Double avgPace;
+
+    @Column(name = "avg_speed")
+    private Double avgSpeed;
+
     public void updateTitle(String title) {
         this.title = title;
     }
@@ -45,5 +57,12 @@ public class Post extends BaseEntity {
 
     public void updatePhotos(List<String> photos) {
         this.photos = photos;
+    }
+
+    public void updateRunningMeta(Double distance, Integer time, Double avgPace, Double avgSpeed) {
+        this.distance = distance;
+        this.time = time;
+        this.avgPace = avgPace;
+        this.avgSpeed = avgSpeed;
     }
 }

@@ -7,6 +7,7 @@ import com.runtracker.domain.community.dto.CommentInfoDTO;
 import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
+import com.runtracker.domain.community.dto.RunningMetaDTO;
 import com.runtracker.domain.community.service.CommunityService;
 import com.runtracker.global.security.UserDetailsImpl;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class PostControllerTest extends RunTrackerDocumentApiTester {
+class CommunityControllerTest extends RunTrackerDocumentApiTester {
 
     @MockitoBean
     private CommunityService communityService;
@@ -40,16 +41,22 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void createPost() throws Exception {
         // given
-        doNothing().when(communityService).createPost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
+        doNothing().when(communityService).createPost(any(PostDTO.class), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(post("/api/community/crews/{crewId}/posts", 1L)
+        this.mockMvc.perform(post("/api/community/posts")
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
                         .content(toJson(PostDTO.builder()
                                 .title("오늘의 러닝 후기")
                                 .content("오늘 5km 완주했어요! 날씨가 러닝하기 딱 좋았습니다. 다음엔 더 먼 거리에 도전해보려고요.")
                                 .photos(List.of("https://example.com/running1.jpg", "https://example.com/running2.jpg"))
+                                .meta(RunningMetaDTO.builder()
+                                        .distance(5.0)
+                                        .time(1800)
+                                        .avgPace(6.0)
+                                        .avgSpeed(10.0)
+                                        .build())
                                 .build())))
                 .andExpect(status().isOk())
                 .andDo(document("community-post-create",
@@ -61,13 +68,15 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
-                                        .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID")
-                                        )
                                         .requestFields(
                                                 fieldWithPath("title").type(JsonFieldType.STRING).description("게시글 제목").optional(),
                                                 fieldWithPath("content").type(JsonFieldType.STRING).description("게시글 내용").optional(),
-                                                fieldWithPath("photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열").optional()
+                                                fieldWithPath("photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열").optional(),
+                                                fieldWithPath("meta").type(JsonFieldType.OBJECT).description("러닝 메타데이터").optional(),
+                                                fieldWithPath("meta.distance").type(JsonFieldType.NUMBER).description("거리 (km)").optional(),
+                                                fieldWithPath("meta.time").type(JsonFieldType.NUMBER).description("시간 (초)").optional(),
+                                                fieldWithPath("meta.avgPace").type(JsonFieldType.NUMBER).description("평균 페이스 (분/km)").optional(),
+                                                fieldWithPath("meta.avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도 (km/h)").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
@@ -85,13 +94,19 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
         doNothing().when(communityService).updatePost(anyLong(), any(PostDTO.class), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(patch("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
+        this.mockMvc.perform(patch("/api/community/posts/{postId}", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
                         .content(toJson(PostDTO.builder()
                                 .title("수정된 러닝 후기")
                                 .content("오늘 10km 완주했어요! 목표를 달성해서 기분이 좋습니다.")
                                 .photos(List.of("https://example.com/updated1.jpg"))
+                                .meta(RunningMetaDTO.builder()
+                                        .distance(10.0)
+                                        .time(3600)
+                                        .avgPace(6.0)
+                                        .avgSpeed(10.0)
+                                        .build())
                                 .build())))
                 .andExpect(status().isOk())
                 .andDo(document("community-post-update",
@@ -104,13 +119,17 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("postId").description("수정할 게시글 ID")
                                         )
                                         .requestFields(
                                                 fieldWithPath("title").type(JsonFieldType.STRING).description("게시글 제목").optional(),
                                                 fieldWithPath("content").type(JsonFieldType.STRING).description("게시글 내용").optional(),
-                                                fieldWithPath("photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열").optional()
+                                                fieldWithPath("photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열").optional(),
+                                                fieldWithPath("meta").type(JsonFieldType.OBJECT).description("러닝 메타데이터").optional(),
+                                                fieldWithPath("meta.distance").type(JsonFieldType.NUMBER).description("거리 (km)").optional(),
+                                                fieldWithPath("meta.time").type(JsonFieldType.NUMBER).description("시간 (초)").optional(),
+                                                fieldWithPath("meta.avgPace").type(JsonFieldType.NUMBER).description("평균 페이스 (분/km)").optional(),
+                                                fieldWithPath("meta.avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도 (km/h)").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
@@ -128,7 +147,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
         doNothing().when(communityService).deletePost(anyLong(), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(delete("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
+        this.mockMvc.perform(delete("/api/community/posts/{postId}", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
                 .andExpect(status().isOk())
                 .andDo(document("community-post-delete",
@@ -141,7 +160,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("postId").description("삭제할 게시글 ID")
                                         )
                                         .responseFields(
@@ -160,7 +178,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
         doNothing().when(communityService).likePost(anyLong(), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/like", 1L, 1L)
+        this.mockMvc.perform(post("/api/community/posts/{postId}/like", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
                 .andExpect(status().isOk())
                 .andDo(document("community-post-like",
@@ -173,7 +191,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("postId").description("좋아요할 게시글 ID")
                                         )
                                         .responseFields(
@@ -192,7 +209,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
         doNothing().when(communityService).unlikePost(anyLong(), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/unlike", 1L, 1L)
+        this.mockMvc.perform(post("/api/community/posts/{postId}/unlike", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
                 .andExpect(status().isOk())
                 .andDo(document("community-post-unlike",
@@ -205,7 +222,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("postId").description("좋아요 취소할 게시글 ID")
                                         )
                                         .responseFields(
@@ -224,7 +240,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
         doNothing().when(communityService).createComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(post("/api/community/crews/{crewId}/posts/{postId}/comments", 1L, 1L)
+        this.mockMvc.perform(post("/api/community/posts/{postId}/comments", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
                         .content(toJson(CommentDTO.builder()
@@ -241,7 +257,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("postId").description("게시글 ID")
                                         )
                                         .requestFields(
@@ -263,7 +278,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
         doNothing().when(communityService).updateComment(anyLong(), any(CommentDTO.class), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(patch("/api/community/crews/{crewId}/posts/{postId}/comments/{commentId}", 1L, 1L, 1L)
+        this.mockMvc.perform(patch("/api/community/comments/{commentId}", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .contentType("application/json")
                         .content(toJson(CommentDTO.builder()
@@ -280,8 +295,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
-                                                parameterWithName("postId").description("게시글 ID"),
                                                 parameterWithName("commentId").description("수정할 댓글 ID")
                                         )
                                         .requestFields(
@@ -303,7 +316,7 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
         doNothing().when(communityService).deleteComment(anyLong(), any(UserDetailsImpl.class));
 
         // when
-        this.mockMvc.perform(delete("/api/community/crews/{crewId}/posts/{postId}/comments/{commentId}", 1L, 1L, 1L)
+        this.mockMvc.perform(delete("/api/community/comments/{commentId}", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
                 .andExpect(status().isOk())
                 .andDo(document("community-comment-delete",
@@ -316,8 +329,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
-                                                parameterWithName("postId").description("게시글 ID"),
                                                 parameterWithName("commentId").description("삭제할 댓글 ID")
                                         )
                                         .responseFields(
@@ -345,6 +356,13 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                         .commentCount(3L)
                         .isLiked(true)
                         .createdAt(LocalDateTime.of(2024, 12, 25, 14, 30))
+                        .updatedAt(LocalDateTime.of(2024, 12, 25, 14, 30))
+                        .meta(RunningMetaDTO.builder()
+                                .distance(5.0)
+                                .time(1800)
+                                .avgPace(6.0)
+                                .avgSpeed(10.0)
+                                .build())
                         .build(),
                 PostListDTO.builder()
                         .postId(2L)
@@ -357,12 +375,19 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                         .commentCount(1L)
                         .isLiked(false)
                         .createdAt(LocalDateTime.of(2024, 12, 25, 10, 15))
+                        .updatedAt(LocalDateTime.of(2024, 12, 25, 10, 15))
+                        .meta(RunningMetaDTO.builder()
+                                .distance(10.0)
+                                .time(3000)
+                                .avgPace(5.0)
+                                .avgSpeed(12.0)
+                                .build())
                         .build()
         );
-        when(communityService.getPostList(anyLong(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
+        when(communityService.getPostList(any(UserDetailsImpl.class))).thenReturn(mockPosts);
 
         // when
-        this.mockMvc.perform(get("/api/community/crews/{crewId}/posts", 1L)
+        this.mockMvc.perform(get("/api/community/posts")
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
                 .andExpect(status().isOk())
                 .andDo(document("community-post-list",
@@ -374,9 +399,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
-                                        .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID")
-                                        )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
                                                 fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
@@ -386,12 +408,18 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].title").type(JsonFieldType.STRING).description("게시글 제목"),
                                                 fieldWithPath("body[].content").type(JsonFieldType.STRING).description("게시글 내용"),
                                                 fieldWithPath("body[].photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열"),
+                                                fieldWithPath("body[].meta").type(JsonFieldType.OBJECT).description("러닝 메타데이터").optional(),
+                                                fieldWithPath("body[].meta.distance").type(JsonFieldType.NUMBER).description("거리 (km)").optional(),
+                                                fieldWithPath("body[].meta.time").type(JsonFieldType.NUMBER).description("시간 (초)").optional(),
+                                                fieldWithPath("body[].meta.avgPace").type(JsonFieldType.NUMBER).description("평균 페이스 (분/km)").optional(),
+                                                fieldWithPath("body[].meta.avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도 (km/h)").optional(),
                                                 fieldWithPath("body[].memberId").type(JsonFieldType.NUMBER).description("작성자 ID"),
                                                 fieldWithPath("body[].memberName").type(JsonFieldType.STRING).description("작성자 이름"),
                                                 fieldWithPath("body[].likeCount").type(JsonFieldType.NUMBER).description("좋아요 수"),
                                                 fieldWithPath("body[].commentCount").type(JsonFieldType.NUMBER).description("댓글 수"),
                                                 fieldWithPath("body[].isLiked").type(JsonFieldType.BOOLEAN).description("현재 사용자의 좋아요 여부"),
-                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("작성일시")
+                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("작성일시"),
+                                                fieldWithPath("body[].updatedAt").type(JsonFieldType.STRING).description("수정일시")
                                         )
                                         .build()
                         )
@@ -430,11 +458,17 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                 .updatedAt(LocalDateTime.of(2024, 12, 25, 15, 10))
                                 .build()
                 ))
+                .meta(RunningMetaDTO.builder()
+                        .distance(5.0)
+                        .time(1800)
+                        .avgPace(6.0)
+                        .avgSpeed(10.0)
+                        .build())
                 .build();
-        when(communityService.getPostDetail(anyLong(), anyLong(), any(UserDetailsImpl.class))).thenReturn(mockPost);
+        when(communityService.getPostDetail(anyLong(), any(UserDetailsImpl.class))).thenReturn(mockPost);
 
         // when
-        this.mockMvc.perform(get("/api/community/crews/{crewId}/posts/{postId}", 1L, 1L)
+        this.mockMvc.perform(get("/api/community/posts/{postId}", 1L)
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
                 .andExpect(status().isOk())
                 .andDo(document("community-post-detail",
@@ -447,7 +481,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )
                                         .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID"),
                                                 parameterWithName("postId").description("조회할 게시글 ID")
                                         )
                                         .responseFields(
@@ -459,6 +492,11 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.title").type(JsonFieldType.STRING).description("게시글 제목"),
                                                 fieldWithPath("body.content").type(JsonFieldType.STRING).description("게시글 내용"),
                                                 fieldWithPath("body.photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열"),
+                                                fieldWithPath("body.meta").type(JsonFieldType.OBJECT).description("러닝 메타데이터").optional(),
+                                                fieldWithPath("body.meta.distance").type(JsonFieldType.NUMBER).description("거리 (km)").optional(),
+                                                fieldWithPath("body.meta.time").type(JsonFieldType.NUMBER).description("시간 (초)").optional(),
+                                                fieldWithPath("body.meta.avgPace").type(JsonFieldType.NUMBER).description("평균 페이스 (분/km)").optional(),
+                                                fieldWithPath("body.meta.avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도 (km/h)").optional(),
                                                 fieldWithPath("body.memberId").type(JsonFieldType.NUMBER).description("작성자 ID"),
                                                 fieldWithPath("body.memberName").type(JsonFieldType.STRING).description("작성자 이름"),
                                                 fieldWithPath("body.likeCount").type(JsonFieldType.NUMBER).description("좋아요 수"),
@@ -493,6 +531,13 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                         .commentCount(5L)
                         .isLiked(true)
                         .createdAt(LocalDateTime.of(2024, 12, 25, 16, 30))
+                        .updatedAt(LocalDateTime.of(2024, 12, 25, 16, 30))
+                        .meta(RunningMetaDTO.builder()
+                                .distance(5.0)
+                                .time(1800)
+                                .avgPace(6.0)
+                                .avgSpeed(10.0)
+                                .build())
                         .build(),
                 PostListDTO.builder()
                         .postId(2L)
@@ -505,12 +550,19 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                         .commentCount(2L)
                         .isLiked(false)
                         .createdAt(LocalDateTime.of(2024, 12, 25, 12, 0))
+                        .updatedAt(LocalDateTime.of(2024, 12, 25, 12, 0))
+                        .meta(RunningMetaDTO.builder()
+                                .distance(21.1)
+                                .time(7200)
+                                .avgPace(5.7)
+                                .avgSpeed(10.5)
+                                .build())
                         .build()
         );
-        when(communityService.searchPosts(anyLong(), anyString(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
+        when(communityService.searchPosts(anyString(), any(UserDetailsImpl.class))).thenReturn(mockPosts);
 
         // when
-        this.mockMvc.perform(get("/api/community/crews/{crewId}/posts/search", 1L)
+        this.mockMvc.perform(get("/api/community/posts/search")
                         .param("keyword", "러닝")
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
                 .andExpect(status().isOk())
@@ -522,9 +574,6 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                         .description("해당 크루의 게시글을 제목으로 검색합니다. 키워드가 포함된 게시글을 최신순으로 반환하고 대소문자는 구분하지 않습니다.")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("액세스 토큰")
-                                        )
-                                        .pathParameters(
-                                                parameterWithName("crewId").description("크루 ID")
                                         )
                                         .queryParameters(
                                                 parameterWithName("keyword").description("검색할 키워드 (제목에서 검색)")
@@ -538,12 +587,18 @@ class PostControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].title").type(JsonFieldType.STRING).description("게시글 제목"),
                                                 fieldWithPath("body[].content").type(JsonFieldType.STRING).description("게시글 내용"),
                                                 fieldWithPath("body[].photos").type(JsonFieldType.ARRAY).description("첨부 사진 URL 배열"),
+                                                fieldWithPath("body[].meta").type(JsonFieldType.OBJECT).description("러닝 메타데이터").optional(),
+                                                fieldWithPath("body[].meta.distance").type(JsonFieldType.NUMBER).description("거리 (km)").optional(),
+                                                fieldWithPath("body[].meta.time").type(JsonFieldType.NUMBER).description("시간 (초)").optional(),
+                                                fieldWithPath("body[].meta.avgPace").type(JsonFieldType.NUMBER).description("평균 페이스 (분/km)").optional(),
+                                                fieldWithPath("body[].meta.avgSpeed").type(JsonFieldType.NUMBER).description("평균 속도 (km/h)").optional(),
                                                 fieldWithPath("body[].memberId").type(JsonFieldType.NUMBER).description("작성자 ID"),
                                                 fieldWithPath("body[].memberName").type(JsonFieldType.STRING).description("작성자 이름"),
                                                 fieldWithPath("body[].likeCount").type(JsonFieldType.NUMBER).description("좋아요 수"),
                                                 fieldWithPath("body[].commentCount").type(JsonFieldType.NUMBER).description("댓글 수"),
                                                 fieldWithPath("body[].isLiked").type(JsonFieldType.BOOLEAN).description("현재 사용자의 좋아요 여부"),
-                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("작성일시")
+                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("작성일시"),
+                                                fieldWithPath("body[].updatedAt").type(JsonFieldType.STRING).description("수정일시")
                                         )
                                         .build()
                         )

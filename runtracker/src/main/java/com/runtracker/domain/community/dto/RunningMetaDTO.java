@@ -5,15 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostDTO {
-    private String title;
-    private String content;
-    private List<String> photos;
-    private RunningMetaDTO meta;
+public class RunningMetaDTO {
+    private Double distance;
+    private Integer time;
+    private Double avgPace;
+    private Double avgSpeed;
 }

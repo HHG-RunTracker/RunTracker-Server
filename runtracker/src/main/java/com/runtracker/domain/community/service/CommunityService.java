@@ -5,12 +5,15 @@ import com.runtracker.domain.community.dto.CommentInfoDTO;
 import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
+import com.runtracker.domain.community.dto.RunningMetaDTO;
 import com.runtracker.domain.community.entity.Post;
 import com.runtracker.domain.community.entity.PostComment;
 import com.runtracker.domain.community.entity.PostLike;
 import com.runtracker.domain.community.exception.AlreadyLikedPostException;
 import com.runtracker.domain.community.exception.CommentCreationFailedException;
 import com.runtracker.domain.community.exception.CommentNotFoundException;
+import com.runtracker.domain.community.exception.NoPostsFoundException;
+import com.runtracker.domain.community.exception.NoSearchResultsException;
 import com.runtracker.domain.community.exception.NotLikedPostException;
 import com.runtracker.domain.community.exception.PostCreationFailedException;
 import com.runtracker.domain.community.exception.PostNotFoundException;
@@ -42,17 +45,26 @@ public class CommunityService {
     private final CrewAuthorizationUtil crewAuthorizationUtil;
 
     @Transactional
-    public void createPost(Long crewId, PostDTO postDTO, UserDetailsImpl userDetails) {
+    public void createPost(PostDTO postDTO, UserDetailsImpl userDetails) {
+        Long crewId = userDetails.getCrewMembership().getCrewId();
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
 
         try {
-            Post post = Post.builder()
+            Post.PostBuilder postBuilder = Post.builder()
                     .memberId(userDetails.getMemberId())
                     .crewId(crewId)
                     .title(postDTO.getTitle())
                     .content(postDTO.getContent())
-                    .photos(postDTO.getPhotos())
-                    .build();
+                    .photos(postDTO.getPhotos());
+
+            if (postDTO.getMeta() != null) {
+                postBuilder.distance(postDTO.getMeta().getDistance())
+                        .time(postDTO.getMeta().getTime())
+                        .avgPace(postDTO.getMeta().getAvgPace())
+                        .avgSpeed(postDTO.getMeta().getAvgSpeed());
+            }
+
+            Post post = postBuilder.build();
 
             postRepository.save(post);
         } catch (Exception e) {
@@ -79,6 +91,14 @@ public class CommunityService {
         }
         if (postDTO.getPhotos() != null) {
             post.updatePhotos(postDTO.getPhotos());
+        }
+        if (postDTO.getMeta() != null) {
+            post.updateRunningMeta(
+                    postDTO.getMeta().getDistance(),
+                    postDTO.getMeta().getTime(),
+                    postDTO.getMeta().getAvgPace(),
+                    postDTO.getMeta().getAvgSpeed()
+            );
         }
     }
 
@@ -183,19 +203,24 @@ public class CommunityService {
         return comment;
     }
 
-    public List<PostListDTO> getPostList(Long crewId, UserDetailsImpl userDetails) {
+    public List<PostListDTO> getPostList(UserDetailsImpl userDetails) {
+        Long crewId = userDetails.getCrewMembership().getCrewId();
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
-        
+
         List<Post> posts = postRepository.findByCrewIdOrderByCreatedAtDesc(crewId);
+        if (posts.isEmpty()) {
+            throw new NoPostsFoundException();
+        }
         return convertToPostListDTO(posts, userDetails.getMemberId());
     }
 
-    public PostDetailDTO getPostDetail(Long crewId, Long postId, UserDetailsImpl userDetails) {
+    public PostDetailDTO getPostDetail(Long postId, UserDetailsImpl userDetails) {
+        Long crewId = userDetails.getCrewMembership().getCrewId();
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
-        
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(PostNotFoundException::new);
-        
+
         if (!post.getCrewId().equals(crewId)) {
             throw new PostNotFoundException();
         }
@@ -225,11 +250,19 @@ public class CommunityService {
                 })
                 .collect(Collectors.toList());
         
+        RunningMetaDTO runningMeta = RunningMetaDTO.builder()
+                .distance(post.getDistance())
+                .time(post.getTime())
+                .avgPace(post.getAvgPace())
+                .avgSpeed(post.getAvgSpeed())
+                .build();
+
         return PostDetailDTO.builder()
                 .postId(post.getId())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .photos(post.getPhotos())
+                .meta(runningMeta)
                 .memberId(post.getMemberId())
                 .memberName(memberName)
                 .likeCount(likeCount)
@@ -240,10 +273,14 @@ public class CommunityService {
                 .build();
     }
 
-    public List<PostListDTO> searchPosts(Long crewId, String keyword, UserDetailsImpl userDetails) {
+    public List<PostListDTO> searchPosts(String keyword, UserDetailsImpl userDetails) {
+        Long crewId = userDetails.getCrewMembership().getCrewId();
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
-        
+
         List<Post> posts = postRepository.findByCrewIdAndTitleContainingIgnoreCaseOrderByCreatedAtDesc(crewId, keyword);
+        if (posts.isEmpty()) {
+            throw new NoSearchResultsException();
+        }
         return convertToPostListDTO(posts, userDetails.getMemberId());
     }
 
@@ -258,17 +295,26 @@ public class CommunityService {
                     long commentCount = commentRepository.countByPostId(post.getId());
                     boolean isLiked = postLikeRepository.existsByPostIdAndMemberId(post.getId(), currentMemberId);
                     
+                    RunningMetaDTO runningMeta = RunningMetaDTO.builder()
+                            .distance(post.getDistance())
+                            .time(post.getTime())
+                            .avgPace(post.getAvgPace())
+                            .avgSpeed(post.getAvgSpeed())
+                            .build();
+
                     return PostListDTO.builder()
                             .postId(post.getId())
                             .title(post.getTitle())
                             .content(post.getContent())
                             .photos(post.getPhotos())
+                            .meta(runningMeta)
                             .memberId(post.getMemberId())
                             .memberName(memberName)
                             .likeCount(likeCount)
                             .commentCount(commentCount)
                             .isLiked(isLiked)
                             .createdAt(post.getCreatedAt())
+                            .updatedAt(post.getUpdatedAt())
                             .build();
                 })
                 .collect(Collectors.toList());
