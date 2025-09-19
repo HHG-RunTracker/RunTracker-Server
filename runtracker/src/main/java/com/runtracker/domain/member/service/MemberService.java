@@ -15,6 +15,7 @@ import com.runtracker.domain.member.exception.BackupSerializationException;
 import com.runtracker.domain.member.exception.BackupDeserializationException;
 import com.runtracker.domain.member.exception.BackupAlreadyRestoredException;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.MemberCreateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.domain.member.enums.BackupType;
@@ -47,10 +48,10 @@ public class MemberService {
     private final JwtUtil jwtUtil;
 
     @Transactional
-    public Member createOrUpdateMember(String socialAttr, String socialId, 
+    public Member createOrUpdateMember(String socialAttr, String socialId,
                                       String photo, String name) {
         Optional<Member> existingMember = memberRepository.findBySocialId(socialId);
-        
+
         if (existingMember.isPresent()) {
             Member member = existingMember.get();
             if (photo != null) {
@@ -58,14 +59,15 @@ public class MemberService {
             }
             return member;
         }
-        
-        Member newMember = Member.builder()
+
+        MemberCreateDTO memberCreateDTO = MemberCreateDTO.builder()
                 .socialAttr(socialAttr)
                 .socialId(socialId)
                 .photo(photo)
                 .name(name)
                 .build();
-        
+
+        Member newMember = new Member(memberCreateDTO);
         return memberRepository.save(newMember);
     }
 
@@ -115,24 +117,14 @@ public class MemberService {
     }
 
     @Transactional
-    public Member updateProfile(Long memberId, MemberUpdateDTO.Request request) {
+    public Member updateProfile(Long memberId, MemberUpdateDTO.Request memberUpdateDTO) {
         Member member = getMemberById(memberId);
 
-        if (request.getDifficulty() != null) {
-            validateDifficulty(request.getDifficulty());
+        if (memberUpdateDTO.getDifficulty() != null) {
+            validateDifficulty(memberUpdateDTO.getDifficulty());
         }
         
-        member.updateProfile(
-                request.getPhoto(),
-                request.getName(),
-                request.getIntroduce(),
-                request.getAge(),
-                request.getGender(),
-                request.getRegion(),
-                request.getDifficulty(),
-                request.getSearchBlock(),
-                request.getProfileBlock()
-        );
+        member.updateProfile(memberUpdateDTO);
         return member;
     }
     

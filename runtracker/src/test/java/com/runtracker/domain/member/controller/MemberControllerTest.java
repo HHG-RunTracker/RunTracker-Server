@@ -4,6 +4,7 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.MemberCreateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
@@ -189,7 +190,7 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void getProfileTest() throws Exception {
         // given
-        Member member = Member.builder()
+        MemberCreateDTO memberCreateDTO = MemberCreateDTO.builder()
                 .socialAttr("kakao")
                 .socialId("kakao_12345")
                 .photo("https://example.com/photo.jpg")
@@ -204,7 +205,10 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                 .searchBlock(false)
                 .profileBlock(false)
                 .notifyBlock(true)
+                .radius(500)
                 .build();
+
+        Member member = new Member(memberCreateDTO);
 
         given(memberService.getMemberById(anyLong())).willReturn(member);
 
@@ -239,6 +243,7 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.searchBlock").type(JsonFieldType.BOOLEAN).description("검색 차단 여부"),
                                                 fieldWithPath("body.profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 차단 여부"),
                                                 fieldWithPath("body.notifyBlock").type(JsonFieldType.BOOLEAN).description("알림 차단 여부"),
+                                                fieldWithPath("body.radius").type(JsonFieldType.NUMBER).description("코스 검색 반경 (미터)"),
                                                 fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성 일시").optional(),
                                                 fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("수정 일시").optional()
                                         )
@@ -250,7 +255,7 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
     @Test
     void updateProfileTest() throws Exception {
         // given
-        Member updatedMember = Member.builder()
+        MemberCreateDTO updatedMemberCreateDTO = MemberCreateDTO.builder()
                 .socialAttr("kakao")
                 .socialId("kakao_12345")
                 .photo("https://example.com/new-photo.jpg")
@@ -265,7 +270,10 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                 .searchBlock(true)
                 .profileBlock(false)
                 .notifyBlock(true)
+                .radius(500)
                 .build();
+
+        Member updatedMember = new Member(updatedMemberCreateDTO);
 
         given(memberService.updateProfile(anyLong(), any(MemberUpdateDTO.Request.class))).willReturn(updatedMember);
 
@@ -282,7 +290,8 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                 "region", "부산",
                                 "difficulty", "MEDIUM",
                                 "searchBlock", true,
-                                "profileBlock", false
+                                "profileBlock", false,
+                                "radius", 700
                         ))))
                 .andExpect(status().isOk())
                 .andDo(document("member-update-profile",
@@ -302,7 +311,8 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("region").type(JsonFieldType.STRING).description("지역").optional(),
                                                 fieldWithPath("difficulty").type(JsonFieldType.STRING).description("러닝 난이도 (EASY, MEDIUM, HARD)").optional(),
                                                 fieldWithPath("searchBlock").type(JsonFieldType.BOOLEAN).description("크루 검색 공개 여부").optional(),
-                                                fieldWithPath("profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 공개 여부").optional()
+                                                fieldWithPath("profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 공개 여부").optional(),
+                                                fieldWithPath("radius").type(JsonFieldType.NUMBER).description("코스 검색 반경 (미터)").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
