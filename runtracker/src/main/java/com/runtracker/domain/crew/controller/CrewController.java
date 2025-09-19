@@ -129,9 +129,18 @@ public class CrewController {
     @GetMapping("/list")
     public ApiResponse<CrewListDTO.ListResponse> getCrewList(
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        
+
         Long memberId = userDetails.getMemberId();
         CrewListDTO.ListResponse response = crewService.getAllCrews();
+        return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<CrewListDTO.ListResponse> searchCrewsByName(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam String name) {
+
+        CrewListDTO.ListResponse response = crewService.searchCrewsByName(name);
         return ApiResponse.ok(response);
     }
     
