@@ -36,7 +36,7 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
 	implementation 'me.paulschwarz:spring-dotenv:2.3.0'
 
-	// Firebase Admin SDK for FCM
+	// FCM
 	implementation 'com.google.firebase:firebase-admin:9.2.0'
 
 	// QueryDSL

@@ -10,6 +10,7 @@ import com.runtracker.domain.crew.dto.CrewUpdateDTO;
 import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
+import com.runtracker.domain.crew.event.CrewJoinRequestEvent;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
@@ -37,6 +38,7 @@ import com.runtracker.global.security.UserDetailsImpl;
 import com.runtracker.global.security.CrewAuthorizationUtil;
 import com.runtracker.global.jwt.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +54,7 @@ public class CrewService {
     private final MemberRepository memberRepository;
     private final CrewAuthorizationUtil authorizationUtil;
     private final TokenBlacklistService tokenBlacklistService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void createCrew(CrewCreateDTO.Request request, UserDetailsImpl userDetails) {
         memberRepository.findById(userDetails.getMemberId())
@@ -110,6 +113,22 @@ public class CrewService {
                 .status(CrewMemberStatus.PENDING)
                 .build();
         crewMemberRepository.save(newApplication);
+
+        // 크루 가입 요청 이벤트 발행 - 크루장과 매니저들에게 알림
+        List<CrewMember> managementMembers = crewMemberRepository.findByCrewId(crewId).stream()
+                .filter(member -> member.getStatus() == CrewMemberStatus.ACTIVE)
+                .filter(member -> member.getRole() == MemberRole.CREW_LEADER ||
+                                member.getRole() == MemberRole.CREW_MANAGER)
+                .toList();
+
+        // 크루장과 매니저들에게 각각 이벤트 발행
+        for (CrewMember managementMember : managementMembers) {
+            eventPublisher.publishEvent(new CrewJoinRequestEvent(
+                userDetails.getMemberId(),
+                managementMember.getMemberId(),
+                crewId
+            ));
+        }
     }
     
     public void cancelCrewApplication(Long crewId, UserDetailsImpl userDetails) {

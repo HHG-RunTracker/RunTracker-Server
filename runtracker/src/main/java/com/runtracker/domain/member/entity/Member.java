@@ -64,6 +64,9 @@ public class Member extends BaseEntity {
     @Column(name = "radius", columnDefinition = "INT DEFAULT 500")
     private Integer radius = 500;
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
     @Builder
     public Member(MemberCreateDTO dto) {
         this.socialAttr = dto.getSocialAttr();
@@ -108,5 +111,9 @@ public class Member extends BaseEntity {
         if (notifyBlock != null) {
             this.notifyBlock = notifyBlock;
         }
+    }
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 }
