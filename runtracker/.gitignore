@@ -46,3 +46,7 @@ certbot/www
 ### logs ###
 *.log
 logs/
+
+### Firebase ###
+**/firebase/
+runtracker-a30bb-firebase-adminsdk-fbsvc-9479026564.json
