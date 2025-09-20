@@ -123,7 +123,19 @@ public class CourseService {
     }
 
     @Transactional(readOnly = true)
-    public List<Response> getNearbyCourses(Request request) {
+    public List<Response> getNearbyCourses(Long memberId, Double latitude, Double longitude, Integer limit) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+
+        Integer radius = member.getRadius();
+
+        Request request = Request.builder()
+                .latitude(latitude)
+                .longitude(longitude)
+                .radius(radius)
+                .limit(limit)
+                .build();
+
         return courseRepository.findNearbyCourses(
                 request.getLatitude(),
                 request.getLongitude()

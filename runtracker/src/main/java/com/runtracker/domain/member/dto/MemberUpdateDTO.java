@@ -18,5 +18,6 @@ public class MemberUpdateDTO {
         private Boolean gender;
         private Boolean searchBlock;
         private Boolean profileBlock;
+        private Integer radius;
     }
 }

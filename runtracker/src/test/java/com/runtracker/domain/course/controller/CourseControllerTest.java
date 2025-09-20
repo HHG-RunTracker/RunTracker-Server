@@ -148,7 +148,7 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                         .build()
         );
         
-        given(courseService.getNearbyCourses(any(NearbyCoursesDTO.Request.class))).willReturn(mockCourses);
+        given(courseService.getNearbyCourses(anyLong(), any(Double.class), any(Double.class), any(Integer.class))).willReturn(mockCourses);
         
         // JWT 토큰 Mock
         given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
@@ -167,7 +167,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .param("latitude", "37.5665")
                         .param("longitude", "126.9780")
-                        .param("radius", "5000")
                         .param("limit", "10"))
                 .andExpect(status().isOk())
                 .andDo(document("course-get-nearby",
@@ -181,7 +180,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                         .queryParameters(
                                                 parameterWithName("latitude").description("현재 위치 위도"),
                                                 parameterWithName("longitude").description("현재 위치 경도"),
-                                                parameterWithName("radius").description("검색 반경 (미터, 기본값: 5000)").optional(),
                                                 parameterWithName("limit").description("최대 결과 수 (기본값: 20)").optional()
                                         )
                                         .responseFields(

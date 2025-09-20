@@ -1,6 +1,8 @@
 package com.runtracker.domain.member.entity;
 
 import com.runtracker.global.entity.BaseEntity;
+import com.runtracker.domain.member.dto.MemberCreateDTO;
+import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -59,38 +61,39 @@ public class Member extends BaseEntity {
     @Column(name = "notify_block", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean notifyBlock = true;
 
+    @Column(name = "radius", columnDefinition = "INT DEFAULT 500")
+    private Integer radius = 500;
+
     @Builder
-    public Member(String socialAttr, String socialId, String photo, String name, 
-                  String introduce, Integer age, Boolean gender, String region, 
-                  String difficulty, Double temperature, Integer point, 
-                  Boolean searchBlock, Boolean profileBlock, Boolean notifyBlock) {
-        this.socialAttr = socialAttr;
-        this.socialId = socialId;
-        this.photo = photo;
-        this.name = name;
-        this.introduce = introduce;
-        this.age = age;
-        this.gender = gender;
-        this.region = region;
-        this.difficulty = difficulty;
-        this.temperature = temperature != null ? temperature : 36.5;
-        this.point = point != null ? point : 0;
-        this.searchBlock = searchBlock != null ? searchBlock : false;
-        this.profileBlock = profileBlock != null ? profileBlock : false;
-        this.notifyBlock = notifyBlock != null ? notifyBlock : true;
+    public Member(MemberCreateDTO dto) {
+        this.socialAttr = dto.getSocialAttr();
+        this.socialId = dto.getSocialId();
+        this.photo = dto.getPhoto();
+        this.name = dto.getName();
+        this.introduce = dto.getIntroduce();
+        this.age = dto.getAge();
+        this.gender = dto.getGender();
+        this.region = dto.getRegion();
+        this.difficulty = dto.getDifficulty();
+        this.temperature = dto.getTemperature() != null ? dto.getTemperature() : 36.5;
+        this.point = dto.getPoint() != null ? dto.getPoint() : 0;
+        this.searchBlock = dto.getSearchBlock() != null ? dto.getSearchBlock() : false;
+        this.profileBlock = dto.getProfileBlock() != null ? dto.getProfileBlock() : false;
+        this.notifyBlock = dto.getNotifyBlock() != null ? dto.getNotifyBlock() : true;
+        this.radius = dto.getRadius() != null ? dto.getRadius() : 500;
     }
 
-    public void updateProfile(String photo, String name, String introduce, Integer age, Boolean gender, 
-                            String region, String difficulty, Boolean searchBlock, Boolean profileBlock) {
-        if (photo != null) this.photo = photo;
-        if (name != null) this.name = name;
-        if (introduce != null) this.introduce = introduce;
-        if (age != null) this.age = age;
-        if (gender != null) this.gender = gender;
-        if (region != null) this.region = region;
-        if (difficulty != null) this.difficulty = difficulty;
-        if (searchBlock != null) this.searchBlock = searchBlock;
-        if (profileBlock != null) this.profileBlock = profileBlock;
+    public void updateProfile(MemberUpdateDTO.Request dto) {
+        if (dto.getPhoto() != null) this.photo = dto.getPhoto();
+        if (dto.getName() != null) this.name = dto.getName();
+        if (dto.getIntroduce() != null) this.introduce = dto.getIntroduce();
+        if (dto.getAge() != null) this.age = dto.getAge();
+        if (dto.getGender() != null) this.gender = dto.getGender();
+        if (dto.getRegion() != null) this.region = dto.getRegion();
+        if (dto.getDifficulty() != null) this.difficulty = dto.getDifficulty();
+        if (dto.getSearchBlock() != null) this.searchBlock = dto.getSearchBlock();
+        if (dto.getProfileBlock() != null) this.profileBlock = dto.getProfileBlock();
+        if (dto.getRadius() != null) this.radius = dto.getRadius();
     }
 
     public void updatePhoto(String photo) {

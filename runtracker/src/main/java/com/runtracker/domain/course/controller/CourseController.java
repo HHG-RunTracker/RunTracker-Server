@@ -2,7 +2,6 @@ package com.runtracker.domain.course.controller;
 
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
-import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
 import com.runtracker.domain.course.service.CourseService;
@@ -42,17 +41,10 @@ public class CourseController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam Double latitude,
             @RequestParam Double longitude,
-            @RequestParam(required = false) Integer radius,
             @RequestParam(required = false) Integer limit) {
         try {
-            Request request = Request.builder()
-                    .latitude(latitude)
-                    .longitude(longitude)
-                    .radius(radius)
-                    .limit(limit)
-                    .build();
-            
-            List<Response> courses = courseService.getNearbyCourses(request);
+            List<Response> courses = courseService.getNearbyCourses(
+                    userDetails.getMemberId(), latitude, longitude, limit);
             return ApiResponse.ok(courses);
         } catch (CustomException e) {
             return ApiResponse.error(e.getResponseCode());
