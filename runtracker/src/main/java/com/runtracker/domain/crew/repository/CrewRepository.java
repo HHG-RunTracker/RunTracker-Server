@@ -10,4 +10,6 @@ import java.util.List;
 public interface CrewRepository extends JpaRepository<Crew, Long> {
     List<Crew> findByLeaderId(Long leaderId);
     List<Crew> findByTitleContainingIgnoreCase(String title);
+
+    void deleteByLeaderId(Long leaderId);
 }

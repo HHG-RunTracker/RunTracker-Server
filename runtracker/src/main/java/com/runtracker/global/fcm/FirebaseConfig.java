@@ -21,8 +21,17 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            GoogleCredentials googleCredentials = GoogleCredentials
-                    .fromStream(new ClassPathResource(serviceAccountKeyPath).getInputStream());
+            GoogleCredentials googleCredentials;
+            String firebaseJson = System.getenv("FCM_JSON");
+
+            if (firebaseJson != null && !firebaseJson.isEmpty()) {
+                googleCredentials = GoogleCredentials.fromStream(
+                    new java.io.ByteArrayInputStream(firebaseJson.getBytes())
+                );
+            } else {
+                googleCredentials = GoogleCredentials
+                        .fromStream(new ClassPathResource(serviceAccountKeyPath).getInputStream());
+            }
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(googleCredentials)

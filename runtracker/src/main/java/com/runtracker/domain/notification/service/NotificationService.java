@@ -2,6 +2,7 @@ package com.runtracker.domain.notification.service;
 
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.repository.MemberRepository;
+import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.global.fcm.FcmClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,8 +10,6 @@ import com.runtracker.global.util.message.Messages;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +20,7 @@ public class NotificationService {
     private final FcmClient fcmClient;
     private final Messages messages;
     private final MemberRepository memberRepository;
+    private final MemberService memberService;
 
     @Transactional
     public void notifyCrewJoinRequest(Long requestUserId, Long managerId, Long crewId) {
@@ -37,11 +37,12 @@ public class NotificationService {
         String title = messages.get("notify.crew.join.Request.title");
         String content = messages.get("notify.crew.join.Request.content", requestUser.getName());
 
-        if (manager.getFcmToken() == null || manager.getFcmToken().trim().isEmpty()) {
+        String fcmToken = memberService.getFcmToken(managerId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
             log.info("FCM token not found for manager - skipping notification: managerId={}", managerId);
             return;
         }
 
-        boolean isSendSuccess = fcmClient.send(title, content, manager.getFcmToken());
+        fcmClient.send(title, content, fcmToken);
     }
 }

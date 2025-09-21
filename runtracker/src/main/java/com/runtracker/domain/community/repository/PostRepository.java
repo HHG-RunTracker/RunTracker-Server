@@ -12,6 +12,8 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
     
     List<Post> findByCrewIdOrderByCreatedAtDesc(Long crewId);
-    
+
     List<Post> findByCrewIdAndTitleContainingIgnoreCaseOrderByCreatedAtDesc(Long crewId, String keyword);
+
+    void deleteByMemberId(Long memberId);
 }

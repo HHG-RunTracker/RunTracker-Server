@@ -13,4 +13,6 @@ import java.util.Optional;
 @Repository
 public interface CrewMemberRankingRepository extends JpaRepository<CrewMemberRanking, Long> {
     List<CrewMemberRanking> findByCrewIdAndDateOrderByRankPosition(Long crewId, LocalDate date);
+
+    void deleteByMemberId(Long memberId);
 }
