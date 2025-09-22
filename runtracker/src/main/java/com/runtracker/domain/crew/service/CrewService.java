@@ -13,6 +13,7 @@ import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.event.CrewJoinRequestEvent;
 import com.runtracker.domain.crew.event.CrewJoinRequestCancelEvent;
 import com.runtracker.domain.crew.event.CrewJoinRequestApprovalEvent;
+import com.runtracker.domain.crew.event.CrewMemberRoleUpdateEvent;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
@@ -224,6 +225,13 @@ public class CrewService {
         crewMemberRepository.save(targetMember);
 
         tokenBlacklistService.invalidateUserTokens(request.getMemberId());
+
+        // 권한 변경 알림 이벤트 발행
+        eventPublisher.publishEvent(new CrewMemberRoleUpdateEvent(
+            request.getMemberId(),
+            crewId,
+            request.getRole()
+        ));
     }
     
     public void updateCrew(Long crewId, CrewUpdateDTO.Request request, UserDetailsImpl userDetails) {

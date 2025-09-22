@@ -4,6 +4,7 @@ import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.repository.CrewRepository;
+import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.global.fcm.FcmClient;
 import lombok.RequiredArgsConstructor;
@@ -99,5 +100,39 @@ public class NotificationService {
         }
 
         fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewMemberRoleUpdate(Long targetMemberId, Long crewId, MemberRole newRole) {
+        Member targetMember = memberRepository.findById(targetMemberId).orElse(null);
+        if (targetMember == null) {
+            return;
+        }
+
+        Crew crew = crewRepository.findById(crewId).orElse(null);
+        if (crew == null) {
+            return;
+        }
+
+        String roleDisplayName = getRoleDisplayName(newRole);
+        String title = messages.get("notify.crew.role.update.title");
+        String content = messages.get("notify.crew.role.update.content", crew.getTitle(), roleDisplayName);
+
+        String fcmToken = memberService.getFcmToken(targetMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for target member - skipping role update notification: targetMemberId={}", targetMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    private String getRoleDisplayName(MemberRole role) {
+        return switch (role) {
+            case CREW_LEADER -> "크루장";
+            case CREW_MANAGER -> "크루 매니저";
+            case CREW_MEMBER -> "크루 멤버";
+            default -> "일반 유저";
+        };
     }
 }
