@@ -14,6 +14,7 @@ import com.runtracker.domain.crew.event.CrewJoinRequestEvent;
 import com.runtracker.domain.crew.event.CrewJoinRequestCancelEvent;
 import com.runtracker.domain.crew.event.CrewJoinRequestApprovalEvent;
 import com.runtracker.domain.crew.event.CrewMemberRoleUpdateEvent;
+import com.runtracker.domain.crew.event.CrewDeleteEvent;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
@@ -226,7 +227,6 @@ public class CrewService {
 
         tokenBlacklistService.invalidateUserTokens(request.getMemberId());
 
-        // 권한 변경 알림 이벤트 발행
         eventPublisher.publishEvent(new CrewMemberRoleUpdateEvent(
             request.getMemberId(),
             crewId,
@@ -261,17 +261,24 @@ public class CrewService {
     
     public void deleteCrew(Long crewId, UserDetailsImpl userDetails) {
         authorizationUtil.validateCrewLeaderPermission(userDetails, crewId);
-        
+
         Crew crew = crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
 
         List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
 
+        List<Long> memberIdsToNotify = crewMembers.stream()
+                .filter(member -> member.getStatus() == CrewMemberStatus.ACTIVE)
+                .map(CrewMember::getMemberId)
+                .toList();
+
+        eventPublisher.publishEvent(new CrewDeleteEvent(memberIdsToNotify, crew.getTitle()));
+
         List<Long> memberIds = crewMembers.stream()
                 .map(CrewMember::getMemberId)
                 .toList();
         tokenBlacklistService.invalidateCrewMemberTokens(crewId, memberIds);
-        
+
         crewMemberRepository.deleteAll(crewMembers);
         crewRepository.delete(crew);
     }
