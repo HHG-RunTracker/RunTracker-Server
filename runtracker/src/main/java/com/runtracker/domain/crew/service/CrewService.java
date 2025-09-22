@@ -11,6 +11,8 @@ import com.runtracker.domain.crew.dto.MemberProfileDTO;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.entity.CrewMember;
 import com.runtracker.domain.crew.event.CrewJoinRequestEvent;
+import com.runtracker.domain.crew.event.CrewJoinRequestCancelEvent;
+import com.runtracker.domain.crew.event.CrewJoinRequestApprovalEvent;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
@@ -114,14 +116,8 @@ public class CrewService {
                 .build();
         crewMemberRepository.save(newApplication);
 
-        // 크루 가입 요청 이벤트 발행 - 크루장과 매니저들에게 알림
-        List<CrewMember> managementMembers = crewMemberRepository.findByCrewId(crewId).stream()
-                .filter(member -> member.getStatus() == CrewMemberStatus.ACTIVE)
-                .filter(member -> member.getRole() == MemberRole.CREW_LEADER ||
-                                member.getRole() == MemberRole.CREW_MANAGER)
-                .toList();
+        List<CrewMember> managementMembers = getManagementMembers(crewId);
 
-        // 크루장과 매니저들에게 각각 이벤트 발행
         for (CrewMember managementMember : managementMembers) {
             eventPublisher.publishEvent(new CrewJoinRequestEvent(
                 userDetails.getMemberId(),
@@ -134,19 +130,29 @@ public class CrewService {
     public void cancelCrewApplication(Long crewId, UserDetailsImpl userDetails) {
         memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
-        
+
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
-        
+
         CrewMember application = crewMemberRepository
                 .findByCrewIdAndMemberId(crewId, userDetails.getMemberId())
                 .orElseThrow(NoPendingApplicationException::new);
-        
+
         if (application.getStatus() != CrewMemberStatus.PENDING) {
             throw new NoPendingApplicationException();
         }
-        
+
         crewMemberRepository.delete(application);
+
+        List<CrewMember> managementMembers = getManagementMembers(crewId);
+
+        for (CrewMember managementMember : managementMembers) {
+            eventPublisher.publishEvent(new CrewJoinRequestCancelEvent(
+                userDetails.getMemberId(),
+                managementMember.getMemberId(),
+                crewId
+            ));
+        }
     }
     
     public void processJoinRequest(Long crewId, CrewApprovalDTO.Request request, UserDetailsImpl userDetails) {
@@ -183,6 +189,12 @@ public class CrewService {
         } else {
             crewMemberRepository.delete(applicant);
         }
+
+        eventPublisher.publishEvent(new CrewJoinRequestApprovalEvent(
+            request.getMemberId(),
+            crewId,
+            request.getApproved()
+        ));
     }
     
     public void updateCrewMemberRole(Long crewId, CrewMemberUpdateDTO.Request request, UserDetailsImpl userDetails) {
@@ -412,5 +424,13 @@ public class CrewService {
     
     private boolean isValidCrewRole(MemberRole role) {
         return role == MemberRole.CREW_MEMBER || role == MemberRole.CREW_MANAGER;
+    }
+
+    private List<CrewMember> getManagementMembers(Long crewId) {
+        return crewMemberRepository.findByCrewId(crewId).stream()
+                .filter(member -> member.getStatus() == CrewMemberStatus.ACTIVE)
+                .filter(member -> member.getRole() == MemberRole.CREW_LEADER ||
+                                member.getRole() == MemberRole.CREW_MANAGER)
+                .toList();
     }
 }
