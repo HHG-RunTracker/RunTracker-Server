@@ -146,6 +146,25 @@ public class NotificationService {
         fcmClient.send(title, content, fcmToken);
     }
 
+    @Transactional
+    public void notifyCrewBan(Long memberId, String crewTitle) {
+        Member member = memberRepository.findById(memberId).orElse(null);
+        if (member == null) {
+            return;
+        }
+
+        String title = messages.get("notify.crew.ban.title");
+        String content = messages.get("notify.crew.ban.content", crewTitle);
+
+        String fcmToken = memberService.getFcmToken(memberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for member - skipping crew ban notification: memberId={}", memberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
     private String getRoleDisplayName(MemberRole role) {
         return switch (role) {
             case CREW_LEADER -> "크루장";

@@ -15,6 +15,7 @@ import com.runtracker.domain.crew.event.CrewJoinRequestCancelEvent;
 import com.runtracker.domain.crew.event.CrewJoinRequestApprovalEvent;
 import com.runtracker.domain.crew.event.CrewMemberRoleUpdateEvent;
 import com.runtracker.domain.crew.event.CrewDeleteEvent;
+import com.runtracker.domain.crew.event.CrewBanEvent;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
@@ -284,7 +285,7 @@ public class CrewService {
     }
     
     public void banCrewMember(Long crewId, Long targetMemberId, UserDetailsImpl userDetails) {
-        crewRepository.findById(crewId)
+        Crew crew = crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
 
         authorizationUtil.validateCrewManagementPermission(userDetails, crewId);
@@ -305,12 +306,14 @@ public class CrewService {
             throw new CannotKickCrewLeaderException();
         }
 
-        boolean isManager = userDetails.getRoles().contains(MemberRole.CREW_MANAGER) && 
+        boolean isManager = userDetails.getRoles().contains(MemberRole.CREW_MANAGER) &&
                            !userDetails.getRoles().contains(MemberRole.CREW_LEADER);
-        
+
         if (isManager && targetMember.getRole() == MemberRole.CREW_MANAGER) {
             throw new CannotKickManagerAsManagerException();
         }
+
+        eventPublisher.publishEvent(new CrewBanEvent(targetMemberId, crew.getTitle()));
 
         targetMember.ban();
         crewMemberRepository.save(targetMember);
