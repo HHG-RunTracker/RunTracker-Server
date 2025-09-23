@@ -28,11 +28,6 @@ public class NotificationService {
 
     @Transactional
     public void notifyCrewJoinRequest(Long requestUserId, Long managerId, Long crewId) {
-        Member manager = memberRepository.findById(managerId).orElse(null);
-        if (manager == null) {
-            return;
-        }
-
         Member requestUser = memberRepository.findById(requestUserId).orElse(null);
         if (requestUser == null) {
             return;
@@ -52,11 +47,6 @@ public class NotificationService {
 
     @Transactional
     public void notifyCrewJoinRequestCancel(Long canceledUserId, Long managerId, Long crewId) {
-        Member manager = memberRepository.findById(managerId).orElse(null);
-        if (manager == null) {
-            return;
-        }
-
         Member canceledUser = memberRepository.findById(canceledUserId).orElse(null);
         if (canceledUser == null) {
             return;
@@ -76,11 +66,6 @@ public class NotificationService {
 
     @Transactional
     public void notifyCrewJoinRequestApproval(Long approvedUserId, Long crewId, boolean isApproved) {
-        Member approvedUser = memberRepository.findById(approvedUserId).orElse(null);
-        if (approvedUser == null) {
-            return;
-        }
-
         Crew crew = crewRepository.findById(crewId).orElse(null);
         if (crew == null) {
             return;
@@ -104,11 +89,6 @@ public class NotificationService {
 
     @Transactional
     public void notifyCrewMemberRoleUpdate(Long targetMemberId, Long crewId, MemberRole newRole) {
-        Member targetMember = memberRepository.findById(targetMemberId).orElse(null);
-        if (targetMember == null) {
-            return;
-        }
-
         Crew crew = crewRepository.findById(crewId).orElse(null);
         if (crew == null) {
             return;
@@ -129,11 +109,6 @@ public class NotificationService {
 
     @Transactional
     public void notifyCrewDeletion(Long memberId, String crewTitle) {
-        Member member = memberRepository.findById(memberId).orElse(null);
-        if (member == null) {
-            return;
-        }
-
         String title = messages.get("notify.crew.delete.title");
         String content = messages.get("notify.crew.delete.content", crewTitle);
 
@@ -148,17 +123,26 @@ public class NotificationService {
 
     @Transactional
     public void notifyCrewBan(Long memberId, String crewTitle) {
-        Member member = memberRepository.findById(memberId).orElse(null);
-        if (member == null) {
-            return;
-        }
-
         String title = messages.get("notify.crew.ban.title");
         String content = messages.get("notify.crew.ban.content", crewTitle);
 
         String fcmToken = memberService.getFcmToken(memberId).orElse(null);
         if (fcmToken == null || fcmToken.trim().isEmpty()) {
             log.info("FCM token not found for member - skipping crew ban notification: memberId={}", memberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewLeave(Long managerId, String leavingMemberName) {
+        String title = messages.get("notify.crew.leave.title");
+        String content = messages.get("notify.crew.leave.content", leavingMemberName);
+
+        String fcmToken = memberService.getFcmToken(managerId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for manager - skipping crew leave notification: managerId={}", managerId);
             return;
         }
 

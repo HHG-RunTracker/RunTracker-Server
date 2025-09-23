@@ -6,6 +6,7 @@ import com.runtracker.domain.crew.event.CrewJoinRequestApprovalEvent;
 import com.runtracker.domain.crew.event.CrewMemberRoleUpdateEvent;
 import com.runtracker.domain.crew.event.CrewDeleteEvent;
 import com.runtracker.domain.crew.event.CrewBanEvent;
+import com.runtracker.domain.crew.event.CrewLeaveEvent;
 import com.runtracker.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -106,6 +107,22 @@ public class NotificationEventHandler {
             log.error("Failed to send crew ban notification - bannedMemberId: {}, crewTitle: {}, error: {}",
                 event.bannedMemberId(),
                 event.crewTitle(),
+                e.getMessage());
+            throw e;
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void sendCrewLeaveNotification(CrewLeaveEvent event) {
+        try {
+            for (Long managerId : event.managerIds()) {
+                notificationService.notifyCrewLeave(managerId, event.leavingMemberName());
+            }
+        } catch (Exception e) {
+            log.error("Failed to send crew leave notification - managerIds: {}, leavingMemberName: {}, error: {}",
+                event.managerIds(),
+                event.leavingMemberName(),
                 e.getMessage());
             throw e;
         }

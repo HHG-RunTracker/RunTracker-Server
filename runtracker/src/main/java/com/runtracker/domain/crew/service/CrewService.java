@@ -16,6 +16,7 @@ import com.runtracker.domain.crew.event.CrewJoinRequestApprovalEvent;
 import com.runtracker.domain.crew.event.CrewMemberRoleUpdateEvent;
 import com.runtracker.domain.crew.event.CrewDeleteEvent;
 import com.runtracker.domain.crew.event.CrewBanEvent;
+import com.runtracker.domain.crew.event.CrewLeaveEvent;
 import com.runtracker.domain.crew.enums.CrewMemberStatus;
 import com.runtracker.domain.crew.exception.AlreadyCrewMemberException;
 import com.runtracker.domain.crew.exception.AlreadyJoinedOtherCrewException;
@@ -322,24 +323,31 @@ public class CrewService {
     }
     
     public void leaveCrew(Long crewId, UserDetailsImpl userDetails) {
-        memberRepository.findById(userDetails.getMemberId())
+        Member leavingMember = memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
-        
+
         crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
-        
+
         CrewMember crewMember = crewMemberRepository
                 .findByCrewIdAndMemberId(crewId, userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
-        
+
         if (crewMember.getStatus() != CrewMemberStatus.ACTIVE) {
             throw new MemberNotFoundException();
         }
-        
+
         if (crewMember.getRole() == MemberRole.CREW_LEADER) {
             throw new CannotLeaveAsCrewLeaderException();
         }
-        
+
+        List<CrewMember> managementMembers = getManagementMembers(crewId);
+        List<Long> managerIds = managementMembers.stream()
+                .map(CrewMember::getMemberId)
+                .toList();
+
+        eventPublisher.publishEvent(new CrewLeaveEvent(managerIds, leavingMember.getName()));
+
         crewMemberRepository.delete(crewMember);
 
         tokenBlacklistService.invalidateUserTokens(userDetails.getMemberId());
