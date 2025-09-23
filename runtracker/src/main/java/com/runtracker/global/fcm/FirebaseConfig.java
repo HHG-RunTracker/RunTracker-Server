@@ -15,7 +15,7 @@ import java.io.IOException;
 @Configuration
 public class FirebaseConfig {
 
-    @Value("${firebase.service-account-key}")
+    @Value("${firebase.service-account-key:#{null}}")
     private String serviceAccountKeyPath;
 
     @PostConstruct
@@ -28,9 +28,11 @@ public class FirebaseConfig {
                 googleCredentials = GoogleCredentials.fromStream(
                     new java.io.ByteArrayInputStream(firebaseJson.getBytes())
                 );
-            } else {
+            } else if (serviceAccountKeyPath != null && !serviceAccountKeyPath.isEmpty()) {
                 googleCredentials = GoogleCredentials
                         .fromStream(new ClassPathResource(serviceAccountKeyPath).getInputStream());
+            } else {
+                return;
             }
 
             FirebaseOptions options = FirebaseOptions.builder()
