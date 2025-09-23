@@ -1,5 +1,7 @@
 package com.runtracker.domain.member.service;
 
+import com.runtracker.domain.member.entity.FcmToken;
+import com.runtracker.domain.member.repository.FcmTokenRepository;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.RunningBackup;
@@ -7,6 +9,13 @@ import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.domain.member.repository.RunningBackupRepository;
 import com.runtracker.domain.course.repository.CourseRepository;
 import com.runtracker.domain.record.repository.RecordRepository;
+import com.runtracker.domain.crew.repository.CrewRepository;
+import com.runtracker.domain.crew.repository.CrewMemberRepository;
+import com.runtracker.domain.crew.repository.CrewMemberRankingRepository;
+import com.runtracker.domain.community.repository.PostRepository;
+import com.runtracker.domain.community.repository.CommentRepository;
+import com.runtracker.domain.community.repository.PostLikeRepository;
+import com.runtracker.domain.schedule.repository.ScheduleRepository;
 import com.runtracker.domain.record.entity.RunningRecord;
 import com.runtracker.domain.member.exception.MemberNotFoundException;
 import com.runtracker.domain.member.exception.InvalidDifficultyException;
@@ -44,6 +53,14 @@ public class MemberService {
     private final CourseRepository courseRepository;
     private final RecordRepository recordRepository;
     private final RunningBackupRepository backupRepository;
+    private final FcmTokenRepository fcmTokenRepository;
+    private final CrewRepository crewRepository;
+    private final CrewMemberRepository crewMemberRepository;
+    private final CrewMemberRankingRepository crewMemberRankingRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final ScheduleRepository scheduleRepository;
     private final ObjectMapper objectMapper;
     private final JwtUtil jwtUtil;
 
@@ -109,6 +126,8 @@ public class MemberService {
                 }
             }
         }
+
+        removeFcmToken(memberId);
     }
 
     public Member getMemberById(Long memberId) {
@@ -143,6 +162,31 @@ public class MemberService {
     }
 
     @Transactional
+    public void updateFcmToken(Long memberId, String token) {
+        Optional<FcmToken> existingToken = fcmTokenRepository.findByMemberId(memberId);
+
+        if (existingToken.isPresent()) {
+            existingToken.get().updateToken(token);
+        } else {
+            FcmToken newToken = FcmToken.builder()
+                    .memberId(memberId)
+                    .token(token)
+                    .build();
+            fcmTokenRepository.save(newToken);
+        }
+    }
+
+    @Transactional
+    public void removeFcmToken(Long memberId) {
+        fcmTokenRepository.findByMemberId(memberId)
+                    .ifPresent(token -> token.updateToken(null));
+    }
+
+    public Optional<String> getFcmToken(Long memberId) {
+        return fcmTokenRepository.findTokenByMemberId(memberId);
+    }
+
+    @Transactional
     public void withdrawMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
@@ -160,6 +204,16 @@ public class MemberService {
             }
         }
 
+        fcmTokenRepository.deleteByMemberId(memberId);
+        postLikeRepository.deleteByMemberId(memberId);
+        commentRepository.deleteByMemberId(memberId);
+        postRepository.deleteByMemberId(memberId);
+        crewMemberRankingRepository.deleteByMemberId(memberId);
+        crewMemberRepository.deleteByMemberId(memberId);
+        crewRepository.deleteByLeaderId(memberId);
+        scheduleRepository.deleteByMemberId(memberId);
+        recordRepository.deleteByMemberId(memberId);
+        backupRepository.deleteByMemberId(memberId);
         courseRepository.deleteByMemberId(memberId);
         memberRepository.delete(member);
     }

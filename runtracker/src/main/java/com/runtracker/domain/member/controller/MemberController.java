@@ -7,6 +7,7 @@ import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
+import com.runtracker.domain.member.dto.FcmTokenDTO;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -96,4 +97,18 @@ public class MemberController {
         RunningBackupDTO.BackupInfo backupInfo = memberService.getBackupInfo(userDetails.getMemberId());
         return ApiResponse.ok(backupInfo);
     }
+
+    @PostMapping("/fcm-token")
+    public ApiResponse<Void> registerFcmToken(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                              @Valid @RequestBody FcmTokenDTO.Request fcmTokenDTO) {
+        memberService.updateFcmToken(userDetails.getMemberId(), fcmTokenDTO.getFcmToken());
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/fcm-token/remove")
+    public ApiResponse<Void> removeFcmToken(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        memberService.removeFcmToken(userDetails.getMemberId());
+        return ApiResponse.ok();
+    }
+
 }

@@ -28,4 +28,6 @@ public interface RecordRepository extends JpaRepository<RunningRecord, Long> {
     List<RunningRecord> findByMemberIdInAndCreatedAtBetweenAndFinishedAtIsNotNull(List<Long> memberIds, LocalDateTime startDateTime, LocalDateTime endDateTime);
 
     List<RunningRecord> findByMemberIdAndCreatedAtBetweenAndFinishedAtIsNotNull(Long memberId, LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    void deleteByMemberId(Long memberId);
 }

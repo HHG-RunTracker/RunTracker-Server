@@ -19,4 +19,6 @@ public interface CrewMemberRepository extends JpaRepository<CrewMember, Long> {
 
     @Query("SELECT cm.memberId FROM CrewMember cm WHERE cm.crewId = :crewId AND cm.status != 'BANNED'")
     List<Long> findMemberIdsByCrewId(@Param("crewId") Long crewId);
+
+    void deleteByMemberId(Long memberId);
 }

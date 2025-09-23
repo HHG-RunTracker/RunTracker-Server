@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface RunningBackupRepository extends JpaRepository<RunningBackup, Long> {
     Optional<RunningBackup> findByMemberId(Long memberId);
+
+    void deleteByMemberId(Long memberId);
 }

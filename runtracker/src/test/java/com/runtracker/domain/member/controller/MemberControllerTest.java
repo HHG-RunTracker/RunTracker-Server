@@ -7,6 +7,7 @@ import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import com.runtracker.domain.member.dto.MemberCreateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
+import com.runtracker.domain.member.dto.FcmTokenDTO;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import org.junit.jupiter.api.Test;
@@ -483,4 +484,68 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                         )
                 ));
     }
+
+    @Test
+    void registerFcmTokenTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateFcmToken(anyLong(), anyString());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/fcm-token")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of("fcmToken", "example_fcm_token_12345"))))
+                .andExpect(status().isOk())
+                .andDo(document("member-register-fcm-token",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("FCM 토큰 등록")
+                                        .description("푸시 알림을 위한 FCM 토큰을 등록 및 수정합니다")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("fcmToken").type(JsonFieldType.STRING).description("FCM 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void removeFcmTokenTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateFcmToken(anyLong(), anyString());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/fcm-token/remove")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-remove-fcm-token",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("FCM 토큰 삭제")
+                                        .description("등록된 FCM 토큰을 삭제합니다. 로그아웃시 자동 삭제됩니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
 }
