@@ -10,6 +10,8 @@ services:
       - "8080:8080"
     env_file:
       - .env # DB, Redis 접속 정보 등을 담을 파일
+    volumes:
+      - ./secrets:/app/secrets
     depends_on: # spring 서비스는 mysql과 redis가 실행된 후 시작
       - mysql
       - redis
