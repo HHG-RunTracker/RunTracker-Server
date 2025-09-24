@@ -4,7 +4,7 @@ services:
   # 1. 스프링 부트 애플리케이션 서비스
   spring:
     build:
-      context: ./runtracker # Spring Boot 프로젝트 경로
+      context: . # Spring Boot 프로젝트 경로
     container_name: spring
     ports:
       - "8080:8080"
@@ -54,7 +54,6 @@ services:
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1; done'"
 
 # 데이터 영속성을 위한 볼륨 정의
 volumes:
