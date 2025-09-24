@@ -1,18 +1,43 @@
 version: '3.8'
 
 services:
+  # 1. 스프링 부트 애플리케이션 서비스
   spring:
     build:
-      context: ./runtracker
+      context: . # Spring Boot 프로젝트 경로
     container_name: spring
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - .env # DB, Redis 접속 정보 등을 담을 파일
+    depends_on: # spring 서비스는 mysql과 redis가 실행된 후 시작
+      - mysql
+      - redis
 
+  # 2. MySQL 데이터베이스 서비스
+  mysql:
+    image: mysql:8.0 # MySQL 8.0 이미지 사용
+    container_name: mysql
+    ports:
+      - "3306:3306" # 외부 접속을 위해 포트 개방 (개발용)
+    volumes:
+      - mysql-data:/var/lib/mysql # 데이터 영속성을 위한 볼륨
+    env_file:
+      - .env # MYSQL_ROOT_PASSWORD, MYSQL_DATABASE 등 설정
+
+  # 3. Redis 캐시/메시징 서비스
+  redis:
+    image: redis:alpine # 가벼운 Redis 이미지 사용
+    container_name: redis
+    ports:
+      - "6379:6379" # 외부 접속을 위해 포트 개방 (개발용)
+    volumes:
+      - redis-data:/data # 데이터 영속성을 위한 볼륨
+
+  # 4. Nginx 웹 서버 (리버스 프록시)
   nginx:
     build:
-      context: ./nginx
+      context: ./nginx # Nginx 설정 파일이 있는 경로
     container_name: nginx
     ports:
       - "80:80"
@@ -20,18 +45,19 @@ services:
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    env_file:
-      - .env
     depends_on:
       - spring
 
+  # 5. Certbot (Let's Encrypt SSL 인증서)
   certbot:
     image: certbot/certbot
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 1; done'"
 
+# 데이터 영속성을 위한 볼륨 정의
 volumes:
+  mysql-data:
+  redis-data:
   certbot-etc:
   certbot-www:
