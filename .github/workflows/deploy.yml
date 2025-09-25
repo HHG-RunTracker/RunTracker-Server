@@ -48,7 +48,9 @@ jobs:
 
             # 1. Firebase JSON 파일을 서버에 생성
             mkdir -p ./src/main/resources/firebase
+
             echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
 
             # 2. .env에 Firebase JSON 내용 직접 설정
             echo "FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.FCM_JSON }}" >> .env
