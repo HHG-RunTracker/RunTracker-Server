@@ -36,30 +36,7 @@ services:
     volumes:
       - redis-data:/data # 데이터 영속성을 위한 볼륨
 
-  # 4. Nginx 웹 서버 (리버스 프록시)
-  nginx:
-    build:
-      context: ./nginx # Nginx 설정 파일이 있는 경로
-    container_name: nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-www:/var/www/certbot
-    depends_on:
-      - spring
-
-  # 5. Certbot (Let's Encrypt SSL 인증서)
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-www:/var/www/certbot
-
 # 데이터 영속성을 위한 볼륨 정의
 volumes:
   mysql-data:
   redis-data:
-  certbot-etc:
-  certbot-www:

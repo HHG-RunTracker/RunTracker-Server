@@ -50,5 +50,5 @@ jobs:
             ./gradlew copyOasToSwagger
             ./gradlew build -x test
 
-            sudo docker-compose up --build -d
+            sudo docker compose up --build -d
             sudo docker image prune -f
