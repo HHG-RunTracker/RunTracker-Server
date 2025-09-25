@@ -44,6 +44,7 @@ jobs:
 
             chmod +x ./gradlew
 
+            ./gradlew clean
             ./gradlew test
             ./gradlew openapi3
             ./gradlew copyOasToSwagger
