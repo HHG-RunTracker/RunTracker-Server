@@ -16,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
@@ -30,7 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserDetailsServiceImpl userDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
     private final List<String> excludePaths;
-    
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -71,21 +73,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean shouldSkipAuthentication(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
-        
+
+        log.info("Checking skip authentication for URI: {}", requestURI);
+        log.info("Exclude paths: {}", excludePaths);
+
         if (excludePaths.contains("*")) {
             return true;
         }
-        
-        return excludePaths.stream().anyMatch(path -> {
-            if (path.contains("**")) {
-                String prefix = path.substring(0, path.indexOf("**"));
-                if (prefix.endsWith("/")) {
-                    prefix = prefix.substring(0, prefix.length() - 1);
-                }
-                return requestURI.startsWith(prefix);
-            }
-            return requestURI.equals(path);
+
+        boolean shouldSkip = excludePaths.stream().anyMatch(path -> {
+            boolean matches = pathMatcher.match(path, requestURI);
+            log.info("AntPathMatcher: pattern '{}' matches '{}': {}", path, requestURI, matches);
+            return matches;
         });
+
+        log.info("Should skip authentication for '{}': {}", requestURI, shouldSkip);
+        return shouldSkip;
     }
     
     private void authenticateToken(String token) {
