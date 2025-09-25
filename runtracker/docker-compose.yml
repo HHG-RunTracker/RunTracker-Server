@@ -11,30 +11,42 @@ services:
     env_file:
       - .env # DB, Redis 접속 정보 등을 담을 파일
     volumes:
-      - ./secrets:/app/secrets
-    depends_on: # spring 서비스는 mysql과 redis가 실행된 후 시작
-      - mysql
-      - redis
+      - ./firebase:/app/secrets
+    depends_on:
+      mysql: # 'mysql' 서비스에 대한 의존성 설정
+        condition: service_healthy # ✨ [수정] 서비스가 healthy 상태가 될 때까지 기다립니다.
+      redis:
+        condition: service_healthy # ✨ [수정] Redis도 healthy 상태를 기다리도록 변경
 
   # 2. MySQL 데이터베이스 서비스
   mysql:
-    image: mysql:8.0 # MySQL 8.0 이미지 사용
+    image: mysql:8.0
     container_name: mysql
     ports:
-      - "3306:3306" # 외부 접속을 위해 포트 개방 (개발용)
+      - "3306:3306"
     volumes:
-      - mysql-data:/var/lib/mysql # 데이터 영속성을 위한 볼륨
+      - mysql-data:/var/lib/mysql
     env_file:
-      - .env # MYSQL_ROOT_PASSWORD, MYSQL_DATABASE 등 설정
+      - .env
+    healthcheck: # ✨ [추가] MySQL 서비스의 상태를 확인하는 healthcheck 설정
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 3. Redis 캐시/메시징 서비스
   redis:
-    image: redis:alpine # 가벼운 Redis 이미지 사용
+    image: redis:alpine
     container_name: redis
     ports:
-      - "6379:6379" # 외부 접속을 위해 포트 개방 (개발용)
+      - "6379:6379"
     volumes:
-      - redis-data:/data # 데이터 영속성을 위한 볼륨
+      - redis-data:/data
+    healthcheck: # ✨ [추가] Redis 서비스의 상태를 확인하는 healthcheck 설정
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 # 데이터 영속성을 위한 볼륨 정의
 volumes:
