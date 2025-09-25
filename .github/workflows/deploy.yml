@@ -1,36 +1,29 @@
-# 워크플로우의 이름
 name: Deploy to EC2
 
-# 언제 이 워크플로우를 실행할지 정의
 on:
   push:
     branches:
-      - develop  # develop 브랜치에 push될 때 실행
+      - develop
 
-# 실행될 작업(Job)들을 정의
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # 이 워크플로우는 우분투 환경에서 실행됨
+    runs-on: ubuntu-latest
 
-    # 실행될 단계(Step)들을 정의
     steps:
-      - name: Checkout # 1. 코드 체크아웃
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Deploy to EC2 # 2. EC2에 접속하여 배포 스크립트 실행
-        uses: appleboy/ssh-action@master # 유명한 SSH 접속 액션을 사용
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }}             # GitHub Secret에서 EC2 호스트 정보 가져오기
-          username: ${{ secrets.EC2_USER }}         # GitHub Secret에서 EC2 사용자 정보 가져오기
-          key: ${{ secrets.EC2_SSH_KEY }}          # GitHub Secret에서 SSH 개인 키 정보 가져오기
-          script: | # EC2 서버에서 실행할 명령어들
-            # 프로젝트 폴더로 이동
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
             cd ~/RunTracker-Server/runtracker
-            
-            # GitHub에서 최신 코드 받기
+
             git pull origin develop
-            
-            # .env 파일 생성 (GitHub Secret 값으로 덮어쓰기)
+
             echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}" > .env
             echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
             echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}" >> .env
@@ -46,19 +39,15 @@ jobs:
             echo "AUTH_KEY=${{ secrets.AUTH_KEY }}" >> .env
             echo "OAUTH2_REDIRECT_URI=${{ secrets.OAUTH2_REDIRECT_URI }}" >> .env
 
-            # 1. Firebase JSON 파일을 서버에 생성
             mkdir -p ./src/main/resources/firebase
-
             echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
 
-            # gradlew 실행 권한 부여
             chmod +x ./gradlew
-            
-            # jar 파일 생성
+
+            ./gradlew test
+            ./gradlew openapi3
+            ./gradlew copyOasToSwagger
             ./gradlew build -x test
-            
-            # Docker Compose로 모든 서비스 다시 빌드하고 백그라운드에서 실행
+
             sudo docker-compose up --build -d
-            
-            # 사용하지 않는 오래된 Docker 이미지 삭제 (서버 용량 확보)
             sudo docker image prune -f
