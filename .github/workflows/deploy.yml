@@ -48,7 +48,7 @@ jobs:
 
             # 1. Firebase JSON 파일을 서버에 생성
             mkdir -p firebase
-            echo "${{ secrets.FCM_JSON }}" > firebase/FIREBASE_SERVICE_ACCOUNT_KEY.json
+            echo "${{ secrets.FCM_JSON }}" > "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}"
 
             # 2. .env에 Firebase JSON 내용 직접 설정
             echo "FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.FCM_JSON }}" >> .env
@@ -57,10 +57,10 @@ jobs:
             mkdir -p secrets
 
             # 4. Docker용 secrets 폴더에도 복사
-            cp firebase/FIREBASE_SERVICE_ACCOUNT_KEY.json ./secrets/firebase-key.json
+            cp ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" ./secrets/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}"
 
             # 5. .env 파일에 JSON 파일 경로를 알려주는 환경변수 추가
-            echo "GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-key.json" >> .env
+            echo "GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" >> .env
             
             # gradlew 실행 권한 부여
             chmod +x ./gradlew
