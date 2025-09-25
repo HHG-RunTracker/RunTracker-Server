@@ -45,16 +45,14 @@ jobs:
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
             echo "AUTH_KEY=${{ secrets.AUTH_KEY }}" >> .env
             echo "OAUTH2_REDIRECT_URI=${{ secrets.OAUTH2_REDIRECT_URI }}" >> .env
-            
-            # 1. secrets 폴더 생성 (없으면 만들기)
-            mkdir -p secrets
-            
-            # 2. FIREBASE_SERVICE_ACCOUNT_KEY Secret의 내용을 firebase-key.json 파일에 저장
-            echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" > ./secrets/firebase-key.json
-            
-            # 3. .env 파일에 JSON 파일 경로를 알려주는 환경변수 추가
-            echo "GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-key.json" >> .env
-            
+
+            # 1. Firebase JSON 파일을 서버에 생성
+            mkdir -p ./src/main/resources/firebase
+            echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
+            # 2. .env에 Firebase JSON 내용 직접 설정
+            echo "FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.FCM_JSON }}" >> .env
+
             # gradlew 실행 권한 부여
             chmod +x ./gradlew
             
