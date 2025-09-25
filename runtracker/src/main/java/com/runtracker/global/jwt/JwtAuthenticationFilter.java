@@ -42,10 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // Skip authentication for excluded paths
             if (shouldSkipAuthentication(request)) {
+                log.info("Skipping authentication for URI: {}", request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;
             }
-            
+
+            log.info("Processing authentication for URI: {}", request.getRequestURI());
+
             String token = extractTokenFromRequest(request);
             
             if (StringUtils.hasText(token)) {

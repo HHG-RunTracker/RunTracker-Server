@@ -34,8 +34,9 @@ public class SecurityConfig {
     private final OAuth2EventHandler oAuth2SuccessHandler;
 
     private static final List<String> EXCLUDE_PATHS = Arrays.asList(
-            "/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**",
-            "/static/**", "/login/oauth2/**", "/oauth2/**",
+            "/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**",
+            "/static/**", "/webjars/**",
+            "/login/oauth2/**", "/oauth2/**",
             "/actuator/**", "/health", "/error", "/favicon.ico",
             "/api/members/search-name", "/api/members/test-login", "/api/members/refresh"
     );
@@ -63,7 +64,7 @@ public class SecurityConfig {
 
         return http.build();
     }
-    
+
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(jwtUtil, userDetailsService, tokenBlacklistService, EXCLUDE_PATHS);
@@ -73,14 +74,14 @@ public class SecurityConfig {
     public OAuth2UserService customOAuth2UserService() {
         return new OAuth2UserService();
     }
-    
+
     @Bean
     public AuthenticationEntryPoint customAuthenticationEntryPoint() {
         return (HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) -> {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(
-                "{\"status\":{\"statusCode\":\"C401\",\"message\":\"Unauthorized\",\"description\":\"" + authException.getMessage() + "\"}}"
+                    "{\"status\":{\"statusCode\":\"C401\",\"message\":\"Unauthorized\",\"description\":\"" + authException.getMessage() + "\"}}"
             );
         };
     }
