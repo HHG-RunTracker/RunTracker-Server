@@ -30,9 +30,10 @@ public class FirebaseConfig {
                 );
             } else if (serviceAccountKeyPath != null && !serviceAccountKeyPath.isEmpty()) {
                 googleCredentials = GoogleCredentials
-                        .fromStream(new ClassPathResource(serviceAccountKeyPath).getInputStream());
+                        .fromStream(new java.io.FileInputStream(serviceAccountKeyPath));
             } else {
-                return;
+                googleCredentials = GoogleCredentials
+                        .fromStream(new ClassPathResource("firebase/runtracker-a30bb-firebase-adminsdk-fbsvc-9479026564.json").getInputStream());
             }
 
             FirebaseOptions options = FirebaseOptions.builder()
