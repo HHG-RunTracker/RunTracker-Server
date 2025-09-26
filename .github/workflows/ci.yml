@@ -10,35 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        ports:
-          - 3306:3306
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: runtracker_test       
-          MYSQL_USER: testuser                  
-          MYSQL_PASSWORD: testpass              
-        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
-      
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
-      SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/runtracker_test
-      SPRING_DATASOURCE_USERNAME: testuser
-      SPRING_DATASOURCE_PASSWORD: testpass
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      REDIS_HOST: ${{ secrets.REDIS_HOST }}
-      REDIS_PORT: ${{ secrets.REDIS_PORT }}
+      SPRING_PROFILES_ACTIVE: test
       KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
       KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -64,5 +37,5 @@ jobs:
         working-directory: runtracker
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build -Dspring.profiles.active=test
         working-directory: runtracker

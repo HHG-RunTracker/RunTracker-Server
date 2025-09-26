@@ -35,6 +35,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 
 @ExtendWith({RestDocumentationExtension.class, SpringExtension.class})
 @SpringBootTest
+@org.springframework.test.context.ActiveProfiles("test")
 public class RunTrackerDocumentApiTester {
 
     protected MockMvc mockMvc;

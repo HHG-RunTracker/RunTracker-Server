@@ -50,3 +50,6 @@ logs/
 ### Firebase ###
 **/firebase/
 runtracker-a30bb-firebase-adminsdk-fbsvc-9479026564.json
+
+### API Documentation ###
+src/main/resources/static/swagger-ui/openapi3.yaml

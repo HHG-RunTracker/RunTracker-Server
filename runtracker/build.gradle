@@ -63,6 +63,7 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
 	testImplementation 'com.epages:restdocs-api-spec-mockmvc:0.18.2'
+	testImplementation 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -91,9 +92,8 @@ openapi3 {
 }
 
 tasks.register('copyOasToSwagger', Copy) {
-	delete 'src/main/resources/static/swagger-ui/openapi3.yaml'
 	from "${layout.buildDirectory.get()}/api-spec/openapi3.yaml"
-	into "${layout.buildDirectory.get()}/resources/main/static/swagger-ui/."
+	into "src/main/resources/static/swagger-ui/."
 	dependsOn 'openapi3'
 }
 
