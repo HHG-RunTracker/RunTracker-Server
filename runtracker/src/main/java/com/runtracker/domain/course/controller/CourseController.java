@@ -94,4 +94,18 @@ public class CourseController {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @PostMapping("/test/save")
+    public ApiResponse<Void> saveTestCourse(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody CourseCreateDTO request) {
+        try {
+            courseService.saveTestCourse(userDetails.getMemberId(), request);
+            return ApiResponse.ok();
+        } catch (CustomException e) {
+            return ApiResponse.error(e.getResponseCode());
+        } catch (Exception e) {
+            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

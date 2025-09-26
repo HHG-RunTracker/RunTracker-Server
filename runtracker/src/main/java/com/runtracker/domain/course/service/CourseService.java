@@ -109,6 +109,40 @@ public class CourseService {
         }
     }
 
+    public void saveTestCourse(Long memberId, CourseCreateDTO request) {
+        try {
+            List<Coordinate> paths = request.getPath() != null ? request.getPath() : new ArrayList<>();
+
+            Double startLat = null;
+            Double startLng = null;
+
+            if (!paths.isEmpty()) {
+                Coordinate firstCoordinate = paths.get(0);
+                startLat = firstCoordinate.getLat();
+                startLng = firstCoordinate.getLnt();
+            }
+
+            Course course = Course.builder()
+                    .memberId(memberId)
+                    .name(request.getName())
+                    .difficulty(request.getDifficulty())
+                    .paths(paths)
+                    .startLat(startLat)
+                    .startLng(startLng)
+                    .distance(request.getDistance())
+                    .round(request.getRound() != null ? request.getRound() : false)
+                    .region(request.getRegion())
+                    .build();
+
+            courseRepository.save(course);
+
+        } catch (Exception e) {
+            log.error("Failed to save test course for member: {}, error: {}",
+                    memberId, e.getMessage(), e);
+            throw new CourseCreationFailedException("Failed to save test course for member: " + memberId);
+        }
+    }
+
     public void startRunningCourse(Long memberId, Long courseId) {
         checkAlreadyRunning(memberId);
 
