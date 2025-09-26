@@ -13,6 +13,49 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID:test}
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/test}
+            authorization-grant-type: authorization_code
+            scope: profile_nickname,profile_image
+            client-name: Kakao
+            client-authentication-method: none
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
   h2:
     console:
       enabled: true
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:testSecretKey}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:86400000}
+
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:8080/test}
+  auth:
+    key: ${AUTH_KEY:testKey}
+
+firebase:
+  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY:test.json}
+  url: https://fcm.googleapis.com/v1/projects/test/messages:send
+  google_api: https://www.googleapis.com/auth/cloud-platform
+  project_id: ${Firebase_ID:test}
