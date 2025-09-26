@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration scan="true">
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <!-- 환경 변수 참조 -->
-    <springProperty name="LOG_PATH" source="LOG_PATH" defaultValue="logs" />
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <!-- 로그 경로 -->
+    <property name="LOG_PATH" value="${LOG_PATH:-./runtracker/logs}"/>
 
     <!-- 콘솔 출력용 Appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+           <pattern>[%d{HH:mm:ss.SSS}] %clr(%-5level) %clr(${PID:-}){magenta} %clr(---){faint}
+                %clr([%15.15thread]){faint} %clr(%-40.40logger{36}){cyan} %clr(:){faint} %msg%n
+            </pattern>
         </encoder>
     </appender>
 
@@ -19,13 +27,19 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>[%d{HH:mm:ss.SSS}] %-5level ${PID:-} --- [%15.15thread] %-40.40logger{36} : %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- 루트 로거에 콘솔과 파일 Appender 모두 등록 -->
+    <!-- Logbook 로거 -->
+    <logger name="org.zalando.logbook" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ROLLING_FILE"/>
+    </logger>
+
+    <!-- 루트 로거 -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="ROLLING_FILE" />
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ROLLING_FILE"/>
     </root>
 </configuration>

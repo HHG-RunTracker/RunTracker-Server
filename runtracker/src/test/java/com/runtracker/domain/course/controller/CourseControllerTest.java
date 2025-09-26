@@ -431,4 +431,74 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
         return request;
     }
 
+    @Test
+    void saveTestCourseTest() throws Exception {
+        // given
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        Map<String, Object> request = createTestCourseRequest();
+
+        this.mockMvc.perform(post("/api/courses/test/save")
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(request)))
+                .andExpect(status().isOk())
+                .andDo(document("course-save-test",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("courses")
+                                        .description("테스트용 더미데이터 코스 저장")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("난이도 (EASY, MEDIUM, HARD)").optional(),
+                                                fieldWithPath("path").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트 (첫 번째 좌표가 시작점으로 자동 설정됨)"),
+                                                fieldWithPath("path[].lat").type(JsonFieldType.NUMBER).description("좌표 위도"),
+                                                fieldWithPath("path[].lnt").type(JsonFieldType.NUMBER).description("좌표 경도"),
+                                                fieldWithPath("distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
+                                                fieldWithPath("round").type(JsonFieldType.BOOLEAN).description("왕복 여부 (true: 왕복, false: 편도)").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("지역 정보").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    private Map<String, Object> createTestCourseRequest() {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("name", "테스트 러닝 코스");
+        request.put("difficulty", "MEDIUM");
+
+        Map<String, Object> point1 = new LinkedHashMap<>();
+        point1.put("lat", 37.5512);
+        point1.put("lnt", 126.9882);
+
+        Map<String, Object> point2 = new LinkedHashMap<>();
+        point2.put("lat", 37.5523);
+        point2.put("lnt", 126.9891);
+
+        request.put("path", List.of(point1, point2));
+        request.put("distance", 5000.0);
+        request.put("round", false);
+        request.put("region", "서울특별시 영등포구");
+
+        return request;
+    }
+
 }
