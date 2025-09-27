@@ -30,7 +30,12 @@ public class CourseController {
             courseService.saveCourse(userDetails.getMemberId(), request);
             return ApiResponse.ok();
         } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
+            // ValidationErrorException 등 커스텀 메시지가 있는 경우만 description에 표시
+            if (!e.getMessage().equals(e.getResponseCode().getMessage())) {
+                return ApiResponse.error(e.getResponseCode(), e.getMessage());
+            } else {
+                return ApiResponse.error(e.getResponseCode());
+            }
         } catch (Exception e) {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
@@ -47,7 +52,11 @@ public class CourseController {
                     userDetails.getMemberId(), latitude, longitude, limit);
             return ApiResponse.ok(courses);
         } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
+            if (!e.getMessage().equals(e.getResponseCode().getMessage())) {
+                return ApiResponse.error(e.getResponseCode(), e.getMessage());
+            } else {
+                return ApiResponse.error(e.getResponseCode());
+            }
         } catch (Exception e) {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
@@ -61,7 +70,12 @@ public class CourseController {
             CourseDetailDTO courseDetail = courseService.getCourseDetail(courseId);
             return ApiResponse.ok(courseDetail);
         } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
+            // ValidationErrorException 등 커스텀 메시지가 있는 경우만 description에 표시
+            if (!e.getMessage().equals(e.getResponseCode().getMessage())) {
+                return ApiResponse.error(e.getResponseCode(), e.getMessage());
+            } else {
+                return ApiResponse.error(e.getResponseCode());
+            }
         } catch (Exception e) {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
@@ -75,7 +89,12 @@ public class CourseController {
             courseService.startRunningCourse(userDetails.getMemberId(), courseId);
             return ApiResponse.ok();
         } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
+            // ValidationErrorException 등 커스텀 메시지가 있는 경우만 description에 표시
+            if (!e.getMessage().equals(e.getResponseCode().getMessage())) {
+                return ApiResponse.error(e.getResponseCode(), e.getMessage());
+            } else {
+                return ApiResponse.error(e.getResponseCode());
+            }
         } catch (Exception e) {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
@@ -89,7 +108,12 @@ public class CourseController {
             courseService.finishRunning(userDetails.getMemberId(), request);
             return ApiResponse.ok();
         } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
+            // ValidationErrorException 등 커스텀 메시지가 있는 경우만 description에 표시
+            if (!e.getMessage().equals(e.getResponseCode().getMessage())) {
+                return ApiResponse.error(e.getResponseCode(), e.getMessage());
+            } else {
+                return ApiResponse.error(e.getResponseCode());
+            }
         } catch (Exception e) {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
@@ -103,7 +127,12 @@ public class CourseController {
             courseService.saveTestCourse(userDetails.getMemberId(), request);
             return ApiResponse.ok();
         } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
+            // ValidationErrorException 등 커스텀 메시지가 있는 경우만 description에 표시
+            if (!e.getMessage().equals(e.getResponseCode().getMessage())) {
+                return ApiResponse.error(e.getResponseCode(), e.getMessage());
+            } else {
+                return ApiResponse.error(e.getResponseCode());
+            }
         } catch (Exception e) {
             return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
         }
