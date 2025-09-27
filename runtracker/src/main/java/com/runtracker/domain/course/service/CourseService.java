@@ -2,13 +2,16 @@ package com.runtracker.domain.course.service;
 
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
+import com.runtracker.domain.course.dto.GoogleMapsDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
 import com.runtracker.domain.course.entity.Course;
+import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.exception.AlreadyRunningException;
 import com.runtracker.domain.course.exception.CourseCreationFailedException;
 import com.runtracker.domain.course.exception.CourseNotFoundException;
+import com.runtracker.domain.course.exception.InsufficientPathDataException;
 import com.runtracker.domain.course.exception.InvalidStartTimeException;
 import com.runtracker.domain.course.exception.MultipleActiveRunningException;
 import com.runtracker.domain.crew.service.CrewRankingService;
@@ -50,6 +53,7 @@ public class CourseService {
     private final CrewRankingService crewRankingService;
     private final CrewMemberRankingService crewMemberRankingService;
     private final CrewMemberRepository crewMemberRepository;
+    private final RouteAnalysisService routeAnalysisService;
 
     private void checkAlreadyRunning(Long memberId) {
         List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(memberId);
@@ -71,36 +75,14 @@ public class CourseService {
         try {
             checkAlreadyRunning(memberId);
 
-            List<Coordinate> paths = request.getPath() != null ? request.getPath() : new ArrayList<>();
-
-            Double startLat = null;
-            Double startLng = null;
-
-            if (!paths.isEmpty()) {
-                Coordinate firstCoordinate = paths.get(0);
-                startLat = firstCoordinate.getLat();
-                startLng = firstCoordinate.getLnt();
-            }
-
-            Course course = Course.builder()
-                    .memberId(memberId)
-                    .name(request.getName())
-                    .difficulty(request.getDifficulty())
-                    .paths(paths)
-                    .startLat(startLat)
-                    .startLng(startLng)
-                    .distance(request.getDistance())
-                    .round(request.getRound() != null ? request.getRound() : false)
-                    .region(request.getRegion())
-                    .build();
-
+            Course course = createCourseFromRequest(memberId, request);
             Course savedCourse = courseRepository.save(course);
 
             createRunningRecord(memberId, savedCourse.getId());
 
             return savedCourse;
 
-        } catch (AlreadyRunningException e) {
+        } catch (AlreadyRunningException | InsufficientPathDataException e) {
             throw e;
         } catch (Exception e) {
             log.error("Failed to save course and start running for member: {}, error: {}",
@@ -111,35 +93,61 @@ public class CourseService {
 
     public void saveTestCourse(Long memberId, CourseCreateDTO request) {
         try {
-            List<Coordinate> paths = request.getPath() != null ? request.getPath() : new ArrayList<>();
-
-            Double startLat = null;
-            Double startLng = null;
-
-            if (!paths.isEmpty()) {
-                Coordinate firstCoordinate = paths.get(0);
-                startLat = firstCoordinate.getLat();
-                startLng = firstCoordinate.getLnt();
-            }
-
-            Course course = Course.builder()
-                    .memberId(memberId)
-                    .name(request.getName())
-                    .difficulty(request.getDifficulty())
-                    .paths(paths)
-                    .startLat(startLat)
-                    .startLng(startLng)
-                    .distance(request.getDistance())
-                    .round(request.getRound() != null ? request.getRound() : false)
-                    .region(request.getRegion())
-                    .build();
-
+            Course course = createCourseFromRequest(memberId, request);
             courseRepository.save(course);
 
+        } catch (InsufficientPathDataException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to save test course for member: {}, error: {}",
                     memberId, e.getMessage(), e);
             throw new CourseCreationFailedException("Failed to save test course for member: " + memberId);
+        }
+    }
+
+    private Course createCourseFromRequest(Long memberId, CourseCreateDTO request) {
+        List<Coordinate> paths = request.getPath() != null ? request.getPath() : new ArrayList<>();
+
+        Double startLat = null;
+        Double startLng = null;
+
+        if (!paths.isEmpty()) {
+            Coordinate firstCoordinate = paths.get(0);
+            startLat = firstCoordinate.getLat();
+            startLng = firstCoordinate.getLnt();
+        }
+
+        Difficulty difficulty = calculateDifficulty(paths);
+
+        return Course.builder()
+                .memberId(memberId)
+                .name(request.getName())
+                .difficulty(difficulty)
+                .paths(paths)
+                .startLat(startLat)
+                .startLng(startLng)
+                .distance(request.getDistance())
+                .round(request.getRound() != null ? request.getRound() : false)
+                .region(request.getRegion())
+                .build();
+    }
+
+    private Difficulty calculateDifficulty(List<Coordinate> paths) {
+        try {
+            if (paths == null || paths.isEmpty()) {
+                throw new InsufficientPathDataException();
+            }
+
+            GoogleMapsDTO.RouteAnalysisResult result = routeAnalysisService.analyzeRoute(paths);
+            return result.difficulty();
+        } catch (InsufficientPathDataException e) {
+            // TODO: 더미데이터 코스 추가하기 위해 코스가 하나만 있으면 난이도 쉬움으로 저장. 나중에 에러처리로 교체 해야함.
+            log.warn("Insufficient path data, defaulting to EASY for dummy data period");
+            return Difficulty.EASY;
+            // throw e;
+        } catch (Exception e) {
+            log.error("Failed to calculate difficulty: {}", e.getMessage(), e);
+            throw e;
         }
     }
 

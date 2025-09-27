@@ -71,8 +71,7 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                         )
                                         .requestFields(
                                                 fieldWithPath("name").type(JsonFieldType.STRING).description("코스 이름"),
-                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("난이도 (EASY, MEDIUM, HARD)").optional(),
-                                                fieldWithPath("path").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트 (첫 번째 좌표가 시작점으로 자동 설정됨)"),
+                                                fieldWithPath("path").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트 (2개 이상 필요, 첫 번째 좌표가 시작점으로 자동 설정됨)"),
                                                 fieldWithPath("path[].lat").type(JsonFieldType.NUMBER).description("좌표 위도"),
                                                 fieldWithPath("path[].lnt").type(JsonFieldType.NUMBER).description("좌표 경도"),
                                                 fieldWithPath("distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
@@ -92,7 +91,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
     private Map<String, Object> createCourseRequest() {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("name", "한강 러닝 코스");
-        request.put("difficulty", "MEDIUM");
 
         Map<String, Object> point1 = new LinkedHashMap<>();
         point1.put("lat", 37.5512);
@@ -462,8 +460,7 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                         )
                                         .requestFields(
                                                 fieldWithPath("name").type(JsonFieldType.STRING).description("코스 이름"),
-                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("난이도 (EASY, MEDIUM, HARD)").optional(),
-                                                fieldWithPath("path").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트 (첫 번째 좌표가 시작점으로 자동 설정됨)"),
+                                                fieldWithPath("path").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트 (2개 이상 필요, 첫 번째 좌표가 시작점으로 자동 설정됨)"),
                                                 fieldWithPath("path[].lat").type(JsonFieldType.NUMBER).description("좌표 위도"),
                                                 fieldWithPath("path[].lnt").type(JsonFieldType.NUMBER).description("좌표 경도"),
                                                 fieldWithPath("distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
@@ -483,7 +480,6 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
     private Map<String, Object> createTestCourseRequest() {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("name", "테스트 러닝 코스");
-        request.put("difficulty", "MEDIUM");
 
         Map<String, Object> point1 = new LinkedHashMap<>();
         point1.put("lat", 37.5512);
