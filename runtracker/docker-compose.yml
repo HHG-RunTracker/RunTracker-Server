@@ -52,6 +52,15 @@ services:
       timeout: 5s
       retries: 5
 
+  # 4. FastAPI AI 서버 서비스 (✨ 새로 추가)
+  ai-server:
+    build:
+      context: ./RunTracker-AI-Server
+      dockerfile: Dockerfile
+    container_name: ai-server
+    ports:
+      - "8000:8000"
+
 # 데이터 영속성을 위한 볼륨 정의
 volumes:
   mysql-data:
