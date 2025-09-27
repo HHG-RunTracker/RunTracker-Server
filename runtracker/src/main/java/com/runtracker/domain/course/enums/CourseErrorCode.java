@@ -16,7 +16,11 @@ public enum CourseErrorCode implements ResponseCode {
     VALIDATION_ERROR("CR006", "validation error"),
     MULTIPLE_ACTIVE_RUNNING("CR007", "Multiple active running found"),
     ALREADY_RUNNING("CR008", "Already running"),
-    INVALID_START_TIME("CR009", "Start time cannot be in the future");
+    INVALID_START_TIME("CR009", "Start time cannot be in the future"),
+    ROUTE_ANALYSIS_FAILED("CR010", "Route analysis failed"),
+    NO_PATH_DATA("CR011", "No path data found in course"),
+    GOOGLE_MAPS_API_ERROR("CR012", "Google Maps API error"),
+    INSUFFICIENT_PATH_DATA("CR013", "Insufficient path data for route analysis");
     
     private final String statusCode;
     private final String message;
