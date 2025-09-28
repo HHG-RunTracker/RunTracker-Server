@@ -8,6 +8,7 @@ import com.runtracker.domain.crew.event.CrewDeleteEvent;
 import com.runtracker.domain.crew.event.CrewBanEvent;
 import com.runtracker.domain.crew.event.CrewLeaveEvent;
 import com.runtracker.domain.community.event.PostLikeEvent;
+import com.runtracker.domain.community.event.PostCommentEvent;
 import com.runtracker.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -137,6 +138,21 @@ public class NotificationEventHandler {
         } catch (Exception e) {
             log.error("Failed to send post like notification - likerMemberId: {}, postAuthorMemberId: {}, postId: {}, error: {}",
                 event.likerMemberId(),
+                event.postAuthorMemberId(),
+                event.postId(),
+                e.getMessage());
+            throw e;
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void sendPostCommentNotification(PostCommentEvent event) {
+        try {
+            notificationService.notifyPostComment(event.commenterMemberId(), event.postAuthorMemberId());
+        } catch (Exception e) {
+            log.error("Failed to send post comment notification - commenterMemberId: {}, postAuthorMemberId: {}, postId: {}, error: {}",
+                event.commenterMemberId(),
                 event.postAuthorMemberId(),
                 event.postId(),
                 e.getMessage());

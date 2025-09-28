@@ -7,6 +7,7 @@ import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
 import com.runtracker.domain.community.dto.RunningMetaDTO;
 import com.runtracker.domain.community.event.PostLikeEvent;
+import com.runtracker.domain.community.event.PostCommentEvent;
 import com.runtracker.domain.community.entity.Post;
 import com.runtracker.domain.community.entity.PostComment;
 import com.runtracker.domain.community.entity.PostLike;
@@ -172,6 +173,8 @@ public class CommunityService {
                     .build();
 
             commentRepository.save(comment);
+
+            eventPublisher.publishEvent(new PostCommentEvent(userDetails.getMemberId(), post.getMemberId(), postId));
         } catch (Exception e) {
             throw new CommentCreationFailedException();
         }
