@@ -149,6 +149,52 @@ public class NotificationService {
         fcmClient.send(title, content, fcmToken);
     }
 
+    @Transactional
+    public void notifyPostLike(Long likerMemberId, Long postAuthorMemberId) {
+        if (likerMemberId.equals(postAuthorMemberId)) {
+            return;
+        }
+
+        Member likerMember = memberRepository.findById(likerMemberId).orElse(null);
+        if (likerMember == null) {
+            return;
+        }
+
+        String title = messages.get("notify.post.like.title");
+        String content = messages.get("notify.post.like.content", likerMember.getName());
+
+        String fcmToken = memberService.getFcmToken(postAuthorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post like notification: postAuthorMemberId={}", postAuthorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostComment(Long commenterMemberId, Long postAuthorMemberId) {
+        if (commenterMemberId.equals(postAuthorMemberId)) {
+            return;
+        }
+
+        Member commenterMember = memberRepository.findById(commenterMemberId).orElse(null);
+        if (commenterMember == null) {
+            return;
+        }
+
+        String title = messages.get("notify.post.comment.title");
+        String content = messages.get("notify.post.comment.content", commenterMember.getName());
+
+        String fcmToken = memberService.getFcmToken(postAuthorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post comment notification: postAuthorMemberId={}", postAuthorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
     private String getRoleDisplayName(MemberRole role) {
         return switch (role) {
             case CREW_LEADER -> "크루장";
