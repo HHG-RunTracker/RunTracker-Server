@@ -21,8 +21,10 @@ import com.runtracker.domain.schedule.exception.UnauthorizedScheduleAccessExcept
 import com.runtracker.domain.schedule.repository.ScheduleRepository;
 import com.runtracker.global.code.DateConstants;
 import com.runtracker.global.exception.CustomException;
+import com.runtracker.domain.schedule.event.ScheduleCreateEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,7 @@ public class ScheduleService {
     private final CrewMemberRepository crewMemberRepository;
     private final MemberRepository memberRepository;
     private final CrewAuthorizationUtil authorizationUtil;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Long createSchedule(ScheduleCreateDTO scheduleCreateDTO, UserDetailsImpl userDetails) {
@@ -55,6 +58,12 @@ public class ScheduleService {
                 .build();
 
         Schedule savedSchedule = scheduleRepository.save(schedule);
+
+        eventPublisher.publishEvent(new ScheduleCreateEvent(
+            userDetails.getMemberId(),
+            scheduleCreateDTO.getCrewId(),
+            scheduleCreateDTO.getTitle()
+        ));
 
         return savedSchedule.getId();
     }

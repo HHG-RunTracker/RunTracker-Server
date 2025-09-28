@@ -4,6 +4,10 @@ import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.domain.crew.entity.Crew;
 import com.runtracker.domain.crew.repository.CrewRepository;
+import com.runtracker.domain.crew.entity.CrewMember;
+import com.runtracker.domain.crew.repository.CrewMemberRepository;
+
+import java.util.List;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.service.MemberService;
 import com.runtracker.global.fcm.FcmClient;
@@ -24,6 +28,7 @@ public class NotificationService {
     private final Messages messages;
     private final MemberRepository memberRepository;
     private final CrewRepository crewRepository;
+    private final CrewMemberRepository crewMemberRepository;
     private final MemberService memberService;
 
     @Transactional
@@ -193,6 +198,29 @@ public class NotificationService {
         }
 
         fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyScheduleCreation(Long creatorId, Long crewId, String scheduleTitle) {
+        Member creator = memberRepository.findById(creatorId).orElseThrow();
+        List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
+
+        String title = messages.get("notify.schedule.create.title");
+        String content = messages.get("notify.schedule.create.content", creator.getName(), scheduleTitle);
+
+        for (CrewMember crewMember : crewMembers) {
+            if (crewMember.getMemberId().equals(creatorId)) {
+                continue;
+            }
+
+            String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for crew member - skipping schedule creation notification: memberId={}", crewMember.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
     }
 
     private String getRoleDisplayName(MemberRole role) {
