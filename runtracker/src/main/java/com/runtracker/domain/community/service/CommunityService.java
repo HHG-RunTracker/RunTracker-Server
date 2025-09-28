@@ -6,6 +6,7 @@ import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
 import com.runtracker.domain.community.dto.RunningMetaDTO;
+import com.runtracker.domain.community.event.PostLikeEvent;
 import com.runtracker.domain.community.entity.Post;
 import com.runtracker.domain.community.entity.PostComment;
 import com.runtracker.domain.community.entity.PostLike;
@@ -27,6 +28,7 @@ import com.runtracker.domain.member.repository.MemberRepository;
 import com.runtracker.global.security.CrewAuthorizationUtil;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,7 @@ public class CommunityService {
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
     private final CrewAuthorizationUtil crewAuthorizationUtil;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void createPost(PostDTO postDTO, UserDetailsImpl userDetails) {
@@ -134,6 +137,8 @@ public class CommunityService {
                 .memberId(memberId)
                 .build();
         postLikeRepository.save(postLike);
+
+        eventPublisher.publishEvent(new PostLikeEvent(memberId, post.getMemberId(), postId));
     }
 
     @Transactional
