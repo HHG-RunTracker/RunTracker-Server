@@ -121,7 +121,7 @@ public class CourseService {
             throw new ValidationErrorException("경로 정보는 필수입니다");
         }
 
-        if (request.getDistance() == null || request.getDistance() <= 0) {
+        if (request.getDistance() == null || request.getDistance() < 0) {
             throw new ValidationErrorException("거리는 0보다 커야 합니다");
         }
 

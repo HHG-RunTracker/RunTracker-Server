@@ -85,7 +85,11 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Object> handleCustomException(CustomException e) {
         log.warn("Custom exception occurred: {}", e.getMessage());
-        return ApiResponse.error(e.getResponseCode());
+        if (!e.getMessage().equals(e.getResponseCode().getMessage())) {
+            return ApiResponse.error(e.getResponseCode(), e.getMessage());
+        } else {
+            return ApiResponse.error(e.getResponseCode());
+        }
     }
     
     @ExceptionHandler(RuntimeException.class)
