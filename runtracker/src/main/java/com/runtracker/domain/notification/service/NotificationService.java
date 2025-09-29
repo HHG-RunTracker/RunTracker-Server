@@ -223,6 +223,25 @@ public class NotificationService {
         }
     }
 
+    @Transactional
+    public void notifyScheduleUpdate(Long updaterId, Long crewId, String scheduleTitle) {
+        Member updater = memberRepository.findById(updaterId).orElseThrow();
+        List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
+
+        String title = messages.get("notify.schedule.update.title");
+        String content = messages.get("notify.schedule.update.content", updater.getName(), scheduleTitle);
+
+        for (CrewMember crewMember : crewMembers) {
+            String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for crew member - skipping schedule update notification: memberId={}", crewMember.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
     private String getRoleDisplayName(MemberRole role) {
         return switch (role) {
             case CREW_LEADER -> "크루장";

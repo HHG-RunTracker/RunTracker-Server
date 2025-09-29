@@ -22,6 +22,7 @@ import com.runtracker.domain.schedule.repository.ScheduleRepository;
 import com.runtracker.global.code.DateConstants;
 import com.runtracker.global.exception.CustomException;
 import com.runtracker.domain.schedule.event.ScheduleCreateEvent;
+import com.runtracker.domain.schedule.event.ScheduleUpdateEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -145,7 +146,15 @@ public class ScheduleService {
             parsedDate = parseAndValidateDate(scheduleUpdateDTO.getDate());
         }
 
+        String titleToUpdate = scheduleUpdateDTO.getTitle() != null ? scheduleUpdateDTO.getTitle() : schedule.getTitle();
+
         schedule.updateSchedule(parsedDate, scheduleUpdateDTO.getTitle(), scheduleUpdateDTO.getContent());
+
+        eventPublisher.publishEvent(new ScheduleUpdateEvent(
+            userDetails.getMemberId(),
+            schedule.getCrewId(),
+            titleToUpdate
+        ));
     }
     
     @Transactional
