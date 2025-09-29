@@ -5,8 +5,6 @@ import com.runtracker.domain.course.dto.CourseCreateDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
 import com.runtracker.domain.course.service.CourseService;
-import com.runtracker.global.code.CommonResponseCode;
-import com.runtracker.global.exception.CustomException;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -26,14 +24,8 @@ public class CourseController {
     public ApiResponse<Void> saveCourse(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody CourseCreateDTO request) {
-        try {
-            courseService.saveCourse(userDetails.getMemberId(), request);
-            return ApiResponse.ok();
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
+        courseService.saveCourse(userDetails.getMemberId(), request);
+        return ApiResponse.ok();
     }
 
     @GetMapping("/nearby")
@@ -42,70 +34,40 @@ public class CourseController {
             @RequestParam Double latitude,
             @RequestParam Double longitude,
             @RequestParam(required = false) Integer limit) {
-        try {
-            List<Response> courses = courseService.getNearbyCourses(
-                    userDetails.getMemberId(), latitude, longitude, limit);
-            return ApiResponse.ok(courses);
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
+        List<Response> courses = courseService.getNearbyCourses(
+                userDetails.getMemberId(), latitude, longitude, limit);
+        return ApiResponse.ok(courses);
     }
 
     @GetMapping("/{courseId}")
     public ApiResponse<CourseDetailDTO> getCourseDetail(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long courseId) {
-        try {
-            CourseDetailDTO courseDetail = courseService.getCourseDetail(courseId);
-            return ApiResponse.ok(courseDetail);
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
+        CourseDetailDTO courseDetail = courseService.getCourseDetail(courseId);
+        return ApiResponse.ok(courseDetail);
     }
 
     @PostMapping("/{courseId}/running")
     public ApiResponse<Void> startRunningWithCourse(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long courseId) {
-        try {
-            courseService.startRunningCourse(userDetails.getMemberId(), courseId);
-            return ApiResponse.ok();
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
+        courseService.startRunningCourse(userDetails.getMemberId(), courseId);
+        return ApiResponse.ok();
     }
 
     @PostMapping("/finish")
     public ApiResponse<Void> finishRunning(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody FinishRunning request) {
-        try {
-            courseService.finishRunning(userDetails.getMemberId(), request);
-            return ApiResponse.ok();
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
+        courseService.finishRunning(userDetails.getMemberId(), request);
+        return ApiResponse.ok();
     }
 
     @PostMapping("/test/save")
     public ApiResponse<Void> saveTestCourse(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody CourseCreateDTO request) {
-        try {
-            courseService.saveTestCourse(userDetails.getMemberId(), request);
-            return ApiResponse.ok();
-        } catch (CustomException e) {
-            return ApiResponse.error(e.getResponseCode());
-        } catch (Exception e) {
-            return ApiResponse.error(CommonResponseCode.INTERNAL_SERVER_ERROR);
-        }
+        courseService.saveTestCourse(userDetails.getMemberId(), request);
+        return ApiResponse.ok();
     }
 }

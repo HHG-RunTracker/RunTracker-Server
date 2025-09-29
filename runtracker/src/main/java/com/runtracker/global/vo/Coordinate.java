@@ -1,5 +1,6 @@
 package com.runtracker.global.vo;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.*;
 
 @NoArgsConstructor
@@ -10,5 +11,7 @@ import lombok.*;
 @ToString
 public class Coordinate {
     private Double lat;
+
+    @JsonAlias({"lng"})
     private Double lnt;
 }

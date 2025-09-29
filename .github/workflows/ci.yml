@@ -48,6 +48,7 @@ jobs:
       AUTH_KEY: ${{ secrets.AUTH_KEY }}
       FCM_JSON: ${{ secrets.FCM_JSON }}
       Firebase_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      GOOGLE_MAP_API_KEY: ${{ secrets.GOOGLE_MAP_API_KEY }}
 
     steps:
       - name: Checkout source code

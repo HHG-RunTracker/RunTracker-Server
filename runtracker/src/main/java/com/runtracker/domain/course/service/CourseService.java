@@ -2,15 +2,19 @@ package com.runtracker.domain.course.service;
 
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
+import com.runtracker.domain.course.dto.GoogleMapsDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
 import com.runtracker.domain.course.entity.Course;
+import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.exception.AlreadyRunningException;
 import com.runtracker.domain.course.exception.CourseCreationFailedException;
 import com.runtracker.domain.course.exception.CourseNotFoundException;
+import com.runtracker.domain.course.exception.InsufficientPathDataException;
 import com.runtracker.domain.course.exception.InvalidStartTimeException;
 import com.runtracker.domain.course.exception.MultipleActiveRunningException;
+import com.runtracker.domain.course.exception.ValidationErrorException;
 import com.runtracker.domain.crew.service.CrewRankingService;
 import com.runtracker.domain.crew.service.CrewMemberRankingService;
 import com.runtracker.domain.crew.repository.CrewMemberRepository;
@@ -50,6 +54,7 @@ public class CourseService {
     private final CrewRankingService crewRankingService;
     private final CrewMemberRankingService crewMemberRankingService;
     private final CrewMemberRepository crewMemberRepository;
+    private final RouteAnalysisService routeAnalysisService;
 
     private void checkAlreadyRunning(Long memberId) {
         List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(memberId);
@@ -69,38 +74,17 @@ public class CourseService {
 
     public Course saveCourse(Long memberId, CourseCreateDTO request) {
         try {
+            validateCourseRequest(request);
             checkAlreadyRunning(memberId);
 
-            List<Coordinate> paths = request.getPath() != null ? request.getPath() : new ArrayList<>();
-
-            Double startLat = null;
-            Double startLng = null;
-
-            if (!paths.isEmpty()) {
-                Coordinate firstCoordinate = paths.get(0);
-                startLat = firstCoordinate.getLat();
-                startLng = firstCoordinate.getLnt();
-            }
-
-            Course course = Course.builder()
-                    .memberId(memberId)
-                    .name(request.getName())
-                    .difficulty(request.getDifficulty())
-                    .paths(paths)
-                    .startLat(startLat)
-                    .startLng(startLng)
-                    .distance(request.getDistance())
-                    .round(request.getRound() != null ? request.getRound() : false)
-                    .region(request.getRegion())
-                    .build();
-
+            Course course = createCourseFromRequest(memberId, request, false);
             Course savedCourse = courseRepository.save(course);
 
             createRunningRecord(memberId, savedCourse.getId());
 
             return savedCourse;
 
-        } catch (AlreadyRunningException e) {
+        } catch (AlreadyRunningException | InsufficientPathDataException | ValidationErrorException e) {
             throw e;
         } catch (Exception e) {
             log.error("Failed to save course and start running for member: {}, error: {}",
@@ -111,35 +95,91 @@ public class CourseService {
 
     public void saveTestCourse(Long memberId, CourseCreateDTO request) {
         try {
-            List<Coordinate> paths = request.getPath() != null ? request.getPath() : new ArrayList<>();
-
-            Double startLat = null;
-            Double startLng = null;
-
-            if (!paths.isEmpty()) {
-                Coordinate firstCoordinate = paths.get(0);
-                startLat = firstCoordinate.getLat();
-                startLng = firstCoordinate.getLnt();
-            }
-
-            Course course = Course.builder()
-                    .memberId(memberId)
-                    .name(request.getName())
-                    .difficulty(request.getDifficulty())
-                    .paths(paths)
-                    .startLat(startLat)
-                    .startLng(startLng)
-                    .distance(request.getDistance())
-                    .round(request.getRound() != null ? request.getRound() : false)
-                    .region(request.getRegion())
-                    .build();
-
+            validateCourseRequest(request);
+            Course course = createCourseFromRequest(memberId, request, true);
             courseRepository.save(course);
 
+        } catch (ValidationErrorException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to save test course for member: {}, error: {}",
                     memberId, e.getMessage(), e);
             throw new CourseCreationFailedException("Failed to save test course for member: " + memberId);
+        }
+    }
+
+    private void validateCourseRequest(CourseCreateDTO request) {
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            throw new ValidationErrorException("코스 이름은 필수입니다");
+        }
+
+        if (request.getName().length() > 100) {
+            throw new ValidationErrorException("코스 이름은 100자 이하여야 합니다");
+        }
+
+        if (request.getPath() == null) {
+            throw new ValidationErrorException("경로 정보는 필수입니다");
+        }
+
+        if (request.getDistance() == null || request.getDistance() < 0) {
+            throw new ValidationErrorException("거리는 0보다 커야 합니다");
+        }
+
+        if (request.getRound() == null) {
+            throw new ValidationErrorException("런닝 왕복 정보는 필수입니다");
+        }
+
+        if (request.getRegion() == null || request.getRegion().trim().isEmpty()) {
+            throw new ValidationErrorException("지역 정보는 필수입니다");
+        }
+    }
+
+    private Course createCourseFromRequest(Long memberId, CourseCreateDTO request, boolean allowDummyData) {
+        List<Coordinate> paths = request.getPath() != null ? request.getPath() : new ArrayList<>();
+
+        Double startLat = null;
+        Double startLng = null;
+
+        if (!paths.isEmpty()) {
+            Coordinate firstCoordinate = paths.get(0);
+            startLat = firstCoordinate.getLat();
+            startLng = firstCoordinate.getLnt();
+        }
+
+        Difficulty difficulty = calculateDifficulty(paths, allowDummyData);
+
+        return Course.builder()
+                .memberId(memberId)
+                .name(request.getName())
+                .difficulty(difficulty)
+                .paths(paths)
+                .startLat(startLat)
+                .startLng(startLng)
+                .distance(request.getDistance())
+                .round(request.getRound() != null ? request.getRound() : false)
+                .region(request.getRegion())
+                .build();
+    }
+
+    private Difficulty calculateDifficulty(List<Coordinate> paths, boolean allowDummyData) {
+        try {
+            if (paths == null || paths.isEmpty()) {
+                throw new InsufficientPathDataException();
+            }
+
+            GoogleMapsDTO.RouteAnalysisResult result = routeAnalysisService.analyzeRoute(paths);
+            return result.difficulty();
+        } catch (InsufficientPathDataException e) {
+            if (allowDummyData) {
+                // TODO: 더미데이터 코스 추가하기 위해 코스가 하나만 있으면 난이도 쉬움으로 저장. 나중에 에러처리로 교체 해야함.
+                log.warn("Insufficient path data, defaulting to EASY for test course");
+                return Difficulty.EASY;
+            } else {
+                throw e;
+            }
+        } catch (Exception e) {
+            log.error("Failed to calculate difficulty: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
