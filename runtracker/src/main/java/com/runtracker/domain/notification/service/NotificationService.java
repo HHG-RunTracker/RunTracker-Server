@@ -257,6 +257,46 @@ public class NotificationService {
         }
     }
 
+    @Transactional
+    public void notifyScheduleJoin(Long participantId, Long crewId, String scheduleTitle) {
+        Member participant = memberRepository.findById(participantId).orElseThrow();
+        List<CrewMember> managers = crewMemberRepository.findByCrewIdAndRoleIn(crewId,
+            List.of(MemberRole.CREW_LEADER, MemberRole.CREW_MANAGER));
+
+        String title = messages.get("notify.schedule.join.title");
+        String content = messages.get("notify.schedule.join.content", participant.getName(), scheduleTitle);
+
+        for (CrewMember manager : managers) {
+            String fcmToken = memberService.getFcmToken(manager.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for manager - skipping schedule join notification: memberId={}", manager.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
+    @Transactional
+    public void notifyScheduleCancel(Long participantId, Long crewId, String scheduleTitle) {
+        Member participant = memberRepository.findById(participantId).orElseThrow();
+        List<CrewMember> managers = crewMemberRepository.findByCrewIdAndRoleIn(crewId,
+            List.of(MemberRole.CREW_LEADER, MemberRole.CREW_MANAGER));
+
+        String title = messages.get("notify.schedule.cancel.title");
+        String content = messages.get("notify.schedule.cancel.content", participant.getName(), scheduleTitle);
+
+        for (CrewMember manager : managers) {
+            String fcmToken = memberService.getFcmToken(manager.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for manager - skipping schedule cancel notification: memberId={}", manager.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
     private String getRoleDisplayName(MemberRole role) {
         return switch (role) {
             case CREW_LEADER -> "크루장";
