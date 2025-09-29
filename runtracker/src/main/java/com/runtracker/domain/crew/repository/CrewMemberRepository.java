@@ -16,6 +16,7 @@ public interface CrewMemberRepository extends JpaRepository<CrewMember, Long> {
     Optional<CrewMember> findByCrewIdAndMemberId(Long crewId, Long memberId);
     List<CrewMember> findByCrewId(Long crewId);
     List<CrewMember> findByMemberIdAndStatus(Long memberId, CrewMemberStatus status);
+    List<CrewMember> findByCrewIdAndRoleIn(Long crewId, List<MemberRole> roles);
 
     @Query("SELECT cm.memberId FROM CrewMember cm WHERE cm.crewId = :crewId AND cm.status != 'BANNED'")
     List<Long> findMemberIdsByCrewId(@Param("crewId") Long crewId);
