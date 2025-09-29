@@ -209,10 +209,6 @@ public class NotificationService {
         String content = messages.get("notify.schedule.create.content", creator.getName(), scheduleTitle);
 
         for (CrewMember crewMember : crewMembers) {
-            if (crewMember.getMemberId().equals(creatorId)) {
-                continue;
-            }
-
             String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
             if (fcmToken == null || fcmToken.trim().isEmpty()) {
                 log.info("FCM token not found for crew member - skipping schedule creation notification: memberId={}", crewMember.getMemberId());
@@ -235,6 +231,25 @@ public class NotificationService {
             String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
             if (fcmToken == null || fcmToken.trim().isEmpty()) {
                 log.info("FCM token not found for crew member - skipping schedule update notification: memberId={}", crewMember.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
+    @Transactional
+    public void notifyScheduleDelete(Long deleterId, Long crewId, String scheduleTitle) {
+        Member deleter = memberRepository.findById(deleterId).orElseThrow();
+        List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
+
+        String title = messages.get("notify.schedule.delete.title");
+        String content = messages.get("notify.schedule.delete.content", deleter.getName(), scheduleTitle);
+
+        for (CrewMember crewMember : crewMembers) {
+            String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for crew member - skipping schedule delete notification: memberId={}", crewMember.getMemberId());
                 continue;
             }
 

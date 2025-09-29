@@ -23,6 +23,7 @@ import com.runtracker.global.code.DateConstants;
 import com.runtracker.global.exception.CustomException;
 import com.runtracker.domain.schedule.event.ScheduleCreateEvent;
 import com.runtracker.domain.schedule.event.ScheduleUpdateEvent;
+import com.runtracker.domain.schedule.event.ScheduleDeleteEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -163,6 +164,12 @@ public class ScheduleService {
                 .orElseThrow(ScheduleNotFoundException::new);
 
         authorizationUtil.validateCrewManagementPermission(userDetails, schedule.getCrewId());
+
+        eventPublisher.publishEvent(new ScheduleDeleteEvent(
+            userDetails.getMemberId(),
+            schedule.getCrewId(),
+            schedule.getTitle()
+        ));
 
         scheduleRepository.delete(schedule);
     }
