@@ -497,4 +497,100 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
         return request;
     }
 
+    @Test
+    void getRecommendedCoursesTest() throws Exception {
+        // given
+        List<CourseDetailDTO> mockRecommendedCourses = List.of(
+                CourseDetailDTO.builder()
+                        .id(1L)
+                        .memberId(2L)
+                        .name("AI 추천 코스 1")
+                        .difficulty(Difficulty.MEDIUM)
+                        .points(List.of(
+                                new Coordinate(37.5512, 126.9882),
+                                new Coordinate(37.5523, 126.9891)
+                        ))
+                        .startLat(37.5512)
+                        .startLng(126.9882)
+                        .distance(5000.0)
+                        .round(false)
+                        .region("서울특별시 영등포구")
+                        .createdAt(LocalDateTime.of(2025, 8, 9, 3, 45, 54))
+                        .updatedAt(LocalDateTime.of(2025, 8, 9, 3, 45, 54))
+                        .build(),
+                CourseDetailDTO.builder()
+                        .id(2L)
+                        .memberId(3L)
+                        .name("AI 추천 코스 2")
+                        .difficulty(Difficulty.EASY)
+                        .points(List.of(
+                                new Coordinate(37.5665, 126.9780),
+                                new Coordinate(37.5670, 126.9785)
+                        ))
+                        .startLat(37.5665)
+                        .startLng(126.9780)
+                        .distance(3000.0)
+                        .round(true)
+                        .region("서울특별시 영등포구")
+                        .createdAt(LocalDateTime.of(2025, 8, 9, 4, 10, 30))
+                        .updatedAt(LocalDateTime.of(2025, 8, 9, 4, 10, 30))
+                        .build()
+        );
+
+        given(courseService.getRecommendedCourses(anyLong(), any(Double.class), any(Double.class)))
+                .willReturn(mockRecommendedCourses);
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(get("/api/courses/recommend/nearby")
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .param("latitude", "37.5665")
+                        .param("longitude", "126.9780"))
+                .andExpect(status().isOk())
+                .andDo(document("course-get-recommendations",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("courses")
+                                        .summary("AI 주변 코스 추천")
+                                        .description("사용자 러닝 기록과 주변 코스 기반으로 AI 기반 코스 추천")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .queryParameters(
+                                                parameterWithName("latitude").description("현재 위치 위도"),
+                                                parameterWithName("longitude").description("현재 위치 경도")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.ARRAY).description("추천 코스 목록"),
+                                                fieldWithPath("body[].id").type(JsonFieldType.NUMBER).description("코스 ID"),
+                                                fieldWithPath("body[].memberId").type(JsonFieldType.NUMBER).description("생성자 회원 ID"),
+                                                fieldWithPath("body[].name").type(JsonFieldType.STRING).description("코스 이름"),
+                                                fieldWithPath("body[].difficulty").type(JsonFieldType.STRING).description("난이도 (EASY, MEDIUM, HARD)"),
+                                                fieldWithPath("body[].points").type(JsonFieldType.ARRAY).description("코스 경로 좌표 리스트"),
+                                                fieldWithPath("body[].points[].lat").type(JsonFieldType.NUMBER).description("좌표 위도"),
+                                                fieldWithPath("body[].points[].lnt").type(JsonFieldType.NUMBER).description("좌표 경도"),
+                                                fieldWithPath("body[].startLat").type(JsonFieldType.NUMBER).description("시작 지점 위도"),
+                                                fieldWithPath("body[].startLng").type(JsonFieldType.NUMBER).description("시작 지점 경도"),
+                                                fieldWithPath("body[].distance").type(JsonFieldType.NUMBER).description("코스 거리 (미터)"),
+                                                fieldWithPath("body[].round").type(JsonFieldType.BOOLEAN).description("왕복 여부"),
+                                                fieldWithPath("body[].region").type(JsonFieldType.STRING).description("코스 지역"),
+                                                fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("코스 생성 시간"),
+                                                fieldWithPath("body[].updatedAt").type(JsonFieldType.STRING).description("코스 수정 시간")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
 }

@@ -1,11 +1,14 @@
 package com.runtracker.domain.course.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
 import com.runtracker.domain.course.dto.GoogleMapsDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
+import com.runtracker.domain.course.dto.RecommendationDTO;
 import com.runtracker.domain.course.entity.Course;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.exception.AlreadyRunningException;
@@ -14,6 +17,7 @@ import com.runtracker.domain.course.exception.CourseNotFoundException;
 import com.runtracker.domain.course.exception.InsufficientPathDataException;
 import com.runtracker.domain.course.exception.InvalidStartTimeException;
 import com.runtracker.domain.course.exception.MultipleActiveRunningException;
+import com.runtracker.domain.course.exception.NoRecommendedCoursesException;
 import com.runtracker.domain.course.exception.ValidationErrorException;
 import com.runtracker.domain.crew.service.CrewRankingService;
 import com.runtracker.domain.crew.service.CrewMemberRankingService;
@@ -29,6 +33,7 @@ import com.runtracker.domain.record.entity.RunningRecord;
 import com.runtracker.domain.record.exception.CourseNotFoundForRecordException;
 import com.runtracker.domain.record.exception.RecordNotFoundException;
 import com.runtracker.domain.record.repository.RecordRepository;
+import com.runtracker.global.client.FastAPIClient;
 import com.runtracker.global.vo.Coordinate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,13 +45,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class CourseService {
-    
+
     private final CourseRepository courseRepository;
     private final MemberRepository memberRepository;
     private final RecordRepository recordRepository;
@@ -55,6 +65,8 @@ public class CourseService {
     private final CrewMemberRankingService crewMemberRankingService;
     private final CrewMemberRepository crewMemberRepository;
     private final RouteAnalysisService routeAnalysisService;
+    private final FastAPIClient fastAPIClient;
+    private final ObjectMapper objectMapper;
 
     private void checkAlreadyRunning(Long memberId) {
         List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(memberId);
@@ -306,5 +318,97 @@ public class CourseService {
             log.warn("Failed to recalculate rankings after finishing running for member {}: {}",
                      memberId, e.getMessage());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<CourseDetailDTO> getRecommendedCourses(Long memberId, Double latitude, Double longitude) {
+        List<RunningRecord> userRecords = recordRepository.findByMemberIdOrderByRunningTimeDesc(memberId);
+        List<Response> nearbyCourses = courseRepository.findNearbyCourses(latitude, longitude);
+
+        Set<Long> courseIds = userRecords.stream()
+                .map(RunningRecord::getCourseId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, Course> courseMap = courseRepository.findAllById(courseIds).stream()
+                .collect(Collectors.toMap(Course::getId, Function.identity()));
+
+        List<RecommendationDTO.UserRecord> userRecordDTOs = userRecords.stream()
+                .filter(record -> record.getCourseId() != null)
+                .map(record -> convertToUserRecordDTO(record, courseMap.get(record.getCourseId())))
+                .filter(Objects::nonNull)
+                .toList();
+
+        List<RecommendationDTO.NearbyCourse> nearbyCourseDTOs = nearbyCourses.stream()
+                .map(this::convertToNearbyCourseDTO)
+                .toList();
+
+        RecommendationDTO.Request request = RecommendationDTO.Request.builder()
+                .userRecords(userRecordDTOs)
+                .nearbyCourses(nearbyCourseDTOs)
+                .build();
+
+        List<Long> recommendedCourseIds = callFastAPIRecommendation(request);
+
+        Map<Long, Course> recommendedCourseMap = courseRepository.findAllById(recommendedCourseIds).stream()
+                .collect(Collectors.toMap(Course::getId, Function.identity()));
+
+        return recommendedCourseIds.stream()
+                .map(recommendedCourseMap::get)
+                .filter(Objects::nonNull)
+                .map(this::convertToCourseDetailDTO)
+                .toList();
+    }
+
+    private List<Long> callFastAPIRecommendation(RecommendationDTO.Request request) {
+        try {
+            String rawResponse = fastAPIClient.post("/recommend/record", request, String.class);
+
+            if (rawResponse == null || rawResponse.trim().isEmpty()) {
+                throw new NoRecommendedCoursesException();
+            }
+
+            List<RecommendationDTO.RecommendationItem> items = objectMapper.readValue(
+                    rawResponse,
+                    new TypeReference<>() {}
+            );
+
+            if (items == null || items.isEmpty()) {
+                throw new NoRecommendedCoursesException();
+            }
+
+            return items.stream()
+                    .map(RecommendationDTO.RecommendationItem::getCourseId)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+        } catch (NoRecommendedCoursesException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("FastAPI recommendation request failed", e);
+            throw new NoRecommendedCoursesException();
+        }
+    }
+
+    private RecommendationDTO.UserRecord convertToUserRecordDTO(RunningRecord record, Course course) {
+        if (course == null) return null;
+
+        return RecommendationDTO.UserRecord.builder()
+                .courseId(record.getCourseId())
+                .ranDistance(record.getDistance())
+                .difficulty(course.getDifficulty().name())
+                .latitude(course.getStartLat())
+                .longitude(course.getStartLng())
+                .build();
+    }
+
+    private RecommendationDTO.NearbyCourse convertToNearbyCourseDTO(Response course) {
+        return RecommendationDTO.NearbyCourse.builder()
+                .courseId(course.getId())
+                .distance(course.getDistance())
+                .difficulty(course.getDifficulty().name())
+                .latitude(course.getStartLat())
+                .longitude(course.getStartLng())
+                .build();
     }
 }
