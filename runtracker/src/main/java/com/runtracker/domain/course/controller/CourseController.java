@@ -80,4 +80,14 @@ public class CourseController {
                 userDetails.getMemberId(), latitude, longitude);
         return ApiResponse.ok(recommendedCourses);
     }
+
+    @GetMapping("/recommend/setting")
+    public ApiResponse<List<CourseDetailDTO>> getRecommendedCoursesBySetting(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam Double latitude,
+            @RequestParam Double longitude) {
+        List<CourseDetailDTO> recommendedCourses = courseService.getRecommendedCoursesBySetting(
+                userDetails.getMemberId(), latitude, longitude);
+        return ApiResponse.ok(recommendedCourses);
+    }
 }
