@@ -16,7 +16,7 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
     private final JPAQueryFactory queryFactory;
     
     @Override
-    public List<Response> findNearbyCourses(double lat, double lng) {
+    public List<Response> findNearbyCourses(double lat, double lng, int radiusInMeters) {
         QCourse course = QCourse.course;
         return queryFactory
             .select(Projections.constructor(Response.class,
@@ -29,6 +29,10 @@ public class CourseRepositoryImpl implements CourseRepositoryCustom {
                 ).as("distanceFromUser")
             ))
             .from(course)
+            .where(Expressions.numberTemplate(Double.class,
+                "ST_Distance_Sphere(POINT({0}, {1}), POINT({2}, {3}))",
+                lng, lat, course.startLng, course.startLat
+            ).loe(radiusInMeters))
             .fetch();
     }
 }

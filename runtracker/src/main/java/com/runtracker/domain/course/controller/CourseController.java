@@ -70,4 +70,14 @@ public class CourseController {
         courseService.saveTestCourse(userDetails.getMemberId(), request);
         return ApiResponse.ok();
     }
+
+    @GetMapping("/recommend/record")
+    public ApiResponse<List<CourseDetailDTO>> getRecommendedCourses(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam Double latitude,
+            @RequestParam Double longitude) {
+        List<CourseDetailDTO> recommendedCourses = courseService.getRecommendedCourses(
+                userDetails.getMemberId(), latitude, longitude);
+        return ApiResponse.ok(recommendedCourses);
+    }
 }

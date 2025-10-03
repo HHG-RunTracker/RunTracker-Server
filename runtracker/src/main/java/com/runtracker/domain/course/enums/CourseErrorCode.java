@@ -20,8 +20,10 @@ public enum CourseErrorCode implements ResponseCode {
     ROUTE_ANALYSIS_FAILED("CR010", "Route analysis failed"),
     NO_PATH_DATA("CR011", "No path data found in course"),
     GOOGLE_MAPS_API_ERROR("CR012", "Google Maps API error"),
-    INSUFFICIENT_PATH_DATA("CR013", "Insufficient path data for route analysis");
-    
+    INSUFFICIENT_PATH_DATA("CR013", "Insufficient path data for route analysis"),
+    RECOMMENDATION_SERVICE_UNAVAILABLE("CR014", "Recommendation service is unavailable"),
+    NO_RECOMMENDED_COURSES("CR015", "No recommended courses found");
+
     private final String statusCode;
     private final String message;
 }

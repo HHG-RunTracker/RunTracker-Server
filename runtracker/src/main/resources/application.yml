@@ -20,6 +20,12 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      jedis:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+      timeout: 3000ms
 
   security:
     oauth2:
@@ -48,6 +54,7 @@ jwt:
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
 
 app:
+  domain: ${SPRING_DOMAIN}
   oauth2:
     redirect-uri: ${OAUTH2_REDIRECT_URI}
   auth:
