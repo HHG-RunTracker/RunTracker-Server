@@ -27,6 +27,7 @@ import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import com.runtracker.domain.member.dto.MemberCreateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
+import com.runtracker.domain.member.dto.RunningSettingDTO;
 import com.runtracker.domain.member.enums.BackupType;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.global.jwt.JwtUtil;
@@ -159,6 +160,23 @@ public class MemberService {
     public void updateNotificationSetting(Long memberId, NotificationSettingDTO.Request request) {
         Member member = getMemberById(memberId);
         member.updateNotificationSetting(request.getNotifyBlock());
+    }
+
+    @Transactional(readOnly = true)
+    public RunningSettingDTO.Response getRunningSetting(Long memberId) {
+        Member member = getMemberById(memberId);
+        return RunningSettingDTO.Response.from(member);
+    }
+
+    @Transactional
+    public void updateRunningSetting(Long memberId, RunningSettingDTO.Request runningSettingDTO) {
+        Member member = getMemberById(memberId);
+
+        if (runningSettingDTO.getPreferredDifficulty() != null) {
+            validateDifficulty(runningSettingDTO.getPreferredDifficulty());
+        }
+
+        member.updateRunningSetting(runningSettingDTO);
     }
 
     @Transactional

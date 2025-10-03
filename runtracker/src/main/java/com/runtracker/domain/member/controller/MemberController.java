@@ -8,6 +8,8 @@ import com.runtracker.domain.member.dto.MemberUpdateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.domain.member.dto.FcmTokenDTO;
+import com.runtracker.domain.member.dto.RunningSettingDTO;
+import com.runtracker.domain.member.dto.MemberProfileDTO;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import com.runtracker.global.response.ApiResponse;
 import com.runtracker.global.security.UserDetailsImpl;
@@ -61,9 +63,9 @@ public class MemberController {
     }
 
     @GetMapping("/profile")
-    public ApiResponse<Member> getProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ApiResponse<MemberProfileDTO.Response> getProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         Member member = memberService.getMemberById(userDetails.getMemberId());
-        return ApiResponse.ok(member);
+        return ApiResponse.ok(MemberProfileDTO.Response.from(member));
     }
 
     @PatchMapping("/update")
@@ -77,6 +79,19 @@ public class MemberController {
     public ApiResponse<Void> updateNotificationSetting(@AuthenticationPrincipal UserDetailsImpl userDetails,
                                                        @Valid @RequestBody NotificationSettingDTO.Request request) {
         memberService.updateNotificationSetting(userDetails.getMemberId(), request);
+        return ApiResponse.ok();
+    }
+
+    @GetMapping("/running-setting")
+    public ApiResponse<RunningSettingDTO.Response> getRunningSetting(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        RunningSettingDTO.Response response = memberService.getRunningSetting(userDetails.getMemberId());
+        return ApiResponse.ok(response);
+    }
+
+    @PatchMapping("/running-setting")
+    public ApiResponse<Void> updateRunningSetting(@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                  @Valid @RequestBody RunningSettingDTO.Request request) {
+        memberService.updateRunningSetting(userDetails.getMemberId(), request);
         return ApiResponse.ok();
     }
 

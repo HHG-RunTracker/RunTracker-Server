@@ -8,10 +8,13 @@ import com.runtracker.domain.member.dto.MemberCreateDTO;
 import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.domain.member.dto.FcmTokenDTO;
+import com.runtracker.domain.member.dto.RunningSettingDTO;
+import com.runtracker.domain.member.dto.MemberProfileDTO;
 import com.runtracker.domain.member.service.dto.LoginTokenDto;
 import com.runtracker.global.jwt.dto.TokenDataDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Map;
 
@@ -210,6 +213,7 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                 .build();
 
         Member member = new Member(memberCreateDTO);
+        ReflectionTestUtils.setField(member, "id", 1L);
 
         given(memberService.getMemberById(anyLong())).willReturn(member);
 
@@ -244,7 +248,6 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body.searchBlock").type(JsonFieldType.BOOLEAN).description("검색 차단 여부"),
                                                 fieldWithPath("body.profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 차단 여부"),
                                                 fieldWithPath("body.notifyBlock").type(JsonFieldType.BOOLEAN).description("알림 차단 여부"),
-                                                fieldWithPath("body.radius").type(JsonFieldType.NUMBER).description("코스 검색 반경 (미터)"),
                                                 fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성 일시").optional(),
                                                 fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("수정 일시").optional()
                                         )
@@ -291,8 +294,7 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                 "region", "부산",
                                 "difficulty", "MEDIUM",
                                 "searchBlock", true,
-                                "profileBlock", false,
-                                "radius", 700
+                                "profileBlock", false
                         ))))
                 .andExpect(status().isOk())
                 .andDo(document("member-update-profile",
@@ -312,8 +314,7 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("region").type(JsonFieldType.STRING).description("지역").optional(),
                                                 fieldWithPath("difficulty").type(JsonFieldType.STRING).description("러닝 난이도 (EASY, MEDIUM, HARD)").optional(),
                                                 fieldWithPath("searchBlock").type(JsonFieldType.BOOLEAN).description("크루 검색 공개 여부").optional(),
-                                                fieldWithPath("profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 공개 여부").optional(),
-                                                fieldWithPath("radius").type(JsonFieldType.NUMBER).description("코스 검색 반경 (미터)").optional()
+                                                fieldWithPath("profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 공개 여부").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
@@ -536,6 +537,103 @@ class MemberControllerTest extends RunTrackerDocumentApiTester {
                                         .description("등록된 FCM 토큰을 삭제합니다. 로그아웃시 자동 삭제됩니다.")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getRunningSettingTest() throws Exception {
+        // given
+        RunningSettingDTO.Response response = RunningSettingDTO.Response.builder()
+                .dailyDistanceGoal(5.0)
+                .monthlyRunCountGoal(20)
+                .preferredDifficulty("MEDIUM")
+                .autoPause(true)
+                .mapStyle("standard")
+                .radius(1000)
+                .paceUnit(0)
+                .ttsEnabled(true)
+                .build();
+
+        given(memberService.getRunningSetting(anyLong())).willReturn(response);
+
+        // when & then
+        this.mockMvc.perform(get("/api/members/running-setting")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-get-running-setting",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("런닝 설정 조회")
+                                        .description("사용자의 런닝 설정을 조회합니다")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.dailyDistanceGoal").type(JsonFieldType.NUMBER).description("일간 거리 목표 (km)").optional(),
+                                                fieldWithPath("body.monthlyRunCountGoal").type(JsonFieldType.NUMBER).description("월간 런닝 횟수 목표").optional(),
+                                                fieldWithPath("body.preferredDifficulty").type(JsonFieldType.STRING).description("선호 난이도").optional(),
+                                                fieldWithPath("body.autoPause").type(JsonFieldType.BOOLEAN).description("자동 일시정지"),
+                                                fieldWithPath("body.mapStyle").type(JsonFieldType.STRING).description("지도 스타일").optional(),
+                                                fieldWithPath("body.radius").type(JsonFieldType.NUMBER).description("주변 코스 반경 (m)"),
+                                                fieldWithPath("body.paceUnit").type(JsonFieldType.NUMBER).description("페이스 단위 (0: min/km, 1: min/mi)").optional(),
+                                                fieldWithPath("body.ttsEnabled").type(JsonFieldType.BOOLEAN).description("TTS 음성 안내")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void updateRunningSettingTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateRunningSetting(anyLong(), any(RunningSettingDTO.Request.class));
+
+        // when & then
+        this.mockMvc.perform(patch("/api/members/running-setting")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of(
+                                "dailyDistanceGoal", 5.0,
+                                "monthlyRunCountGoal", 20,
+                                "preferredDifficulty", "MEDIUM",
+                                "autoPause", true,
+                                "mapStyle", "standard",
+                                "radius", 1000,
+                                "paceUnit", 0,
+                                "ttsEnabled", true
+                        ))))
+                .andExpect(status().isOk())
+                .andDo(document("member-update-running-setting",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("런닝 설정 수정")
+                                        .description("사용자의 런닝 설정을 수정합니다")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("dailyDistanceGoal").type(JsonFieldType.NUMBER).description("일간 거리 목표 (km)").optional(),
+                                                fieldWithPath("monthlyRunCountGoal").type(JsonFieldType.NUMBER).description("월간 런닝 횟수 목표").optional(),
+                                                fieldWithPath("preferredDifficulty").type(JsonFieldType.STRING).description("선호 난이도 (EASY, MEDIUM, HARD)").optional(),
+                                                fieldWithPath("autoPause").type(JsonFieldType.BOOLEAN).description("자동 일시정지 on/off").optional(),
+                                                fieldWithPath("mapStyle").type(JsonFieldType.STRING).description("지도 스타일").optional(),
+                                                fieldWithPath("radius").type(JsonFieldType.NUMBER).description("주변 코스 반경 (m)").optional(),
+                                                fieldWithPath("paceUnit").type(JsonFieldType.NUMBER).description("페이스 단위 (0: min/km, 1: min/mi)").optional(),
+                                                fieldWithPath("ttsEnabled").type(JsonFieldType.BOOLEAN).description("TTS 음성 안내 on/off").optional()
                                         )
                                         .responseFields(
                                                 fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),

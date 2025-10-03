@@ -3,6 +3,7 @@ package com.runtracker.domain.member.entity;
 import com.runtracker.global.entity.BaseEntity;
 import com.runtracker.domain.member.dto.MemberCreateDTO;
 import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.RunningSettingDTO;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -64,6 +65,27 @@ public class Member extends BaseEntity {
     @Column(name = "radius", columnDefinition = "INT DEFAULT 500")
     private Integer radius = 500;
 
+    @Column(name = "daily_distance_goal", columnDefinition = "DOUBLE")
+    private Double dailyDistanceGoal;
+
+    @Column(name = "monthly_run_count_goal", columnDefinition = "INT")
+    private Integer monthlyRunCountGoal;
+
+    @Column(name = "preferred_difficulty", length = 20)
+    private String preferredDifficulty;
+
+    @Column(name = "auto_pause", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean autoPause = true;
+
+    @Column(name = "map_style", length = 50)
+    private String mapStyle;
+
+    @Column(name = "pace_unit", columnDefinition = "INT")
+    private Integer paceUnit;
+
+    @Column(name = "tts_enabled", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean ttsEnabled = true;
+
     @Builder
     public Member(MemberCreateDTO dto) {
         this.socialAttr = dto.getSocialAttr();
@@ -93,7 +115,6 @@ public class Member extends BaseEntity {
         if (dto.getDifficulty() != null) this.difficulty = dto.getDifficulty();
         if (dto.getSearchBlock() != null) this.searchBlock = dto.getSearchBlock();
         if (dto.getProfileBlock() != null) this.profileBlock = dto.getProfileBlock();
-        if (dto.getRadius() != null) this.radius = dto.getRadius();
     }
 
     public void updatePhoto(String photo) {
@@ -108,5 +129,16 @@ public class Member extends BaseEntity {
         if (notifyBlock != null) {
             this.notifyBlock = notifyBlock;
         }
+    }
+
+    public void updateRunningSetting(RunningSettingDTO.Request runningSettingDTO) {
+        if (runningSettingDTO.getDailyDistanceGoal() != null) this.dailyDistanceGoal = runningSettingDTO.getDailyDistanceGoal();
+        if (runningSettingDTO.getMonthlyRunCountGoal() != null) this.monthlyRunCountGoal = runningSettingDTO.getMonthlyRunCountGoal();
+        if (runningSettingDTO.getPreferredDifficulty() != null) this.preferredDifficulty = runningSettingDTO.getPreferredDifficulty();
+        if (runningSettingDTO.getAutoPause() != null) this.autoPause = runningSettingDTO.getAutoPause();
+        if (runningSettingDTO.getMapStyle() != null) this.mapStyle = runningSettingDTO.getMapStyle();
+        if (runningSettingDTO.getRadius() != null) this.radius = runningSettingDTO.getRadius();
+        if (runningSettingDTO.getPaceUnit() != null) this.paceUnit = runningSettingDTO.getPaceUnit();
+        if (runningSettingDTO.getTtsEnabled() != null) this.ttsEnabled = runningSettingDTO.getTtsEnabled();
     }
 }
