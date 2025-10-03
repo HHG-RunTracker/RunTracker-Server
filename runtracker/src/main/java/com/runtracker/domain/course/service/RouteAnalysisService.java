@@ -1,6 +1,6 @@
 package com.runtracker.domain.course.service;
 
-import com.runtracker.domain.course.dto.GoogleMapsDTO;
+import com.runtracker.domain.course.service.dto.GoogleMapsDTO;
 import com.runtracker.domain.course.entity.Course;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.exception.GoogleMapsApiException;

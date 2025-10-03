@@ -550,7 +550,7 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
         given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
 
         // when
-        this.mockMvc.perform(get("/api/courses/recommend/nearby")
+        this.mockMvc.perform(get("/api/courses/recommend/record")
                         .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
                         .param("latitude", "37.5665")
                         .param("longitude", "126.9780"))
@@ -559,7 +559,7 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                         resource(
                                 ResourceSnippetParameters.builder()
                                         .tag("courses")
-                                        .summary("AI 주변 코스 추천")
+                                        .summary("AI 기록 기반 코스 추천")
                                         .description("사용자 러닝 기록과 주변 코스 기반으로 AI 기반 코스 추천")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("엑세스 토큰")

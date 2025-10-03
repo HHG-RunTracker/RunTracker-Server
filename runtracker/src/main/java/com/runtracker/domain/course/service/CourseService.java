@@ -4,11 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
-import com.runtracker.domain.course.dto.GoogleMapsDTO;
-import com.runtracker.domain.course.dto.NearbyCoursesDTO.Request;
+import com.runtracker.domain.course.service.dto.GoogleMapsDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
-import com.runtracker.domain.course.dto.RecommendationDTO;
+import com.runtracker.domain.course.service.dto.RecommendationDTO;
 import com.runtracker.domain.course.entity.Course;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.exception.AlreadyRunningException;
@@ -67,6 +66,7 @@ public class CourseService {
     private final RouteAnalysisService routeAnalysisService;
     private final FastAPIClient fastAPIClient;
     private final ObjectMapper objectMapper;
+    private final CourseCacheService courseCacheService;
 
     private void checkAlreadyRunning(Long memberId) {
         List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(memberId);
@@ -93,6 +93,11 @@ public class CourseService {
             Course savedCourse = courseRepository.save(course);
 
             createRunningRecord(memberId, savedCourse.getId());
+
+            // Redis 슬롯에 코스 ID 추가
+            if (savedCourse.getStartLat() != null && savedCourse.getStartLng() != null) {
+                courseCacheService.addCourseToSlot(savedCourse.getStartLat(), savedCourse.getStartLng(), savedCourse.getId());
+            }
 
             return savedCourse;
 
@@ -184,7 +189,6 @@ public class CourseService {
         } catch (InsufficientPathDataException e) {
             if (allowDummyData) {
                 // TODO: 더미데이터 코스 추가하기 위해 코스가 하나만 있으면 난이도 쉬움으로 저장. 나중에 에러처리로 교체 해야함.
-                log.warn("Insufficient path data, defaulting to EASY for test course");
                 return Difficulty.EASY;
             } else {
                 throw e;
@@ -213,27 +217,76 @@ public class CourseService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
 
+        List<Long> cachedCourseIds = courseCacheService.getNearbyCourseIds(latitude, longitude);
+        if (cachedCourseIds != null) {
+            return getCachedNearbyCourses(cachedCourseIds, latitude, longitude, member.getRadius());
+        }
+
         Integer radius = member.getRadius();
 
-        Request request = Request.builder()
-                .latitude(latitude)
-                .longitude(longitude)
-                .radius(radius)
-                .limit(limit)
-                .build();
-
-        return courseRepository.findNearbyCourses(
-                request.getLatitude(),
-                request.getLongitude()
+        List<Response> courses = courseRepository.findNearbyCourses(
+                latitude,
+                longitude,
+                radius
         );
+
+        List<Long> courseIds = courses.stream().map(Response::getId).toList();
+        courseCacheService.cacheNearbyCourses(latitude, longitude, courseIds);
+
+        return courses;
+    }
+
+    private List<Response> getCachedNearbyCourses(List<Long> cachedCourseIds, Double latitude, Double longitude, Integer radius) {
+        List<Response> result = new ArrayList<>();
+
+        // Redis multiGet으로 한 번에 조회 (성능 최적화)
+        Map<Long, CourseDetailDTO> cachedDetails = courseCacheService.getMultipleCourseDetails(cachedCourseIds);
+
+        // 캐시 히트된 코스 처리
+        for (Map.Entry<Long, CourseDetailDTO> entry : cachedDetails.entrySet()) {
+            Response response = convertDetailToResponse(entry.getValue(), latitude, longitude);
+            if (response.getDistanceFromUser() <= radius) {
+                result.add(response);
+            }
+        }
+
+        // 캐시 미스된 ID 수집
+        List<Long> missedIds = cachedCourseIds.stream()
+                .filter(id -> !cachedDetails.containsKey(id))
+                .toList();
+
+        // 캐시 미스된 코스 DB 조회
+        if (!missedIds.isEmpty()) {
+            List<Course> courses = courseRepository.findAllById(missedIds);
+            for (Course course : courses) {
+                CourseDetailDTO detail = convertToCourseDetailDTO(course);
+                courseCacheService.cacheCourseDetail(course.getId(), detail);
+
+                Response response = convertDetailToResponse(detail, latitude, longitude);
+                if (response.getDistanceFromUser() <= radius) {
+                    result.add(response);
+                }
+            }
+        }
+
+        return result;
     }
 
     @Transactional(readOnly = true)
     public CourseDetailDTO getCourseDetail(Long courseId) {
+        CourseDetailDTO cached = courseCacheService.getCourseDetail(courseId);
+        if (cached != null) {
+            return cached;
+        }
+
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
 
-        return convertToCourseDetailDTO(course);
+        CourseDetailDTO detail = convertToCourseDetailDTO(course);
+
+        courseCacheService.cacheCourseDetail(courseId, detail);
+
+        return detail;
     }
 
     public CourseDetailDTO convertToCourseDetailDTO(Course course) {
@@ -251,6 +304,56 @@ public class CourseService {
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
                 .build();
+    }
+
+    private Response convertDetailToResponse(CourseDetailDTO detail, Double userLat, Double userLng) {
+        double distanceFromUser = calculateDistance(userLat, userLng, detail.getStartLat(), detail.getStartLng());
+
+        return new Response(
+                detail.getId(),
+                detail.getMemberId(),
+                detail.getName(),
+                detail.getDifficulty(),
+                detail.getPoints(),
+                detail.getStartLat(),
+                detail.getStartLng(),
+                detail.getDistance(),
+                detail.getRound(),
+                detail.getRegion(),
+                distanceFromUser
+        );
+    }
+
+    private CourseDetailDTO convertResponseToCourseDetailDTO(Response response) {
+        return CourseDetailDTO.builder()
+                .id(response.getId())
+                .memberId(response.getMemberId())
+                .name(response.getName())
+                .difficulty(response.getDifficulty())
+                .points(response.getPoints())
+                .startLat(response.getStartLat())
+                .startLng(response.getStartLng())
+                .distance(response.getDistance())
+                .round(response.getRound())
+                .region(response.getRegion())
+                .build();
+    }
+
+    private double calculateDistance(Double lat1, Double lng1, Double lat2, Double lng2) {
+        if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) {
+            return 0.0;
+        }
+
+        final int EARTH_RADIUS = 6371; // km
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return EARTH_RADIUS * c * 1000; // m로 변환
     }
 
     @Transactional
@@ -322,8 +425,28 @@ public class CourseService {
 
     @Transactional(readOnly = true)
     public List<CourseDetailDTO> getRecommendedCourses(Long memberId, Double latitude, Double longitude) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+
         List<RunningRecord> userRecords = recordRepository.findByMemberIdOrderByRunningTimeDesc(memberId);
-        List<Response> nearbyCourses = courseRepository.findNearbyCourses(latitude, longitude);
+
+        List<Long> cachedCourseIds = courseCacheService.getNearbyCourseIds(latitude, longitude);
+        List<Response> nearbyCourses;
+
+        if (cachedCourseIds != null) {
+            nearbyCourses = getCachedNearbyCourses(cachedCourseIds, latitude, longitude, member.getRadius());
+        } else {
+            Integer radius = member.getRadius();
+            nearbyCourses = courseRepository.findNearbyCourses(latitude, longitude, radius);
+
+            List<Long> courseIds = nearbyCourses.stream().map(Response::getId).toList();
+            courseCacheService.cacheNearbyCourses(latitude, longitude, courseIds);
+
+            for (Response course : nearbyCourses) {
+                CourseDetailDTO detail = convertResponseToCourseDetailDTO(course);
+                courseCacheService.cacheCourseDetail(course.getId(), detail);
+            }
+        }
 
         Set<Long> courseIds = userRecords.stream()
                 .map(RunningRecord::getCourseId)

@@ -1,4 +1,4 @@
-package com.runtracker.domain.course.dto;
+package com.runtracker.domain.course.service.dto;
 
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.global.vo.Coordinate;

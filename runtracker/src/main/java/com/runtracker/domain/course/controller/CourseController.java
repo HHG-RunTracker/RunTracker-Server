@@ -71,7 +71,7 @@ public class CourseController {
         return ApiResponse.ok();
     }
 
-    @GetMapping("/recommend/nearby")
+    @GetMapping("/recommend/record")
     public ApiResponse<List<CourseDetailDTO>> getRecommendedCourses(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam Double latitude,

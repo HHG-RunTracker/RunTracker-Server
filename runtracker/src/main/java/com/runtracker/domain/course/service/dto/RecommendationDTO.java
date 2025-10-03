@@ -1,4 +1,4 @@
-package com.runtracker.domain.course.dto;
+package com.runtracker.domain.course.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
