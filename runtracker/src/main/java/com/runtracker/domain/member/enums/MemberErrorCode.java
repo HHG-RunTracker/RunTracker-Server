@@ -14,7 +14,8 @@ public enum MemberErrorCode implements ResponseCode {
     BACKUP_NOT_FOUND("M004", "Backup not found"),
     BACKUP_SERIALIZATION_FAILED("M005", "Failed to serialize backup data"),
     BACKUP_DESERIALIZATION_FAILED("M006", "Failed to deserialize backup data"),
-    BACKUP_ALREADY_RESTORED("M007", "Backup has already been restored");
+    BACKUP_ALREADY_RESTORED("M007", "Backup has already been restored"),
+    INVALID_MAP_STYLE("M008", "Invalid map style value");
 
     private final String statusCode;
     private final String message;

@@ -77,8 +77,8 @@ public class Member extends BaseEntity {
     @Column(name = "auto_pause", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean autoPause = true;
 
-    @Column(name = "map_style", length = 50)
-    private String mapStyle;
+    @Column(name = "map_style", columnDefinition = "VARCHAR(50) DEFAULT 'STANDARD'")
+    private String mapStyle = "STANDARD";
 
     @Column(name = "pace_unit", columnDefinition = "INT")
     private Integer paceUnit;

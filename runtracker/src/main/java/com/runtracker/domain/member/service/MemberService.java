@@ -19,6 +19,7 @@ import com.runtracker.domain.schedule.repository.ScheduleRepository;
 import com.runtracker.domain.record.entity.RunningRecord;
 import com.runtracker.domain.member.exception.MemberNotFoundException;
 import com.runtracker.domain.member.exception.InvalidDifficultyException;
+import com.runtracker.domain.member.exception.InvalidMapStyleException;
 import com.runtracker.domain.member.exception.BackupNotFoundException;
 import com.runtracker.domain.member.exception.BackupSerializationException;
 import com.runtracker.domain.member.exception.BackupDeserializationException;
@@ -29,6 +30,7 @@ import com.runtracker.domain.member.dto.NotificationSettingDTO;
 import com.runtracker.domain.member.dto.RunningBackupDTO;
 import com.runtracker.domain.member.dto.RunningSettingDTO;
 import com.runtracker.domain.member.enums.BackupType;
+import com.runtracker.domain.member.enums.MapStyle;
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.global.jwt.JwtUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -176,7 +178,19 @@ public class MemberService {
             validateDifficulty(runningSettingDTO.getPreferredDifficulty());
         }
 
+        if (runningSettingDTO.getMapStyle() != null) {
+            validateMapStyle(runningSettingDTO.getMapStyle());
+        }
+
         member.updateRunningSetting(runningSettingDTO);
+    }
+
+    private void validateMapStyle(String mapStyle) {
+        try {
+            MapStyle.valueOf(mapStyle);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidMapStyleException("Invalid map style value. Must be one of: STANDARD, SATELLITE, HYBRID");
+        }
     }
 
     @Transactional
