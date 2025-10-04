@@ -80,4 +80,28 @@ public class RecommendationDTO {
         @JsonProperty("similarity")
         private Double similarity;
     }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SettingRequest {
+        @JsonProperty("user_setting")
+        private UserSetting userSetting;
+
+        @JsonProperty("nearby_courses")
+        private List<NearbyCourse> nearbyCourses;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserSetting {
+        @JsonProperty("distance")
+        private Double distance;
+
+        @JsonProperty("difficulty")
+        private String difficulty;
+    }
 }

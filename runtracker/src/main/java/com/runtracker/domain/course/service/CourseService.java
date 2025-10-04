@@ -94,7 +94,6 @@ public class CourseService {
 
             createRunningRecord(memberId, savedCourse.getId());
 
-            // Redis 슬롯에 코스 ID 추가
             if (savedCourse.getStartLat() != null && savedCourse.getStartLng() != null) {
                 courseCacheService.addCourseToSlot(savedCourse.getStartLat(), savedCourse.getStartLng(), savedCourse.getId());
             }
@@ -138,7 +137,7 @@ public class CourseService {
             throw new ValidationErrorException("경로 정보는 필수입니다");
         }
 
-        if (request.getDistance() == null || request.getDistance() < 0) {
+        if (request.getDistance() == null || request.getDistance() <= 0) {
             throw new ValidationErrorException("거리는 0보다 커야 합니다");
         }
 
@@ -239,10 +238,8 @@ public class CourseService {
     private List<Response> getCachedNearbyCourses(List<Long> cachedCourseIds, Double latitude, Double longitude, Integer radius) {
         List<Response> result = new ArrayList<>();
 
-        // Redis multiGet으로 한 번에 조회 (성능 최적화)
         Map<Long, CourseDetailDTO> cachedDetails = courseCacheService.getMultipleCourseDetails(cachedCourseIds);
 
-        // 캐시 히트된 코스 처리
         for (Map.Entry<Long, CourseDetailDTO> entry : cachedDetails.entrySet()) {
             Response response = convertDetailToResponse(entry.getValue(), latitude, longitude);
             if (response.getDistanceFromUser() <= radius) {
@@ -250,12 +247,10 @@ public class CourseService {
             }
         }
 
-        // 캐시 미스된 ID 수집
         List<Long> missedIds = cachedCourseIds.stream()
                 .filter(id -> !cachedDetails.containsKey(id))
                 .toList();
 
-        // 캐시 미스된 코스 DB 조회
         if (!missedIds.isEmpty()) {
             List<Course> courses = courseRepository.findAllById(missedIds);
             for (Course course : courses) {
@@ -344,16 +339,7 @@ public class CourseService {
             return 0.0;
         }
 
-        final int EARTH_RADIUS = 6371; // km
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLng = Math.toRadians(lng2 - lng1);
-
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return EARTH_RADIUS * c * 1000; // m로 변환
+        return routeAnalysisService.haversine(lat1, lng1, lat2, lng2);
     }
 
     @Transactional
@@ -423,6 +409,26 @@ public class CourseService {
         }
     }
 
+    private List<Response> getNearbyCoursesWithCache(Double latitude, Double longitude, Integer radius) {
+        List<Long> cachedCourseIds = courseCacheService.getNearbyCourseIds(latitude, longitude);
+
+        if (cachedCourseIds != null) {
+            return getCachedNearbyCourses(cachedCourseIds, latitude, longitude, radius);
+        }
+
+        List<Response> nearbyCourses = courseRepository.findNearbyCourses(latitude, longitude, radius);
+
+        List<Long> courseIds = nearbyCourses.stream().map(Response::getId).toList();
+        courseCacheService.cacheNearbyCourses(latitude, longitude, courseIds);
+
+        for (Response course : nearbyCourses) {
+            CourseDetailDTO detail = convertResponseToCourseDetailDTO(course);
+            courseCacheService.cacheCourseDetail(course.getId(), detail);
+        }
+
+        return nearbyCourses;
+    }
+
     @Transactional(readOnly = true)
     public List<CourseDetailDTO> getRecommendedCourses(Long memberId, Double latitude, Double longitude) {
         Member member = memberRepository.findById(memberId)
@@ -430,23 +436,7 @@ public class CourseService {
 
         List<RunningRecord> userRecords = recordRepository.findByMemberIdOrderByRunningTimeDesc(memberId);
 
-        List<Long> cachedCourseIds = courseCacheService.getNearbyCourseIds(latitude, longitude);
-        List<Response> nearbyCourses;
-
-        if (cachedCourseIds != null) {
-            nearbyCourses = getCachedNearbyCourses(cachedCourseIds, latitude, longitude, member.getRadius());
-        } else {
-            Integer radius = member.getRadius();
-            nearbyCourses = courseRepository.findNearbyCourses(latitude, longitude, radius);
-
-            List<Long> courseIds = nearbyCourses.stream().map(Response::getId).toList();
-            courseCacheService.cacheNearbyCourses(latitude, longitude, courseIds);
-
-            for (Response course : nearbyCourses) {
-                CourseDetailDTO detail = convertResponseToCourseDetailDTO(course);
-                courseCacheService.cacheCourseDetail(course.getId(), detail);
-            }
-        }
+        List<Response> nearbyCourses = getNearbyCoursesWithCache(latitude, longitude, member.getRadius());
 
         Set<Long> courseIds = userRecords.stream()
                 .map(RunningRecord::getCourseId)
@@ -471,23 +461,25 @@ public class CourseService {
                 .nearbyCourses(nearbyCourseDTOs)
                 .build();
 
-        List<Long> recommendedCourseIds = callFastAPIRecommendation(request);
+        List<Long> recommendedCourseIds = callFastAPIRecordRecommendation(request);
 
-        Map<Long, Course> recommendedCourseMap = courseRepository.findAllById(recommendedCourseIds).stream()
-                .collect(Collectors.toMap(Course::getId, Function.identity()));
-
-        return recommendedCourseIds.stream()
-                .map(recommendedCourseMap::get)
-                .filter(Objects::nonNull)
-                .map(this::convertToCourseDetailDTO)
-                .toList();
+        return getRecommendedCourseDetails(recommendedCourseIds);
     }
 
-    private List<Long> callFastAPIRecommendation(RecommendationDTO.Request request) {
+    private List<Long> callFastAPIRecordRecommendation(RecommendationDTO.Request request) {
+        return callFastAPI("/recommend/record", request);
+    }
+
+    private List<Long> callFastAPISettingRecommendation(RecommendationDTO.SettingRequest request) {
+        return callFastAPI("/recommend/setting", request);
+    }
+
+    private List<Long> callFastAPI(String endpoint, Object request) {
         try {
-            String rawResponse = fastAPIClient.post("/recommend/record", request, String.class);
+            String rawResponse = fastAPIClient.post(endpoint, request, String.class);
 
             if (rawResponse == null || rawResponse.trim().isEmpty()) {
+                log.warn("Empty response from FastAPI {}", endpoint);
                 throw new NoRecommendedCoursesException();
             }
 
@@ -497,9 +489,9 @@ public class CourseService {
             );
 
             if (items == null || items.isEmpty()) {
+                log.warn("No items in FastAPI response from {}", endpoint);
                 throw new NoRecommendedCoursesException();
             }
-
             return items.stream()
                     .map(RecommendationDTO.RecommendationItem::getCourseId)
                     .filter(Objects::nonNull)
@@ -508,7 +500,7 @@ public class CourseService {
         } catch (NoRecommendedCoursesException e) {
             throw e;
         } catch (Exception e) {
-            log.error("FastAPI recommendation request failed", e);
+            log.error("FastAPI {} request failed", endpoint, e);
             throw new NoRecommendedCoursesException();
         }
     }
@@ -533,5 +525,42 @@ public class CourseService {
                 .latitude(course.getStartLat())
                 .longitude(course.getStartLng())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CourseDetailDTO> getRecommendedCoursesBySetting(Long memberId, Double latitude, Double longitude) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+
+        List<Response> nearbyCourses = getNearbyCoursesWithCache(latitude, longitude, member.getRadius());
+
+        List<RecommendationDTO.NearbyCourse> nearbyCourseDTOs = nearbyCourses.stream()
+                .map(this::convertToNearbyCourseDTO)
+                .toList();
+
+        RecommendationDTO.UserSetting userSetting = RecommendationDTO.UserSetting.builder()
+                .distance(member.getDailyDistanceGoal())
+                .difficulty(member.getPreferredDifficulty())
+                .build();
+
+        RecommendationDTO.SettingRequest request = RecommendationDTO.SettingRequest.builder()
+                .userSetting(userSetting)
+                .nearbyCourses(nearbyCourseDTOs)
+                .build();
+
+        List<Long> recommendedCourseIds = callFastAPISettingRecommendation(request);
+
+        return getRecommendedCourseDetails(recommendedCourseIds);
+    }
+
+    private List<CourseDetailDTO> getRecommendedCourseDetails(List<Long> recommendedCourseIds) {
+        Map<Long, Course> recommendedCourseMap = courseRepository.findAllById(recommendedCourseIds).stream()
+                .collect(Collectors.toMap(Course::getId, Function.identity()));
+
+        return recommendedCourseIds.stream()
+                .map(recommendedCourseMap::get)
+                .filter(Objects::nonNull)
+                .map(this::convertToCourseDetailDTO)
+                .toList();
     }
 }
