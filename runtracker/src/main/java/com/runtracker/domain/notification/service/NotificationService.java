@@ -201,6 +201,48 @@ public class NotificationService {
     }
 
     @Transactional
+    public void notifyPostCreate(Long authorMemberId) {
+        String title = messages.get("notify.post.create.title");
+        String content = messages.get("notify.post.create.content");
+
+        String fcmToken = memberService.getFcmToken(authorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post create notification: authorMemberId={}", authorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostUpdate(Long authorMemberId) {
+        String title = messages.get("notify.post.update.title");
+        String content = messages.get("notify.post.update.content");
+
+        String fcmToken = memberService.getFcmToken(authorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post update notification: authorMemberId={}", authorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostDelete(Long authorMemberId) {
+        String title = messages.get("notify.post.delete.title");
+        String content = messages.get("notify.post.delete.content");
+
+        String fcmToken = memberService.getFcmToken(authorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post delete notification: authorMemberId={}", authorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
     public void notifyScheduleCreation(Long creatorId, Long crewId, String scheduleTitle) {
         Member creator = memberRepository.findById(creatorId).orElseThrow();
         List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);

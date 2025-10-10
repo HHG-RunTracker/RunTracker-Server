@@ -6,6 +6,9 @@ import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
 import com.runtracker.domain.community.dto.RunningMetaDTO;
+import com.runtracker.domain.community.event.PostCreateEvent;
+import com.runtracker.domain.community.event.PostUpdateEvent;
+import com.runtracker.domain.community.event.PostDeleteEvent;
 import com.runtracker.domain.community.event.PostLikeEvent;
 import com.runtracker.domain.community.event.PostCommentEvent;
 import com.runtracker.domain.community.entity.Post;
@@ -76,6 +79,8 @@ public class CommunityService {
             Post post = postBuilder.build();
 
             postRepository.save(post);
+
+            eventPublisher.publishEvent(new PostCreateEvent(userDetails.getMemberId(), post.getId()));
         } catch (Exception e) {
             throw new PostCreationFailedException();
         }
@@ -109,6 +114,8 @@ public class CommunityService {
                     postDTO.getMeta().getAvgSpeed()
             );
         }
+
+        eventPublisher.publishEvent(new PostUpdateEvent(userDetails.getMemberId(), postId));
     }
 
     @Transactional
@@ -123,6 +130,8 @@ public class CommunityService {
         }
 
         postRepository.deleteById(postId);
+
+        eventPublisher.publishEvent(new PostDeleteEvent(userDetails.getMemberId(), postId));
     }
 
     @Transactional

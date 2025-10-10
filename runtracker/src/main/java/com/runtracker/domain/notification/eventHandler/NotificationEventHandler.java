@@ -7,6 +7,9 @@ import com.runtracker.domain.crew.event.CrewMemberRoleUpdateEvent;
 import com.runtracker.domain.crew.event.CrewDeleteEvent;
 import com.runtracker.domain.crew.event.CrewBanEvent;
 import com.runtracker.domain.crew.event.CrewLeaveEvent;
+import com.runtracker.domain.community.event.PostCreateEvent;
+import com.runtracker.domain.community.event.PostUpdateEvent;
+import com.runtracker.domain.community.event.PostDeleteEvent;
 import com.runtracker.domain.community.event.PostLikeEvent;
 import com.runtracker.domain.community.event.PostCommentEvent;
 import com.runtracker.domain.schedule.event.ScheduleCreateEvent;
@@ -159,6 +162,48 @@ public class NotificationEventHandler {
             log.error("Failed to send post comment notification - commenterMemberId: {}, postAuthorMemberId: {}, postId: {}, error: {}",
                 event.commenterMemberId(),
                 event.postAuthorMemberId(),
+                event.postId(),
+                e.getMessage());
+            throw e;
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void sendPostCreateNotification(PostCreateEvent event) {
+        try {
+            notificationService.notifyPostCreate(event.authorMemberId());
+        } catch (Exception e) {
+            log.error("Failed to send post create notification - authorMemberId: {}, postId: {}, error: {}",
+                event.authorMemberId(),
+                event.postId(),
+                e.getMessage());
+            throw e;
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void sendPostUpdateNotification(PostUpdateEvent event) {
+        try {
+            notificationService.notifyPostUpdate(event.authorMemberId());
+        } catch (Exception e) {
+            log.error("Failed to send post update notification - authorMemberId: {}, postId: {}, error: {}",
+                event.authorMemberId(),
+                event.postId(),
+                e.getMessage());
+            throw e;
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void sendPostDeleteNotification(PostDeleteEvent event) {
+        try {
+            notificationService.notifyPostDelete(event.authorMemberId());
+        } catch (Exception e) {
+            log.error("Failed to send post delete notification - authorMemberId: {}, postId: {}, error: {}",
+                event.authorMemberId(),
                 event.postId(),
                 e.getMessage());
             throw e;
