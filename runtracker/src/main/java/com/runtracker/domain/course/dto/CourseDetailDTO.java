@@ -2,14 +2,18 @@ package com.runtracker.domain.course.dto;
 
 import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.global.vo.Coordinate;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CourseDetailDTO {
     private Long id;
     private Long memberId;
