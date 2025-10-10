@@ -25,10 +25,10 @@ public class Post extends BaseEntity {
     @Column(name = "crew_id", nullable = false)
     private Long crewId;
 
-    @Column(name = "title", length = 100, nullable = false)
+    @Column(name = "title", length = 100)
     private String title;
 
-    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "photos", columnDefinition = "JSON")

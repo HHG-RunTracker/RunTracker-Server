@@ -6,6 +6,9 @@ import com.runtracker.domain.community.dto.PostDTO;
 import com.runtracker.domain.community.dto.PostDetailDTO;
 import com.runtracker.domain.community.dto.PostListDTO;
 import com.runtracker.domain.community.dto.RunningMetaDTO;
+import com.runtracker.domain.community.event.PostCreateEvent;
+import com.runtracker.domain.community.event.PostUpdateEvent;
+import com.runtracker.domain.community.event.PostDeleteEvent;
 import com.runtracker.domain.community.event.PostLikeEvent;
 import com.runtracker.domain.community.event.PostCommentEvent;
 import com.runtracker.domain.community.entity.Post;
@@ -17,6 +20,7 @@ import com.runtracker.domain.community.exception.CommentNotFoundException;
 import com.runtracker.domain.community.exception.NoPostsFoundException;
 import com.runtracker.domain.community.exception.NoSearchResultsException;
 import com.runtracker.domain.community.exception.NotLikedPostException;
+import com.runtracker.domain.community.exception.PhotosRequiredException;
 import com.runtracker.domain.community.exception.PostCreationFailedException;
 import com.runtracker.domain.community.exception.PostNotFoundException;
 import com.runtracker.domain.community.exception.UnauthorizedCommentAccessException;
@@ -53,6 +57,10 @@ public class CommunityService {
         Long crewId = userDetails.getCrewMembership().getCrewId();
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
 
+        if (postDTO.getPhotos() == null || postDTO.getPhotos().isEmpty()) {
+            throw new PhotosRequiredException();
+        }
+
         try {
             Post.PostBuilder postBuilder = Post.builder()
                     .memberId(userDetails.getMemberId())
@@ -71,6 +79,8 @@ public class CommunityService {
             Post post = postBuilder.build();
 
             postRepository.save(post);
+
+            eventPublisher.publishEvent(new PostCreateEvent(userDetails.getMemberId(), post.getId()));
         } catch (Exception e) {
             throw new PostCreationFailedException();
         }
@@ -104,6 +114,8 @@ public class CommunityService {
                     postDTO.getMeta().getAvgSpeed()
             );
         }
+
+        eventPublisher.publishEvent(new PostUpdateEvent(userDetails.getMemberId(), postId));
     }
 
     @Transactional
@@ -118,6 +130,8 @@ public class CommunityService {
         }
 
         postRepository.deleteById(postId);
+
+        eventPublisher.publishEvent(new PostDeleteEvent(userDetails.getMemberId(), postId));
     }
 
     @Transactional
