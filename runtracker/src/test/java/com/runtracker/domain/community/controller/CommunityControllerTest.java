@@ -64,7 +64,7 @@ class CommunityControllerTest extends RunTrackerDocumentApiTester {
                                 ResourceSnippetParameters.builder()
                                         .tag("community")
                                         .summary("크루 커뮤니티 게시글 작성")
-                                        .description("크루 멤버가 해당 크루의 커뮤니티에 새로운 게시글을 작성합니다. 제목과 내용은 필수이고 사진은 선택사항입니다.")
+                                        .description("크루 멤버가 해당 크루의 커뮤니티에 새로운 게시글을 작성합니다. 사진은 필수이고 제목과 내용은 선택사항입니다.")
                                         .requestHeaders(
                                                 headerWithName("Authorization").description("액세스 토큰")
                                         )

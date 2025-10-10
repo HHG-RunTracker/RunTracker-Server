@@ -17,7 +17,8 @@ public enum CommunityErrorCode implements ResponseCode {
     COMMENT_CREATION_FAILED("CM007", "Failed to create comment"),
     UNAUTHORIZED_COMMENT_ACCESS("CM008", "Unauthorized access to comment"),
     NO_POSTS_FOUND("CM009", "No posts found in this crew"),
-    NO_SEARCH_RESULTS("CM010", "No posts found for the given keyword");
+    NO_SEARCH_RESULTS("CM010", "No posts found for the given keyword"),
+    PHOTOS_REQUIRED("CM011", "Photos are required for post creation");
 
     private final String statusCode;
     private final String message;

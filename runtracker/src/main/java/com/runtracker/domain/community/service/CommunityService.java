@@ -17,6 +17,7 @@ import com.runtracker.domain.community.exception.CommentNotFoundException;
 import com.runtracker.domain.community.exception.NoPostsFoundException;
 import com.runtracker.domain.community.exception.NoSearchResultsException;
 import com.runtracker.domain.community.exception.NotLikedPostException;
+import com.runtracker.domain.community.exception.PhotosRequiredException;
 import com.runtracker.domain.community.exception.PostCreationFailedException;
 import com.runtracker.domain.community.exception.PostNotFoundException;
 import com.runtracker.domain.community.exception.UnauthorizedCommentAccessException;
@@ -52,6 +53,10 @@ public class CommunityService {
     public void createPost(PostDTO postDTO, UserDetailsImpl userDetails) {
         Long crewId = userDetails.getCrewMembership().getCrewId();
         crewAuthorizationUtil.validateCrewMemberAccess(userDetails, crewId);
+
+        if (postDTO.getPhotos() == null || postDTO.getPhotos().isEmpty()) {
+            throw new PhotosRequiredException();
+        }
 
         try {
             Post.PostBuilder postBuilder = Post.builder()
