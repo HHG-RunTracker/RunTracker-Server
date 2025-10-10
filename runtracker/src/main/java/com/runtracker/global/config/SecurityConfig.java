@@ -38,7 +38,8 @@ public class SecurityConfig {
             "/static/**", "/webjars/**",
             "/login/oauth2/**", "/oauth2/**",
             "/actuator/**", "/health", "/error", "/favicon.ico",
-            "/api/members/search-name", "/api/members/test-login", "/api/members/refresh"
+            "/api/members/search-name", "/api/members/test-login", "/api/members/refresh",
+            "/api/upload/image/**"
     );
 
     @Bean
