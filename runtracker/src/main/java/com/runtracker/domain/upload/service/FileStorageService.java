@@ -81,15 +81,4 @@ public class FileStorageService {
             throw new FileNotFoundException(filename);
         }
     }
-
-    // 파일의 Content-Type을 결정
-    public String determineContentType(Resource resource) {
-        try {
-            String contentType = Files.probeContentType(resource.getFile().toPath());
-            return contentType != null ? contentType : "application/octet-stream";
-        } catch (IOException ex) {
-            log.info("Could not determine file type, using default");
-            return "application/octet-stream";
-        }
-    }
 }

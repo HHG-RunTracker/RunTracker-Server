@@ -36,11 +36,10 @@ public class UploadController {
     public ResponseEntity<Resource> getImage(@PathVariable String filename) {
 
         Resource resource = fileStorageService.loadFileAsResource(filename);
-        String contentType = fileStorageService.determineContentType(resource);
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                .contentType(MediaType.parseMediaType("image/webp"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(resource);
     }
 }
