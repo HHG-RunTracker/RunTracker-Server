@@ -78,7 +78,6 @@ class UploadControllerTest extends RunTrackerDocumentApiTester {
             }
         };
         when(fileStorageService.loadFileAsResource(anyString())).thenReturn(mockResource);
-        when(fileStorageService.determineContentType(any())).thenReturn("image/webp");
 
         // when & then
         this.mockMvc.perform(get("/api/upload/image/{filename}", filename))
