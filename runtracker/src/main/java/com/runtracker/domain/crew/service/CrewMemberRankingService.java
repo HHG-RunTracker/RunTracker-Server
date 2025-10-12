@@ -123,12 +123,19 @@ public class CrewMemberRankingService {
     }
 
     private CrewMemberRankingDTO.Response buildMemberRankingResponse(Long crewId, LocalDate date, List<CrewMemberRanking> rankings) {
+        List<Long> memberIds = rankings.stream()
+                .map(CrewMemberRanking::getMemberId)
+                .toList();
+
+        Map<Long, Member> memberMap = memberRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(Member::getId, member -> member));
+
         List<CrewMemberRankingDTO.MemberRankInfo> rankInfos = rankings.stream()
-                .map(this::convertToMemberRankInfo)
+                .map(ranking -> convertToMemberRankInfo(ranking, memberMap))
                 .toList();
 
         Optional<Crew> crew = crewRepository.findById(crewId);
-        LocalDateTime lastUpdated = rankings.isEmpty() ? LocalDateTime.now() : 
+        LocalDateTime lastUpdated = rankings.isEmpty() ? LocalDateTime.now() :
                 rankings.stream()
                         .map(CrewMemberRanking::getUpdatedAt)
                         .max(LocalDateTime::compareTo)
@@ -188,8 +195,9 @@ public class CrewMemberRankingService {
         }
     }
 
-    private CrewMemberRankingDTO.MemberRankInfo convertToMemberRankInfo(CrewMemberRanking ranking) {
-        Optional<Member> member = memberRepository.findById(ranking.getMemberId());
+    private CrewMemberRankingDTO.MemberRankInfo convertToMemberRankInfo(
+            CrewMemberRanking ranking, Map<Long, Member> memberMap) {
+        Member member = memberMap.get(ranking.getMemberId());
 
         double averageDistance = ranking.getParticipationCount() > 0 ?
                 ranking.getTotalDistance() / ranking.getParticipationCount() : 0.0;
@@ -198,8 +206,8 @@ public class CrewMemberRankingService {
 
         return CrewMemberRankingDTO.MemberRankInfo.builder()
                 .memberId(ranking.getMemberId())
-                .memberName(member.map(Member::getName).orElse("Unknown"))
-                .memberPhoto(member.map(Member::getPhoto).orElse(null))
+                .memberName(member != null ? member.getName() : "Unknown")
+                .memberPhoto(member != null ? member.getPhoto() : null)
                 .rank(ranking.getRankPosition())
                 .totalDistance(ranking.getTotalDistance())
                 .totalRunningTime(ranking.getTotalRunningTime())

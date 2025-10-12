@@ -1,5 +1,6 @@
 package com.runtracker.domain.crew.service;
 
+import com.runtracker.domain.crew.dto.CrewRankingCacheDTO;
 import com.runtracker.domain.crew.dto.CrewRankingDTO;
 import com.runtracker.domain.crew.dto.CrewRankingData;
 import com.runtracker.domain.crew.entity.Crew;
@@ -28,18 +29,29 @@ public class CrewRankingService {
     private final CrewRepository crewRepository;
     private final CrewMemberRepository crewMemberRepository;
     private final RecordRepository recordRepository;
+    private final CrewRankingCacheService cacheService;
 
     /**
-     * 랭킹 조회
+     * 랭킹 조회 (Cache-Aside 패턴)
      */
     public CrewRankingDTO.Response getDailyRanking(LocalDate date) {
+        Map<Long, CrewRankingCacheDTO> cachedRanking = cacheService.getRankingFromCache(date);
+
+        if (cachedRanking != null && !cachedRanking.isEmpty()) {
+            return buildResponseFromCache(date, cachedRanking);
+        }
+
         List<CrewRanking> rankings = findExistingRankings(date);
-        
+
         if (rankings.isEmpty()) {
             rankingCalculation(date);
             rankings = findExistingRankings(date);
         }
-        
+
+        if (!rankings.isEmpty()) {
+            cacheService.saveRankingToCache(date, rankings);
+        }
+
         return buildResponse(date, rankings);
     }
 
@@ -47,7 +59,14 @@ public class CrewRankingService {
      * 랭킹 강제 재계산
      */
     public void recalculateRanking(LocalDate date) {
+        cacheService.invalidateCache(date);
+
         rankingCalculation(date);
+
+        List<CrewRanking> rankings = findExistingRankings(date);
+        if (!rankings.isEmpty()) {
+            cacheService.saveRankingToCache(date, rankings);
+        }
     }
 
     /**
@@ -98,12 +117,46 @@ public class CrewRankingService {
         return crewRankingRepository.findByDateOrderByRankPosition(date);
     }
 
+    /**
+     * Redis 캐시 데이터로 Response 생성
+     */
+    private CrewRankingDTO.Response buildResponseFromCache(LocalDate date,
+                                                           Map<Long, CrewRankingCacheDTO> cachedRanking) {
+        List<Long> crewIds = new ArrayList<>(cachedRanking.keySet());
+
+        Map<Long, Crew> crewMap = crewRepository.findAllById(crewIds).stream()
+                .collect(Collectors.toMap(Crew::getId, crew -> crew));
+
+        List<CrewRankingDTO.CrewRankInfo> rankInfos = new ArrayList<>();
+        int rank = 1;
+
+        for (Long crewId : crewIds) {
+            CrewRankingCacheDTO data = cachedRanking.get(crewId);
+            Crew crew = crewMap.get(crewId);
+
+            rankInfos.add(CrewRankingDTO.CrewRankInfo.builder()
+                    .crewId(crewId)
+                    .crewName(crew != null ? crew.getTitle() : "Unknown")
+                    .crewPhoto(crew != null ? crew.getPhoto() : null)
+                    .totalDistance(data.getTotalDistance())
+                    .totalRunningTime(data.getTotalRunningTime())
+                    .rank(rank++)
+                    .build());
+        }
+
+        return CrewRankingDTO.Response.builder()
+                .date(date)
+                .rankings(rankInfos)
+                .lastUpdated(LocalDateTime.now())
+                .build();
+    }
+
     private CrewRankingDTO.Response buildResponse(LocalDate date, List<CrewRanking> rankings) {
         List<CrewRankingDTO.CrewRankInfo> rankInfos = rankings.stream()
                 .map(this::convertToRankInfo)
                 .toList();
 
-        LocalDateTime lastUpdated = rankings.isEmpty() ? LocalDateTime.now() : 
+        LocalDateTime lastUpdated = rankings.isEmpty() ? LocalDateTime.now() :
                 rankings.stream()
                         .map(CrewRanking::getUpdatedAt)
                         .max(LocalDateTime::compareTo)
