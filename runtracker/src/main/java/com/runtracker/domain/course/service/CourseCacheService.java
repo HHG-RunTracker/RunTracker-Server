@@ -224,4 +224,47 @@ public class CourseCacheService {
             log.warn("Failed to evict oldest course detail slot: {}", e.getMessage());
         }
     }
+
+    /**
+     * 특정 코스 상세 정보 캐시 삭제
+     */
+    public void evictCourseDetail(Long courseId) {
+        try {
+            redisTemplate.opsForHash().delete(COURSE_DETAIL_HASH, courseId.toString());
+        } catch (Exception e) {
+            log.warn("Failed to evict course detail cache for courseId: {}, error: {}", courseId, e.getMessage());
+        }
+    }
+
+    /**
+     * 슬롯에서 특정 코스 ID 제거
+     */
+    public void removeCourseFromSlot(Double latitude, Double longitude, Long courseId) {
+        try {
+            String groupKey = generateLocationKey(latitude, longitude);
+            SlotData slot = (SlotData) redisTemplate.opsForHash().get(NEARBY_SLOTS_HASH, groupKey);
+
+            if (slot != null) {
+                slot.getCourseIds().remove(courseId);
+                redisTemplate.opsForHash().put(NEARBY_SLOTS_HASH, groupKey, slot);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to remove course from slot for lat: {}, lng: {}, courseId: {}, error: {}",
+                    latitude, longitude, courseId, e.getMessage());
+        }
+    }
+
+    /**
+     * 코스 상세 정보 업데이트
+     */
+    public void updateCourseDetail(Long courseId, CourseDetailDTO detail) {
+        try {
+            Object existing = redisTemplate.opsForHash().get(COURSE_DETAIL_HASH, courseId.toString());
+            if (existing != null) {
+                redisTemplate.opsForHash().put(COURSE_DETAIL_HASH, courseId.toString(), detail);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update course detail cache for courseId: {}, error: {}", courseId, e.getMessage());
+        }
+    }
 }

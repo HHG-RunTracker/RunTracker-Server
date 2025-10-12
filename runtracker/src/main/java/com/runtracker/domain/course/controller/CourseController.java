@@ -2,6 +2,7 @@ package com.runtracker.domain.course.controller;
 
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
+import com.runtracker.domain.course.dto.CourseUpdateDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
 import com.runtracker.domain.course.service.CourseService;
@@ -89,5 +90,22 @@ public class CourseController {
         List<CourseDetailDTO> recommendedCourses = courseService.getRecommendedCoursesBySetting(
                 userDetails.getMemberId(), latitude, longitude);
         return ApiResponse.ok(recommendedCourses);
+    }
+
+    @PatchMapping("/{courseId}")
+    public ApiResponse<Void> updateCourse(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long courseId,
+            @RequestBody CourseUpdateDTO courseUpdateDTO) {
+        courseService.updateCourse(userDetails.getMemberId(), courseId, courseUpdateDTO);
+        return ApiResponse.ok();
+    }
+
+    @DeleteMapping("/{courseId}")
+    public ApiResponse<Void> deleteCourse(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long courseId) {
+        courseService.deleteCourse(userDetails.getMemberId(), courseId);
+        return ApiResponse.ok();
     }
 }
