@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
+import com.runtracker.domain.course.dto.CourseUpdateDTO;
 import com.runtracker.domain.course.service.dto.GoogleMapsDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO.Response;
 import com.runtracker.domain.course.dto.FinishRunning;
@@ -13,6 +14,8 @@ import com.runtracker.domain.course.enums.Difficulty;
 import com.runtracker.domain.course.exception.AlreadyRunningException;
 import com.runtracker.domain.course.exception.CourseCreationFailedException;
 import com.runtracker.domain.course.exception.CourseNotFoundException;
+import com.runtracker.domain.course.exception.CourseUpdateForbiddenException;
+import com.runtracker.domain.course.exception.CourseDeleteForbiddenException;
 import com.runtracker.domain.course.exception.InsufficientPathDataException;
 import com.runtracker.domain.course.exception.InvalidStartTimeException;
 import com.runtracker.domain.course.exception.MultipleActiveRunningException;
@@ -562,5 +565,47 @@ public class CourseService {
                 .filter(Objects::nonNull)
                 .map(this::convertToCourseDetailDTO)
                 .toList();
+    }
+
+    @Transactional
+    public void updateCourse(Long memberId, Long courseId, CourseUpdateDTO courseUpdateDTO) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
+
+        if (!course.getMemberId().equals(memberId)) {
+            throw new CourseUpdateForbiddenException("You do not have permission to update this course");
+        }
+
+        Difficulty difficulty = null;
+        if (courseUpdateDTO.getDifficulty() != null && !courseUpdateDTO.getDifficulty().trim().isEmpty()) {
+            try {
+                difficulty = Difficulty.valueOf(courseUpdateDTO.getDifficulty().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ValidationErrorException("Invalid difficulty value: " + courseUpdateDTO.getDifficulty());
+            }
+        }
+
+        course.updateCourse(courseUpdateDTO.getName(), difficulty);
+        Course updatedCourse = courseRepository.save(course);
+
+        CourseDetailDTO updatedDetail = convertToCourseDetailDTO(updatedCourse);
+        courseCacheService.updateCourseDetail(courseId, updatedDetail);
+    }
+
+    @Transactional
+    public void deleteCourse(Long memberId, Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new CourseNotFoundException("Course not found with id: " + courseId));
+
+        if (!course.getMemberId().equals(memberId)) {
+            throw new CourseDeleteForbiddenException("You do not have permission to delete this course");
+        }
+
+        courseRepository.delete(course);
+
+        courseCacheService.evictCourseDetail(courseId);
+        if (course.getStartLat() != null && course.getStartLng() != null) {
+            courseCacheService.removeCourseFromSlot(course.getStartLat(), course.getStartLng(), courseId);
+        }
     }
 }

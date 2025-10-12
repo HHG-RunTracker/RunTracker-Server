@@ -3,6 +3,7 @@ package com.runtracker.domain.course.controller;
 import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.course.dto.CourseCreateDTO;
+import com.runtracker.domain.course.dto.CourseUpdateDTO;
 import com.runtracker.domain.course.dto.CourseDetailDTO;
 import com.runtracker.domain.course.dto.NearbyCoursesDTO;
 import com.runtracker.domain.course.enums.Difficulty;
@@ -30,8 +31,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -683,6 +683,94 @@ class CourseControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].region").type(JsonFieldType.STRING).description("코스 지역"),
                                                 fieldWithPath("body[].createdAt").type(JsonFieldType.STRING).description("코스 생성 시간"),
                                                 fieldWithPath("body[].updatedAt").type(JsonFieldType.STRING).description("코스 수정 시간")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void updateCourseTest() throws Exception {
+        // given
+        doNothing().when(courseService).updateCourse(anyLong(), anyLong(), any(CourseUpdateDTO.class));
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        Map<String, Object> updateRequest = new LinkedHashMap<>();
+        updateRequest.put("name", "수정된 코스 이름");
+        updateRequest.put("difficulty", "HARD");
+
+        this.mockMvc.perform(patch("/api/courses/{courseId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN)
+                        .contentType("application/json")
+                        .content(toJson(updateRequest)))
+                .andExpect(status().isOk())
+                .andDo(document("course-update",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("courses")
+                                        .description("내가 만든 코스 수정")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("courseId").description("수정할 코스 ID")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("name").type(JsonFieldType.STRING).description("수정할 코스 이름").optional(),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("수정할 난이도 (EASY, MEDIUM, HARD)").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void deleteCourseTest() throws Exception {
+        // given
+        doNothing().when(courseService).deleteCourse(anyLong(), anyLong());
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(delete("/api/courses/{courseId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("course-delete",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("courses")
+                                        .description("내가 만든 코스 삭제")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("courseId").description("삭제할 코스 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
                                         )
                                         .build()
                         )

@@ -22,7 +22,9 @@ public enum CourseErrorCode implements ResponseCode {
     GOOGLE_MAPS_API_ERROR("CR012", "Google Maps API error"),
     INSUFFICIENT_PATH_DATA("CR013", "Insufficient path data for route analysis"),
     RECOMMENDATION_SERVICE_UNAVAILABLE("CR014", "Recommendation service is unavailable"),
-    NO_RECOMMENDED_COURSES("CR015", "No recommended courses found");
+    NO_RECOMMENDED_COURSES("CR015", "No recommended courses found"),
+    COURSE_UPDATE_FORBIDDEN("CR016", "You do not have permission to update this course"),
+    COURSE_DELETE_FORBIDDEN("CR017", "You do not have permission to delete this course");
 
     private final String statusCode;
     private final String message;

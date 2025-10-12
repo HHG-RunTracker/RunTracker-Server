@@ -49,4 +49,13 @@ public class Course extends BaseEntity {
 
     @Column(length = 100)
     private String region;
+
+    public void updateCourse(String name, Difficulty difficulty) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (difficulty != null) {
+            this.difficulty = difficulty;
+        }
+    }
 }
