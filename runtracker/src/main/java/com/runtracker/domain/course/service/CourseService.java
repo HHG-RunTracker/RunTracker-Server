@@ -35,6 +35,7 @@ import com.runtracker.domain.record.entity.RunningRecord;
 import com.runtracker.domain.record.exception.CourseNotFoundForRecordException;
 import com.runtracker.domain.record.exception.RecordNotFoundException;
 import com.runtracker.domain.record.repository.RecordRepository;
+import com.runtracker.global.util.ImageUpload;
 import com.runtracker.global.client.FastAPIClient;
 import com.runtracker.global.vo.Coordinate;
 import lombok.RequiredArgsConstructor;
@@ -70,6 +71,7 @@ public class CourseService {
     private final FastAPIClient fastAPIClient;
     private final ObjectMapper objectMapper;
     private final CourseCacheService courseCacheService;
+    private final ImageUpload imageUploadHelper;
 
     private void checkAlreadyRunning(Long memberId) {
         List<RunningRecord> activeRecords = recordRepository.findAllByMemberIdAndFinishedAtIsNull(memberId);
@@ -368,6 +370,12 @@ public class CourseService {
         }
 
         long runningTimeSeconds = Duration.between(startedAt, finishedAt).getSeconds();
+
+        // Base64 이미지를 URL로 변환
+        if (finishRunning.getPhoto() != null) {
+            String photoUrl = imageUploadHelper.convertBase64ToUrlIfNeeded(finishRunning.getPhoto());
+            finishRunning.setPhoto(photoUrl);
+        }
 
         Long courseId = existingRecord.getCourseId();
 

@@ -32,6 +32,7 @@ import com.runtracker.domain.member.dto.RunningSettingDTO;
 import com.runtracker.domain.member.enums.BackupType;
 import com.runtracker.domain.member.enums.MapStyle;
 import com.runtracker.domain.course.enums.Difficulty;
+import com.runtracker.global.util.ImageUpload;
 import com.runtracker.global.jwt.JwtUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -66,6 +67,7 @@ public class MemberService {
     private final ScheduleRepository scheduleRepository;
     private final ObjectMapper objectMapper;
     private final JwtUtil jwtUtil;
+    private final ImageUpload imageUploadHelper;
 
     @Transactional
     public Member createOrUpdateMember(String socialAttr, String socialId,
@@ -145,8 +147,25 @@ public class MemberService {
         if (memberUpdateDTO.getDifficulty() != null) {
             validateDifficulty(memberUpdateDTO.getDifficulty());
         }
-        
-        member.updateProfile(memberUpdateDTO);
+
+        if (memberUpdateDTO.getPhoto() != null) {
+            String photoUrl = imageUploadHelper.convertBase64ToUrlIfNeeded(memberUpdateDTO.getPhoto());
+            MemberUpdateDTO.Request updatedDTO = MemberUpdateDTO.Request.builder()
+                    .photo(photoUrl)
+                    .name(memberUpdateDTO.getName())
+                    .introduce(memberUpdateDTO.getIntroduce())
+                    .region(memberUpdateDTO.getRegion())
+                    .difficulty(memberUpdateDTO.getDifficulty())
+                    .age(memberUpdateDTO.getAge())
+                    .gender(memberUpdateDTO.getGender())
+                    .searchBlock(memberUpdateDTO.getSearchBlock())
+                    .profileBlock(memberUpdateDTO.getProfileBlock())
+                    .build();
+            member.updateProfile(updatedDTO);
+        } else {
+            member.updateProfile(memberUpdateDTO);
+        }
+
         return member;
     }
     
