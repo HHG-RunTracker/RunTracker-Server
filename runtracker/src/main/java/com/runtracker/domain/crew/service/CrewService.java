@@ -40,16 +40,19 @@ import com.runtracker.domain.crew.repository.CrewMemberRepository;
 import com.runtracker.domain.member.entity.Member;
 import com.runtracker.domain.member.entity.enums.MemberRole;
 import com.runtracker.domain.member.repository.MemberRepository;
+import com.runtracker.global.util.ImageUpload;
 import com.runtracker.global.security.UserDetailsImpl;
 import com.runtracker.global.security.CrewAuthorizationUtil;
 import com.runtracker.global.jwt.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -61,26 +64,48 @@ public class CrewService {
     private final CrewAuthorizationUtil authorizationUtil;
     private final TokenBlacklistService tokenBlacklistService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ImageUpload imageUploadHelper;
 
     public void createCrew(CrewCreateDTO.Request request, UserDetailsImpl userDetails) {
         memberRepository.findById(userDetails.getMemberId())
                 .orElseThrow(MemberNotFoundException::new);
-        
+
         List<Crew> existingCrews = crewRepository.findByLeaderId(userDetails.getMemberId());
         if (!existingCrews.isEmpty()) {
             throw new CrewAlreadyExistsException();
         }
-        
-        Crew crew = request.toEntity(userDetails.getMemberId());
-        crewRepository.save(crew);
-        
-        CrewMember crewLeader = CrewMember.builder()
-                .crewId(crew.getId())
-                .memberId(userDetails.getMemberId())
-                .role(MemberRole.CREW_LEADER)
-                .status(CrewMemberStatus.ACTIVE)
-                .build();
-        crewMemberRepository.save(crewLeader);
+
+        if (request.getPhoto() != null) {
+            String photoUrl = imageUploadHelper.convertBase64ToUrlIfNeeded(request.getPhoto());
+            CrewCreateDTO.Request updatedRequest = CrewCreateDTO.Request.builder()
+                    .title(request.getTitle())
+                    .photo(photoUrl)
+                    .introduce(request.getIntroduce())
+                    .region(request.getRegion())
+                    .difficulty(request.getDifficulty())
+                    .build();
+            Crew crew = updatedRequest.toEntity(userDetails.getMemberId());
+            crewRepository.save(crew);
+
+            CrewMember crewLeader = CrewMember.builder()
+                    .crewId(crew.getId())
+                    .memberId(userDetails.getMemberId())
+                    .role(MemberRole.CREW_LEADER)
+                    .status(CrewMemberStatus.ACTIVE)
+                    .build();
+            crewMemberRepository.save(crewLeader);
+        } else {
+            Crew crew = request.toEntity(userDetails.getMemberId());
+            crewRepository.save(crew);
+
+            CrewMember crewLeader = CrewMember.builder()
+                    .crewId(crew.getId())
+                    .memberId(userDetails.getMemberId())
+                    .role(MemberRole.CREW_LEADER)
+                    .status(CrewMemberStatus.ACTIVE)
+                    .build();
+            crewMemberRepository.save(crewLeader);
+        }
     }
     
     public void applyToJoinCrew(Long crewId, UserDetailsImpl userDetails) {
@@ -238,15 +263,16 @@ public class CrewService {
     
     public void updateCrew(Long crewId, CrewUpdateDTO.Request request, UserDetailsImpl userDetails) {
         authorizationUtil.validateCrewLeaderPermission(userDetails, crewId);
-        
+
         Crew crew = crewRepository.findById(crewId)
                 .orElseThrow(CrewNotFoundException::new);
-        
+
         if (request.getTitle() != null) {
             crew.updateTitle(request.getTitle());
         }
         if (request.getPhoto() != null) {
-            crew.updatePhoto(request.getPhoto());
+            String photoUrl = imageUploadHelper.convertBase64ToUrlIfNeeded(request.getPhoto());
+            crew.updatePhoto(photoUrl);
         }
         if (request.getIntroduce() != null) {
             crew.updateIntroduce(request.getIntroduce());
@@ -257,7 +283,7 @@ public class CrewService {
         if (request.getDifficulty() != null) {
             crew.updateDifficulty(request.getDifficulty());
         }
-        
+
         crewRepository.save(crew);
     }
     

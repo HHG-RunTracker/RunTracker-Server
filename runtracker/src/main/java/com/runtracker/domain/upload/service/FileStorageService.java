@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -18,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 import java.util.UUID;
 
 @Slf4j
@@ -63,6 +65,36 @@ public class FileStorageService {
         } catch (IOException ex) {
             log.error("Failed to store file: {}", originalFilename, ex);
             throw new FileStorageFailedException(originalFilename);
+        }
+    }
+
+    // Base64 인코딩된 이미지를 파일로 저장하고 URL을 반환
+    public String uploadBase64Image(String base64Data) {
+        if (base64Data == null || base64Data.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            String base64Image = base64Data;
+            if (base64Data.contains(",")) {
+                base64Image = base64Data.split(",")[1];
+            }
+
+            byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+
+            String storedFilename = UUID.randomUUID() + ".webp";
+            Path targetLocation = Paths.get(fileUploadConfig.getUploadDir()).resolve(storedFilename);
+
+            InputStream imageInputStream = new ByteArrayInputStream(imageBytes);
+            InputStream webpInputStream = ImageConverter.convertToWebP(imageInputStream);
+
+            Files.copy(webpInputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            return fileUploadConfig.getBaseUrl() + "/api/upload/image/" + storedFilename;
+
+        } catch (Exception ex) {
+            log.error("Failed to store base64 image", ex);
+            throw new FileStorageFailedException("base64-image");
         }
     }
 
