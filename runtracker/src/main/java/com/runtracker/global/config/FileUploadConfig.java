@@ -11,10 +11,10 @@ import java.io.File;
 @Configuration
 public class FileUploadConfig {
 
-    @Value("${file.upload-dir}")
+    @Value("${file.upload-dir:/app/uploads}}")
     private String uploadDir;
 
-    @Value("${file.base-url}")
+    @Value("${SPRING_DOMAIN}")
     private String baseUrl;
 
     @PostConstruct
