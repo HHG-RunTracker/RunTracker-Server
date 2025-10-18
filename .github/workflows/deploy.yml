@@ -42,7 +42,11 @@ jobs:
             echo "KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}" >> .env
             echo "KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}" >> .env
             echo "SPRING_DOMAIN=${{ secrets.SPRING_DOMAIN }}" >> .env
-            echo "FILE_UPLOAD_DIR=/app/uploads" >> .env
+            echo "S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}" >> .env
+            echo "S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}" >> .env
+            echo "S3_REGION=${{ secrets.S3_REGION }}" >> .env
+            echo "S3_BUCKET=${{ secrets.S3_BUCKET }}" >> .env
+            echo "S3_BASE_URL=${{ secrets.S3_BASE_URL }}" >> .env
 
             mkdir -p ./src/main/resources/firebase
             echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}

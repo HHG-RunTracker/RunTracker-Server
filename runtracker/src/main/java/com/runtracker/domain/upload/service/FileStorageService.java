@@ -2,23 +2,19 @@ package com.runtracker.domain.upload.service;
 
 import com.runtracker.domain.upload.exception.*;
 import com.runtracker.global.util.ImageConverter;
-import com.runtracker.global.config.FileUploadConfig;
+import com.runtracker.global.config.S3Config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -27,7 +23,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileStorageService {
 
-    private final FileUploadConfig fileUploadConfig;
+    private final S3Client s3Client;
+    private final S3Config s3Config;
 
     // 이미지 파일을 업로드하고 URL을 반환
     public String uploadImage(MultipartFile file) {
@@ -43,7 +40,7 @@ public class FileStorageService {
         return storeFile(file);
     }
 
-    // 파일을 WebP 포맷으로 변환
+    // 파일을 WebP 포맷으로 변환하여 S3에 업로드
     private String storeFile(MultipartFile file) {
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
 
@@ -54,13 +51,12 @@ public class FileStorageService {
         try {
             String storedFilename = UUID.randomUUID() + ".webp";
 
-            Path targetLocation = Paths.get(fileUploadConfig.getUploadDir()).resolve(storedFilename);
-
             InputStream webpInputStream = ImageConverter.convertToWebP(file);
+            byte[] fileBytes = webpInputStream.readAllBytes();
 
-            Files.copy(webpInputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            uploadToS3(storedFilename, fileBytes);
 
-            return fileUploadConfig.getBaseUrl() + "/api/upload/image/" + storedFilename;
+            return s3Config.getBaseUrl() + "/" + storedFilename;
 
         } catch (IOException ex) {
             log.error("Failed to store file: {}", originalFilename, ex);
@@ -68,7 +64,23 @@ public class FileStorageService {
         }
     }
 
-    // Base64 인코딩된 이미지를 파일로 저장하고 URL을 반환
+    private void uploadToS3(String filename, byte[] fileBytes) {
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(s3Config.getBucketName())
+                    .key(filename)
+                    .contentType("image/webp")
+                    .build();
+
+            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(fileBytes));
+            log.info("File uploaded to S3: {}", filename);
+        } catch (Exception ex) {
+            log.error("Failed to upload file to S3: {}", filename, ex);
+            throw new FileStorageFailedException(filename);
+        }
+    }
+
+    // Base64 인코딩된 이미지를 S3에 업로드하고 URL을 반환
     public String uploadBase64Image(String base64Data) {
         if (base64Data == null || base64Data.trim().isEmpty()) {
             return null;
@@ -83,14 +95,14 @@ public class FileStorageService {
             byte[] imageBytes = Base64.getDecoder().decode(base64Image);
 
             String storedFilename = UUID.randomUUID() + ".webp";
-            Path targetLocation = Paths.get(fileUploadConfig.getUploadDir()).resolve(storedFilename);
 
             InputStream imageInputStream = new ByteArrayInputStream(imageBytes);
             InputStream webpInputStream = ImageConverter.convertToWebP(imageInputStream);
+            byte[] webpBytes = webpInputStream.readAllBytes();
 
-            Files.copy(webpInputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            uploadToS3(storedFilename, webpBytes);
 
-            return fileUploadConfig.getBaseUrl() + "/api/upload/image/" + storedFilename;
+            return s3Config.getBaseUrl() + "/" + storedFilename;
 
         } catch (Exception ex) {
             log.error("Failed to store base64 image", ex);
@@ -98,19 +110,7 @@ public class FileStorageService {
         }
     }
 
-    public Resource loadFileAsResource(String filename) {
-        try {
-            Path filePath = Paths.get(fileUploadConfig.getUploadDir()).resolve(filename).normalize();
-            Resource resource = new UrlResource(filePath.toUri());
-
-            if (resource.exists()) {
-                return resource;
-            } else {
-                throw new FileNotFoundException(filename);
-            }
-        } catch (MalformedURLException ex) {
-            log.error("Failed to load file: {}", filename, ex);
-            throw new FileNotFoundException(filename);
-        }
+    public String getImageUrl(String filename) {
+        return s3Config.getBaseUrl() + "/" + filename;
     }
 }

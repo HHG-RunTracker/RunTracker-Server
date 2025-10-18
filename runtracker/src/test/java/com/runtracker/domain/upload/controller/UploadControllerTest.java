@@ -4,8 +4,7 @@ import com.epages.restdocs.apispec.ResourceSnippetParameters;
 import com.runtracker.RunTrackerDocumentApiTester;
 import com.runtracker.domain.upload.service.FileStorageService;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.restdocs.payload.JsonFieldType;
@@ -20,8 +19,9 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.multipart;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 class UploadControllerTest extends RunTrackerDocumentApiTester {
 
@@ -38,7 +38,7 @@ class UploadControllerTest extends RunTrackerDocumentApiTester {
                 "test image content".getBytes()
         );
 
-        String mockUrl = "http://localhost:8080/api/upload/image/550e8400-e29b-41d4-a716-446655440000.webp";
+        String mockUrl = "https://test-bucket.s3.region.amazonaws.com/550e8400-e29b-41d4-a716-446655440000.webp";
         when(fileStorageService.uploadImage(any())).thenReturn(mockUrl);
 
         // when & then
@@ -70,26 +70,21 @@ class UploadControllerTest extends RunTrackerDocumentApiTester {
     void getImage() throws Exception {
         // given
         String filename = "550e8400-e29b-41d4-a716-446655440000.webp";
-        byte[] imageBytes = "test image content".getBytes();
-        Resource mockResource = new ByteArrayResource(imageBytes) {
-            @Override
-            public String getFilename() {
-                return filename;
-            }
-        };
-        when(fileStorageService.loadFileAsResource(anyString())).thenReturn(mockResource);
+        String s3Url = "https://test-bucket.s3.region.amazonaws.com/" + filename;
+        when(fileStorageService.getImageUrl(anyString())).thenReturn(s3Url);
 
         // when & then
         this.mockMvc.perform(get("/api/upload/image/{filename}", filename))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.parseMediaType("image/webp")))
+                .andExpect(status().isMovedPermanently())
+                .andExpect(header().string(HttpHeaders.LOCATION, s3Url))
                 .andDo(document("upload-get-image",
                         resource(
                                 ResourceSnippetParameters.builder()
                                         .tag("upload")
                                         .summary("업로드된 이미지 조회")
-                                        .description("업로드된 이미지 파일을 조회합니다. " +
-                                                "브라우저나 이미지 뷰어에서 직접 표시할 수 있도록 inline으로 제공됩니다. url에 그냥 검색해도 이미지 나옵니다.")
+                                        .description("업로드된 이미지 파일을 S3에서 조회합니다. " +
+                                                "301 Moved Permanently로 S3 URL로 리다이렉트됩니다. " +
+                                                "클라이언트는 반환된 Location 헤더의 URL로 직접 접근할 수 있습니다.")
                                         .pathParameters(
                                                 parameterWithName("filename").description("조회할 파일명 (예: uuid.webp)")
                                         )

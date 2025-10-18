@@ -3,13 +3,12 @@ package com.runtracker.domain.upload.controller;
 import com.runtracker.domain.upload.service.FileStorageService;
 import com.runtracker.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,13 +32,9 @@ public class UploadController {
     }
 
     @GetMapping("/image/{filename:.+}")
-    public ResponseEntity<Resource> getImage(@PathVariable String filename) {
-
-        Resource resource = fileStorageService.loadFileAsResource(filename);
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("image/webp"))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
-                .body(resource);
+    public ResponseEntity<?> getImage(@PathVariable String filename) {
+        return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
+                .location(URI.create(fileStorageService.getImageUrl(filename)))
+                .build();
     }
 }
