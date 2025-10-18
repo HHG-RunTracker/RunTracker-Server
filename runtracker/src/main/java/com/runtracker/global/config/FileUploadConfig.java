@@ -11,19 +11,17 @@ import java.io.File;
 @Configuration
 public class FileUploadConfig {
 
-    @Value("${file.upload-dir:/app/uploads}")
+    @Value("${file.upload-dir}")
     private String uploadDir;
 
-    @Value("${app.domain:http://localhost:8080}")
+    @Value("${file.base-url}")
     private String baseUrl;
 
     @PostConstruct
     public void init() {
         File uploadDirectory = new File(uploadDir);
-        if (!uploadDirectory.exists()) {
-            if (!uploadDirectory.mkdirs()) {
-                System.out.println("Warning: Failed to create upload directory: " + uploadDir);
-            }
+        if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
+            throw new IllegalStateException("Failed to create upload directory: " + uploadDir);
         }
     }
 }

@@ -76,6 +76,10 @@ google:
   maps:
     api-key: ${GOOGLE_MAP_API_KEY}
 
+file:
+  upload-dir: ${FILE_UPLOAD_DIR}
+  base-url: ${SPRING_DOMAIN}
+
 aws:
   access-key: ${S3_ACCESS_KEY}
   secret-key: ${S3_SECRET_KEY}
