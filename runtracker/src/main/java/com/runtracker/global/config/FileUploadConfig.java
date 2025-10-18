@@ -20,8 +20,10 @@ public class FileUploadConfig {
     @PostConstruct
     public void init() {
         File uploadDirectory = new File(uploadDir);
-        if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
-            throw new IllegalStateException("Failed to create upload directory: " + uploadDir);
+        if (!uploadDirectory.exists()) {
+            if (!uploadDirectory.mkdirs()) {
+                System.out.println("Warning: Failed to create upload directory: " + uploadDir);
+            }
         }
     }
 }
