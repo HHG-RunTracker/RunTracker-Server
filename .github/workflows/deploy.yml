@@ -47,6 +47,7 @@ jobs:
             echo "S3_REGION=${{ secrets.S3_REGION }}" >> .env
             echo "S3_BUCKET=${{ secrets.S3_BUCKET }}" >> .env
             echo "S3_BASE_URL=${{ secrets.S3_BASE_URL }}" >> .env
+            echo "FILE_UPLOAD_DIR=/app/uploads" >> .env
 
             mkdir -p ./src/main/resources/firebase
             echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
