@@ -13,7 +13,6 @@ services:
       - .env # DB, Redis 접속 정보 등을 담을 파일
     volumes:
       - ./firebase:/app/secrets
-      - uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -66,4 +65,3 @@ services:
 volumes:
   mysql-data:
   redis-data:
-  uploads:
