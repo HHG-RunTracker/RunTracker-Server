@@ -50,7 +50,7 @@ jobs:
             echo "FILE_UPLOAD_DIR=/app/uploads" >> .env
 
             mkdir -p ./src/main/resources/firebase
-            echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+            echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/firebase/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
 
             chmod +x ./gradlew
 
