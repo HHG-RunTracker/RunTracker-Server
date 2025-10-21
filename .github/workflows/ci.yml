@@ -56,6 +56,7 @@ jobs:
       S3_REGION: ${{ secrets.S3_REGION }}
       S3_BUCKET: ${{ secrets.S3_BUCKET }}
       S3_BASE_URL: ${{ secrets.S3_BASE_URL }}
+      FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
 
     steps:
       - name: Checkout source code
