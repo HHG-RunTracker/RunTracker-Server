@@ -67,7 +67,7 @@ app:
     key: ${AUTH_KEY}
 
 firebase:
-  service-account-key: classpath:firebase/${FIREBASE_SERVICE_ACCOUNT_KEY:}
+  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY:}
   url: https://fcm.googleapis.com/v1/projects/${Firebase_ID}/messages:send
   google_api: https://www.googleapis.com/auth/cloud-platform
   project_id: ${Firebase_ID}
