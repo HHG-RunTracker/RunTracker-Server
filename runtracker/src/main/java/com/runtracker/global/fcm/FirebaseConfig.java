@@ -29,11 +29,9 @@ public class FirebaseConfig {
                     new java.io.ByteArrayInputStream(firebaseJson.getBytes())
                 );
             } else if (serviceAccountKeyPath != null && !serviceAccountKeyPath.isEmpty()) {
-                String resourcePath = serviceAccountKeyPath.startsWith("classpath:")
-                    ? serviceAccountKeyPath.substring(10)
-                    : serviceAccountKeyPath;
+                String firebasePath = "firebase/" + serviceAccountKeyPath;
                 googleCredentials = GoogleCredentials
-                        .fromStream(new ClassPathResource(resourcePath).getInputStream());
+                        .fromStream(new ClassPathResource(firebasePath).getInputStream());
             } else {
                 throw new RuntimeException("Firebase service account key not found. Please set FCM_JSON or FIREBASE_SERVICE_ACCOUNT_KEY");
             }
