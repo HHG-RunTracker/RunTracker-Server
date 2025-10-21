@@ -29,11 +29,13 @@ public class FirebaseConfig {
                     new java.io.ByteArrayInputStream(firebaseJson.getBytes())
                 );
             } else if (serviceAccountKeyPath != null && !serviceAccountKeyPath.isEmpty()) {
+                String resourcePath = serviceAccountKeyPath.startsWith("classpath:")
+                    ? serviceAccountKeyPath.substring(10)
+                    : serviceAccountKeyPath;
                 googleCredentials = GoogleCredentials
-                        .fromStream(new ClassPathResource(serviceAccountKeyPath).getInputStream());
+                        .fromStream(new ClassPathResource(resourcePath).getInputStream());
             } else {
-                googleCredentials = GoogleCredentials
-                        .fromStream(new ClassPathResource("firebase/runtracker-a30bb-firebase-adminsdk-fbsvc-9479026564.json").getInputStream());
+                throw new RuntimeException("Firebase service account key not found. Please set FCM_JSON or FIREBASE_SERVICE_ACCOUNT_KEY");
             }
 
             FirebaseOptions options = FirebaseOptions.builder()
