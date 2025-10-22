@@ -8,15 +8,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 
+@Slf4j
 @Configuration
 public class FirebaseConfig {
 
     @Value("${firebase.service-account-key:#{null}}")
     private String serviceAccountKeyPath;
+
+    @Value("${firebase.project_id:#{null}}")
+    private String firebaseProjectId;
 
     @PostConstruct
     public void initialize() {
@@ -38,6 +43,7 @@ public class FirebaseConfig {
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(googleCredentials)
+                    .setProjectId(firebaseProjectId)
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {

@@ -28,7 +28,7 @@ public class FcmClient {
 
             return response != null && !response.isEmpty();
         } catch (Exception e) {
-            log.warn("Failed to send FCM message. token: {}", token, e);
+            log.error("FCM 메시지 발송 실패 Error: {}", e.getMessage());
             return false;
         }
     }
