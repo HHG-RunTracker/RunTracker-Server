@@ -44,4 +44,12 @@ public class RecordController {
         RunningRecordDTO record = recordService.getRunningRecordById(userDetails.getMemberId(), recordId);
         return ApiResponse.ok(record);
     }
+
+    @DeleteMapping("/{recordId}")
+    public ApiResponse<Void> deleteRecord(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long recordId) {
+        recordService.deleteRecord(userDetails.getMemberId(), recordId);
+        return ApiResponse.ok();
+    }
 }

@@ -211,4 +211,16 @@ public class RecordService {
     public static LocalDate getMonthEnd(LocalDate date) {
         return date.with(TemporalAdjusters.lastDayOfMonth());
     }
+
+    @Transactional
+    public void deleteRecord(Long memberId, Long recordId) {
+        RunningRecord record = recordRepository.findById(recordId)
+                .orElseThrow(() -> new RecordNotFoundException("Running record not found with id: " + recordId));
+
+        if (!record.getMemberId().equals(memberId)) {
+            throw new RecordNotFoundException("Running record not found with id: " + recordId);
+        }
+
+        recordRepository.delete(record);
+    }
 }

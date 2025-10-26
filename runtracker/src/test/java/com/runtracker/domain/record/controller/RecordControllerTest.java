@@ -18,8 +18,10 @@ import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithNam
 import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -317,6 +319,46 @@ class RecordControllerTest extends RunTrackerDocumentApiTester {
                                                 fieldWithPath("body[].maxHeartRate").type(JsonFieldType.NUMBER).description("최대 심박수").optional(),
                                                 fieldWithPath("body[].avgCadence").type(JsonFieldType.NUMBER).description("평균 케이던스").optional(),
                                                 fieldWithPath("body[].maxCadence").type(JsonFieldType.NUMBER).description("최대 케이던스").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void deleteRecordTest() throws Exception {
+        // given
+        doNothing().when(recordService).deleteRecord(anyLong(), anyLong());
+        given(jwtUtil.getMemberIdFromToken(anyString())).willReturn(1L);
+        given(jwtUtil.getSocialIdFromToken(anyString())).willReturn("kakao_123");
+
+        UserDetailsImpl mockUserDetails = UserDetailsImpl.builder()
+                .memberId(1L)
+                .socialId("kakao_123")
+                .roles(List.of(MemberRole.USER))
+                .build();
+        given(userDetailsService.loadUserByUsername("1")).willReturn(mockUserDetails);
+
+        // when
+        this.mockMvc.perform(delete("/api/records/{recordId}", 1L)
+                        .header(AUTH_HEADER, TEST_ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andDo(document("record-delete",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("records")
+                                        .summary("러닝 기록 삭제")
+                                        .description("본인의 러닝 기록을 삭제합니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .pathParameters(
+                                                parameterWithName("recordId").description("삭제할 러닝 기록 ID")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
                                         )
                                         .build()
                         )
