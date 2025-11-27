@@ -1,0 +1,649 @@
+package com.runtracker.domain.member.controller;
+
+import com.epages.restdocs.apispec.ResourceSnippetParameters;
+import com.runtracker.RunTrackerDocumentApiTester;
+import com.runtracker.domain.member.entity.Member;
+import com.runtracker.domain.member.dto.MemberUpdateDTO;
+import com.runtracker.domain.member.dto.MemberCreateDTO;
+import com.runtracker.domain.member.dto.NotificationSettingDTO;
+import com.runtracker.domain.member.dto.RunningBackupDTO;
+import com.runtracker.domain.member.dto.FcmTokenDTO;
+import com.runtracker.domain.member.dto.RunningSettingDTO;
+import com.runtracker.domain.member.dto.MemberProfileDTO;
+import com.runtracker.domain.member.service.dto.LoginTokenDto;
+import com.runtracker.global.jwt.dto.TokenDataDto;
+import org.junit.jupiter.api.Test;
+import org.springframework.restdocs.payload.JsonFieldType;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Map;
+
+import static com.epages.restdocs.apispec.ResourceDocumentation.parameterWithName;
+import static com.epages.restdocs.apispec.ResourceDocumentation.resource;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+class MemberControllerTest extends RunTrackerDocumentApiTester {
+
+    @Test
+    void refreshTokenTest() throws Exception {
+        // given
+        TokenDataDto tokenData = TokenDataDto.builder()
+                .grantType("Bearer")
+                .accessToken("new_access_token_value")
+                .refreshToken("new_refresh_token_value")
+                .accessTokenExpiredAt(System.currentTimeMillis() + 3600000)
+                .refreshTokenExpiredAt(System.currentTimeMillis() + 86400000)
+                .build();
+
+        given(authService.refreshToken(anyString())).willReturn(tokenData);
+
+        // when
+        this.mockMvc.perform(post("/api/members/refresh")
+                        .contentType("application/json")
+                        .content(toJson(Map.of("refreshToken", "refresh_token_example"))))
+                .andExpect(status().isOk())
+                .andDo(document("member-refresh-token",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("리프레시 토큰으로 액세스 토큰 갱신")
+                                        .requestFields(
+                                                fieldWithPath("refreshToken").type(JsonFieldType.STRING).description("갱신할 리프레시 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.grantType").type(JsonFieldType.STRING).description("토큰 타입 (Bearer)"),
+                                                fieldWithPath("body.accessToken").type(JsonFieldType.STRING).description("새로 발급된 액세스 토큰"),
+                                                fieldWithPath("body.refreshToken").type(JsonFieldType.STRING).description("새로 발급된 리프레시 토큰"),
+                                                fieldWithPath("body.accessTokenExpiredAt").type(JsonFieldType.NUMBER).description("액세스 토큰 만료 시간 (timestamp)"),
+                                                fieldWithPath("body.refreshTokenExpiredAt").type(JsonFieldType.NUMBER).description("리프레시 토큰 만료 시간 (timestamp)")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void findByNameTest() throws Exception {
+        // given
+        LoginTokenDto.MemberSearchResult searchResult = LoginTokenDto.MemberSearchResult.builder()
+                .userId(1L)
+                .socialId("kakao_12345")
+                .build();
+
+        given(memberService.findMemberByName(anyString())).willReturn(searchResult);
+
+        // when
+        this.mockMvc.perform(get("/api/members/search-name")
+                        .queryParam("name", "홍길동"))
+                .andExpect(status().isOk())
+                .andDo(document("member-search-by-name",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("이름으로 소셜 ID 검색")
+                                        .queryParameters(
+                                                parameterWithName("name").description("검색할 회원 이름")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),  
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.userId").type(JsonFieldType.NUMBER).description("사용자 ID"),
+                                                fieldWithPath("body.socialId").type(JsonFieldType.STRING).description("소셜 로그인 ID")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void testLoginTest() throws Exception {
+        // given  
+        TokenDataDto tokenData = TokenDataDto.builder()
+                .grantType("Bearer")
+                .accessToken("access_token_example")
+                .refreshToken("refresh_token_example")
+                .accessTokenExpiredAt(System.currentTimeMillis() + 3600000)
+                .refreshTokenExpiredAt(System.currentTimeMillis() + 86400000)
+                .build();
+
+        LoginTokenDto loginResponse = LoginTokenDto.builder()
+                .userId(1L)
+                .socialId("kakao_12345")
+                .tokenData(tokenData)
+                .build();
+
+        given(authService.testLoginBySocialId(anyString(), anyString())).willReturn(loginResponse);
+
+        // when
+        this.mockMvc.perform(post("/api/members/test-login")
+                        .contentType("application/json")
+                        .content(toJson(Map.of(
+                                "socialId", "kakao_12345",
+                                "key", "a9F3kLmP7wQzX1bC"
+                        ))))
+                .andExpect(status().isOk())
+                .andDo(document("member-test-login",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("소셜 ID로 토큰 발급 (테스트용)")
+                                        .requestFields(
+                                                fieldWithPath("socialId").type(JsonFieldType.STRING).description("소셜 로그인 ID"),
+                                                fieldWithPath("key").type(JsonFieldType.STRING).description("사용자 인증 키")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),  
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.userId").type(JsonFieldType.NUMBER).description("사용자 ID"),
+                                                fieldWithPath("body.socialId").type(JsonFieldType.STRING).description("소셜 로그인 ID"),
+                                                fieldWithPath("body.tokenData").type(JsonFieldType.OBJECT).description("토큰 정보"),
+                                                fieldWithPath("body.tokenData.grantType").type(JsonFieldType.STRING).description("토큰 타입 (Bearer)"),
+                                                fieldWithPath("body.tokenData.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
+                                                fieldWithPath("body.tokenData.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
+                                                fieldWithPath("body.tokenData.accessTokenExpiredAt").type(JsonFieldType.NUMBER).description("액세스 토큰 만료 시간 (timestamp)"),
+                                                fieldWithPath("body.tokenData.refreshTokenExpiredAt").type(JsonFieldType.NUMBER).description("리프레시 토큰 만료 시간 (timestamp)")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void logoutTest() throws Exception {
+        // given
+        doNothing().when(memberService).logout(anyLong());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/logout")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-logout",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("로그아웃")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getProfileTest() throws Exception {
+        // given
+        MemberCreateDTO memberCreateDTO = MemberCreateDTO.builder()
+                .socialAttr("kakao")
+                .socialId("kakao_12345")
+                .photo("https://example.com/photo.jpg")
+                .name("홍길동")
+                .introduce("안녕하세요! 러닝을 좋아하는 홍길동입니다.")
+                .age(25)
+                .gender(true)
+                .region("서울")
+                .difficulty("EASY")
+                .temperature(36.5)
+                .point(100)
+                .searchBlock(false)
+                .profileBlock(false)
+                .notifyBlock(true)
+                .radius(500)
+                .build();
+
+        Member member = new Member(memberCreateDTO);
+        ReflectionTestUtils.setField(member, "id", 1L);
+
+        given(memberService.getMemberById(anyLong())).willReturn(member);
+
+        // when & then
+        this.mockMvc.perform(get("/api/members/profile")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-get-profile",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("로그인한 사용자 프로필 조회")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.id").type(JsonFieldType.NUMBER).description("회원 ID").optional(),
+                                                fieldWithPath("body.socialAttr").type(JsonFieldType.STRING).description("소셜 로그인 제공자").optional(),
+                                                fieldWithPath("body.socialId").type(JsonFieldType.STRING).description("소셜 로그인 ID"),
+                                                fieldWithPath("body.photo").type(JsonFieldType.STRING).description("프로필 사진 URL").optional(),
+                                                fieldWithPath("body.name").type(JsonFieldType.STRING).description("이름").optional(),
+                                                fieldWithPath("body.introduce").type(JsonFieldType.STRING).description("자기소개").optional(),
+                                                fieldWithPath("body.age").type(JsonFieldType.NUMBER).description("나이").optional(),
+                                                fieldWithPath("body.gender").type(JsonFieldType.BOOLEAN).description("성별 (true: 남성, false: 여성)").optional(),
+                                                fieldWithPath("body.region").type(JsonFieldType.STRING).description("지역").optional(),
+                                                fieldWithPath("body.difficulty").type(JsonFieldType.STRING).description("러닝 난이도").optional(),
+                                                fieldWithPath("body.temperature").type(JsonFieldType.NUMBER).description("사용자 온도"),
+                                                fieldWithPath("body.point").type(JsonFieldType.NUMBER).description("포인트"),
+                                                fieldWithPath("body.searchBlock").type(JsonFieldType.BOOLEAN).description("검색 차단 여부"),
+                                                fieldWithPath("body.profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 차단 여부"),
+                                                fieldWithPath("body.notifyBlock").type(JsonFieldType.BOOLEAN).description("알림 차단 여부"),
+                                                fieldWithPath("body.createdAt").type(JsonFieldType.STRING).description("생성 일시").optional(),
+                                                fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("수정 일시").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void updateProfileTest() throws Exception {
+        // given
+        MemberCreateDTO updatedMemberCreateDTO = MemberCreateDTO.builder()
+                .socialAttr("kakao")
+                .socialId("kakao_12345")
+                .photo("https://example.com/new-photo.jpg")
+                .name("김철수")
+                .introduce("업데이트된 자기소개입니다.")
+                .age(30)
+                .gender(true)
+                .region("부산")
+                .difficulty("MEDIUM")
+                .temperature(36.5)
+                .point(100)
+                .searchBlock(true)
+                .profileBlock(false)
+                .notifyBlock(true)
+                .radius(500)
+                .build();
+
+        Member updatedMember = new Member(updatedMemberCreateDTO);
+
+        given(memberService.updateProfile(anyLong(), any(MemberUpdateDTO.Request.class))).willReturn(updatedMember);
+
+        // when & then
+        this.mockMvc.perform(patch("/api/members/update")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of(
+                                "photo", "https://example.com/new-photo.jpg",
+                                "name", "김철수",
+                                "introduce", "업데이트된 자기소개입니다.",
+                                "age", 30,
+                                "gender", true,
+                                "region", "부산",
+                                "difficulty", "MEDIUM",
+                                "searchBlock", true,
+                                "profileBlock", false
+                        ))))
+                .andExpect(status().isOk())
+                .andDo(document("member-update-profile",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .description("로그인한 사용자 프로필 수정")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("photo").type(JsonFieldType.STRING).description("프로필 사진 URL").optional(),
+                                                fieldWithPath("name").type(JsonFieldType.STRING).description("닉네임").optional(),
+                                                fieldWithPath("introduce").type(JsonFieldType.STRING).description("자기소개").optional(),
+                                                fieldWithPath("age").type(JsonFieldType.NUMBER).description("나이").optional(),
+                                                fieldWithPath("gender").type(JsonFieldType.BOOLEAN).description("성별 (true: 남성, false: 여성)").optional(),
+                                                fieldWithPath("region").type(JsonFieldType.STRING).description("지역").optional(),
+                                                fieldWithPath("difficulty").type(JsonFieldType.STRING).description("러닝 난이도 (EASY, MEDIUM, HARD)").optional(),
+                                                fieldWithPath("searchBlock").type(JsonFieldType.BOOLEAN).description("크루 검색 공개 여부").optional(),
+                                                fieldWithPath("profileBlock").type(JsonFieldType.BOOLEAN).description("프로필 공개 여부").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void updateNotificationSettingTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateNotificationSetting(anyLong(), any(NotificationSettingDTO.Request.class));
+
+        // when & then
+        this.mockMvc.perform(patch("/api/members/notification")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of("notifyBlock", false))))
+                .andExpect(status().isOk())
+                .andDo(document("member-update-notification",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("알림 설정 수정")
+                                        .description("notifyBlock - 알림 차단 여부 (true: 알림 차단, false: 알림 허용")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("엑세스 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("notifyBlock").type(JsonFieldType.BOOLEAN).description("알림 차단 여부 (true: 알림 차단/OFF, false: 알림 허용/ON)")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void withdrawMemberTest() throws Exception {
+        // given
+        doNothing().when(memberService).withdrawMember(anyLong());
+
+        // when & then
+        this.mockMvc.perform(delete("/api/members/withdrawal")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-withdrawal",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("회원 탈퇴")
+                                        .description("로그인한 사용자의 계정을 탈퇴합니다")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void createBackupTest() throws Exception {
+        // given
+        doNothing().when(memberService).createBackup(anyLong());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/backup")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-backup-create",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("backup")
+                                        .summary("데이터 백업 생성")
+                                        .description("사용자의 러닝 기록을 백업합니다. backup_type이 ORIGINAL이면 복원 가능한 상태, RESTORED이면 이미 복원된 상태라 다시 백업해야함.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void restoreBackupTest() throws Exception {
+        // given
+        doNothing().when(memberService).restoreRunningRecords(anyLong());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/restore")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-backup-restore",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("backup")
+                                        .summary("데이터 백업 복원")
+                                        .description("백업된 러닝 기록 중 현재 없는 기록만 복원합니다. 기존 기록은 변경되지 않습니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getBackupInfoTest() throws Exception {
+        // given
+        RunningBackupDTO.BackupInfo backupInfo = RunningBackupDTO.BackupInfo.builder()
+                .backupId(1L)
+                .backupType("ORIGINAL")
+                .recordCount(15)
+                .updatedAt("2024-01-15T14:30:00")
+                .build();
+
+        given(memberService.getBackupInfo(anyLong())).willReturn(backupInfo);
+
+        // when & then
+        this.mockMvc.perform(get("/api/members/backup/info")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-backup-info",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("backup")
+                                        .summary("백업 정보 조회")
+                                        .description("사용자의 백업 정보를 조회합니다. 백업이 없으면 null을 반환합니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.OBJECT).description("백업 정보").optional(),
+                                                fieldWithPath("body.backupId").type(JsonFieldType.NUMBER).description("백업 ID").optional(),
+                                                fieldWithPath("body.backupType").type(JsonFieldType.STRING).description("백업 타입").optional(),
+                                                fieldWithPath("body.recordCount").type(JsonFieldType.NUMBER).description("백업된 기록 수").optional(),
+                                                fieldWithPath("body.updatedAt").type(JsonFieldType.STRING).description("백업 업데이트 시간").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void registerFcmTokenTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateFcmToken(anyLong(), anyString());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/fcm-token")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of("fcmToken", "example_fcm_token_12345"))))
+                .andExpect(status().isOk())
+                .andDo(document("member-register-fcm-token",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("FCM 토큰 등록")
+                                        .description("푸시 알림을 위한 FCM 토큰을 등록 및 수정합니다")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("fcmToken").type(JsonFieldType.STRING).description("FCM 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void removeFcmTokenTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateFcmToken(anyLong(), anyString());
+
+        // when & then
+        this.mockMvc.perform(post("/api/members/fcm-token/remove")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-remove-fcm-token",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("FCM 토큰 삭제")
+                                        .description("등록된 FCM 토큰을 삭제합니다. 로그아웃시 자동 삭제됩니다.")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void getRunningSettingTest() throws Exception {
+        // given
+        RunningSettingDTO.Response response = RunningSettingDTO.Response.builder()
+                .dailyDistanceGoal(5.0)
+                .monthlyRunCountGoal(20)
+                .preferredDifficulty("MEDIUM")
+                .autoPause(true)
+                .mapStyle("standard")
+                .radius(1000)
+                .paceUnit(0)
+                .ttsEnabled(true)
+                .build();
+
+        given(memberService.getRunningSetting(anyLong())).willReturn(response);
+
+        // when & then
+        this.mockMvc.perform(get("/api/members/running-setting")
+                        .header("Authorization", "Bearer access_token_example"))
+                .andExpect(status().isOk())
+                .andDo(document("member-get-running-setting",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("런닝 설정 조회")
+                                        .description("사용자의 런닝 설정을 조회합니다")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body.dailyDistanceGoal").type(JsonFieldType.NUMBER).description("일간 거리 목표 (km)").optional(),
+                                                fieldWithPath("body.monthlyRunCountGoal").type(JsonFieldType.NUMBER).description("월간 런닝 횟수 목표").optional(),
+                                                fieldWithPath("body.preferredDifficulty").type(JsonFieldType.STRING).description("선호 난이도").optional(),
+                                                fieldWithPath("body.autoPause").type(JsonFieldType.BOOLEAN).description("자동 일시정지"),
+                                                fieldWithPath("body.mapStyle").type(JsonFieldType.STRING).description("지도 스타일").optional(),
+                                                fieldWithPath("body.radius").type(JsonFieldType.NUMBER).description("주변 코스 반경 (m)"),
+                                                fieldWithPath("body.paceUnit").type(JsonFieldType.NUMBER).description("페이스 단위 (0: min/km, 1: min/mi)").optional(),
+                                                fieldWithPath("body.ttsEnabled").type(JsonFieldType.BOOLEAN).description("TTS 음성 안내")
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+    @Test
+    void updateRunningSettingTest() throws Exception {
+        // given
+        doNothing().when(memberService).updateRunningSetting(anyLong(), any(RunningSettingDTO.Request.class));
+
+        // when & then
+        this.mockMvc.perform(patch("/api/members/running-setting")
+                        .header("Authorization", "Bearer access_token_example")
+                        .contentType("application/json")
+                        .content(toJson(Map.of(
+                                "dailyDistanceGoal", 5.0,
+                                "monthlyRunCountGoal", 20,
+                                "preferredDifficulty", "MEDIUM",
+                                "autoPause", true,
+                                "mapStyle", "standard",
+                                "radius", 1000,
+                                "paceUnit", 0,
+                                "ttsEnabled", true
+                        ))))
+                .andExpect(status().isOk())
+                .andDo(document("member-update-running-setting",
+                        resource(
+                                ResourceSnippetParameters.builder()
+                                        .tag("users")
+                                        .summary("런닝 설정 수정")
+                                        .description("사용자의 런닝 설정을 수정합니다")
+                                        .requestHeaders(
+                                                headerWithName("Authorization").description("Bearer 토큰")
+                                        )
+                                        .requestFields(
+                                                fieldWithPath("dailyDistanceGoal").type(JsonFieldType.NUMBER).description("일간 거리 목표 (km)").optional(),
+                                                fieldWithPath("monthlyRunCountGoal").type(JsonFieldType.NUMBER).description("월간 런닝 횟수 목표").optional(),
+                                                fieldWithPath("preferredDifficulty").type(JsonFieldType.STRING).description("선호 난이도 (EASY, MEDIUM, HARD)").optional(),
+                                                fieldWithPath("autoPause").type(JsonFieldType.BOOLEAN).description("자동 일시정지 on/off").optional(),
+                                                fieldWithPath("mapStyle").type(JsonFieldType.STRING).description("지도 스타일").optional(),
+                                                fieldWithPath("radius").type(JsonFieldType.NUMBER).description("주변 코스 반경 (m)").optional(),
+                                                fieldWithPath("paceUnit").type(JsonFieldType.NUMBER).description("페이스 단위 (0: min/km, 1: min/mi)").optional(),
+                                                fieldWithPath("ttsEnabled").type(JsonFieldType.BOOLEAN).description("TTS 음성 안내 on/off").optional()
+                                        )
+                                        .responseFields(
+                                                fieldWithPath("status.statusCode").type(JsonFieldType.STRING).description("상태 코드"),
+                                                fieldWithPath("status.message").type(JsonFieldType.STRING).description("상태 메시지"),
+                                                fieldWithPath("status.description").type(JsonFieldType.STRING).description("상태 설명").optional(),
+                                                fieldWithPath("body").type(JsonFieldType.NULL).description("응답 본문 (null)").optional()
+                                        )
+                                        .build()
+                        )
+                ));
+    }
+
+}

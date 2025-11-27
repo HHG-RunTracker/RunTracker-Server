@@ -1,0 +1,62 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/RunTracker-Server/runtracker
+
+            git pull origin develop
+
+            echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}" > .env
+            echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
+            echo "GOOGLE_MAP_API_KEY=${{secrets.GOOGLE_MAP_API_KEY}}" >> .env
+            echo "MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}" >> .env
+            echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> .env
+            echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
+            echo "SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}" >> .env
+            echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "JWT_ACCESS_TOKEN_EXPIRATION=${{ secrets.JWT_ACCESS_TOKEN_EXPIRATION }}" >> .env
+            echo "JWT_REFRESH_TOKEN_EXPIRATION=${{ secrets.JWT_REFRESH_TOKEN_EXPIRATION }}" >> .env
+            echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+            echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
+            echo "AUTH_KEY=${{ secrets.AUTH_KEY }}" >> .env
+            echo "OAUTH2_REDIRECT_URI=${{ secrets.OAUTH2_REDIRECT_URI }}" >> .env
+            echo "KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}" >> .env
+            echo "KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}" >> .env
+            echo "SPRING_DOMAIN=${{ secrets.SPRING_DOMAIN }}" >> .env
+            echo "S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }}" >> .env
+            echo "S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}" >> .env
+            echo "S3_REGION=${{ secrets.S3_REGION }}" >> .env
+            echo "S3_BUCKET=${{ secrets.S3_BUCKET }}" >> .env
+            echo "S3_BASE_URL=${{ secrets.S3_BASE_URL }}" >> .env
+            echo "FILE_UPLOAD_DIR=/app/uploads" >> .env
+            echo "FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" >> .env
+            echo "Firebase_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> .env
+
+            mkdir -p ./src/main/resources/firebase
+            echo '${{ secrets.FCM_JSON }}' > ./src/main/resources/firebase/${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
+            chmod +x ./gradlew
+
+            ./gradlew build
+
+            sudo docker compose up --build -d
+            sudo docker image prune -f

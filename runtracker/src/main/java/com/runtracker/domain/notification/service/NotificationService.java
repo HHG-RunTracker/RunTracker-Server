@@ -1,0 +1,350 @@
+package com.runtracker.domain.notification.service;
+
+import com.runtracker.domain.member.entity.Member;
+import com.runtracker.domain.member.repository.MemberRepository;
+import com.runtracker.domain.crew.entity.Crew;
+import com.runtracker.domain.crew.repository.CrewRepository;
+import com.runtracker.domain.crew.entity.CrewMember;
+import com.runtracker.domain.crew.repository.CrewMemberRepository;
+
+import java.util.List;
+import com.runtracker.domain.member.entity.enums.MemberRole;
+import com.runtracker.domain.member.service.MemberService;
+import com.runtracker.global.fcm.FcmClient;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import com.runtracker.global.util.message.Messages;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class NotificationService {
+
+    private final ApplicationEventPublisher eventPublisher;
+    private final FcmClient fcmClient;
+    private final Messages messages;
+    private final MemberRepository memberRepository;
+    private final CrewRepository crewRepository;
+    private final CrewMemberRepository crewMemberRepository;
+    private final MemberService memberService;
+
+    @Transactional
+    public void notifyCrewJoinRequest(Long requestUserId, Long managerId, Long crewId) {
+        Member requestUser = memberRepository.findById(requestUserId).orElse(null);
+        if (requestUser == null) {
+            return;
+        }
+
+        String title = messages.get("notify.crew.join.title");
+        String content = messages.get("notify.crew.join.content", requestUser.getName());
+
+        String fcmToken = memberService.getFcmToken(managerId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for manager - skipping join request notification: managerId={}", managerId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewJoinRequestCancel(Long canceledUserId, Long managerId, Long crewId) {
+        Member canceledUser = memberRepository.findById(canceledUserId).orElse(null);
+        if (canceledUser == null) {
+            return;
+        }
+
+        String title = messages.get("notify.crew.cancel.title");
+        String content = messages.get("notify.crew.cancel.content", canceledUser.getName());
+
+        String fcmToken = memberService.getFcmToken(managerId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for manager - skipping cancel notification: managerId={}", managerId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewJoinRequestApproval(Long approvedUserId, Long crewId, boolean isApproved) {
+        Crew crew = crewRepository.findById(crewId).orElse(null);
+        if (crew == null) {
+            return;
+        }
+
+        String title = isApproved ?
+            messages.get("notify.crew.approved.title") :
+            messages.get("notify.crew.rejected.title");
+        String content = isApproved ?
+            messages.get("notify.crew.approved.content", crew.getTitle()) :
+            messages.get("notify.crew.rejected.content", crew.getTitle());
+
+        String fcmToken = memberService.getFcmToken(approvedUserId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for approved user - skipping approval notification: approvedUserId={}", approvedUserId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewMemberRoleUpdate(Long targetMemberId, Long crewId, MemberRole newRole) {
+        Crew crew = crewRepository.findById(crewId).orElse(null);
+        if (crew == null) {
+            return;
+        }
+
+        String roleDisplayName = getRoleDisplayName(newRole);
+        String title = messages.get("notify.crew.role.update.title");
+        String content = messages.get("notify.crew.role.update.content", crew.getTitle(), roleDisplayName);
+
+        String fcmToken = memberService.getFcmToken(targetMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for target member - skipping role update notification: targetMemberId={}", targetMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewDeletion(Long memberId, String crewTitle) {
+        String title = messages.get("notify.crew.delete.title");
+        String content = messages.get("notify.crew.delete.content", crewTitle);
+
+        String fcmToken = memberService.getFcmToken(memberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for member - skipping crew deletion notification: memberId={}", memberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewBan(Long memberId, String crewTitle) {
+        String title = messages.get("notify.crew.ban.title");
+        String content = messages.get("notify.crew.ban.content", crewTitle);
+
+        String fcmToken = memberService.getFcmToken(memberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for member - skipping crew ban notification: memberId={}", memberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyCrewLeave(Long managerId, String leavingMemberName) {
+        String title = messages.get("notify.crew.leave.title");
+        String content = messages.get("notify.crew.leave.content", leavingMemberName);
+
+        String fcmToken = memberService.getFcmToken(managerId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for manager - skipping crew leave notification: managerId={}", managerId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostLike(Long likerMemberId, Long postAuthorMemberId) {
+        if (likerMemberId.equals(postAuthorMemberId)) {
+            return;
+        }
+
+        Member likerMember = memberRepository.findById(likerMemberId).orElse(null);
+        if (likerMember == null) {
+            return;
+        }
+
+        String title = messages.get("notify.post.like.title");
+        String content = messages.get("notify.post.like.content", likerMember.getName());
+
+        String fcmToken = memberService.getFcmToken(postAuthorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post like notification: postAuthorMemberId={}", postAuthorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostComment(Long commenterMemberId, Long postAuthorMemberId) {
+        if (commenterMemberId.equals(postAuthorMemberId)) {
+            return;
+        }
+
+        Member commenterMember = memberRepository.findById(commenterMemberId).orElse(null);
+        if (commenterMember == null) {
+            return;
+        }
+
+        String title = messages.get("notify.post.comment.title");
+        String content = messages.get("notify.post.comment.content", commenterMember.getName());
+
+        String fcmToken = memberService.getFcmToken(postAuthorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post comment notification: postAuthorMemberId={}", postAuthorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostCreate(Long authorMemberId) {
+        String title = messages.get("notify.post.create.title");
+        String content = messages.get("notify.post.create.content");
+
+        String fcmToken = memberService.getFcmToken(authorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post create notification: authorMemberId={}", authorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostUpdate(Long authorMemberId) {
+        String title = messages.get("notify.post.update.title");
+        String content = messages.get("notify.post.update.content");
+
+        String fcmToken = memberService.getFcmToken(authorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post update notification: authorMemberId={}", authorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyPostDelete(Long authorMemberId) {
+        String title = messages.get("notify.post.delete.title");
+        String content = messages.get("notify.post.delete.content");
+
+        String fcmToken = memberService.getFcmToken(authorMemberId).orElse(null);
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            log.info("FCM token not found for post author - skipping post delete notification: authorMemberId={}", authorMemberId);
+            return;
+        }
+
+        fcmClient.send(title, content, fcmToken);
+    }
+
+    @Transactional
+    public void notifyScheduleCreation(Long creatorId, Long crewId, String scheduleTitle) {
+        Member creator = memberRepository.findById(creatorId).orElseThrow();
+        List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
+
+        String title = messages.get("notify.schedule.create.title");
+        String content = messages.get("notify.schedule.create.content", creator.getName(), scheduleTitle);
+
+        for (CrewMember crewMember : crewMembers) {
+            String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for crew member - skipping schedule creation notification: memberId={}", crewMember.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
+    @Transactional
+    public void notifyScheduleUpdate(Long updaterId, Long crewId, String scheduleTitle) {
+        Member updater = memberRepository.findById(updaterId).orElseThrow();
+        List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
+
+        String title = messages.get("notify.schedule.update.title");
+        String content = messages.get("notify.schedule.update.content", updater.getName(), scheduleTitle);
+
+        for (CrewMember crewMember : crewMembers) {
+            String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for crew member - skipping schedule update notification: memberId={}", crewMember.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
+    @Transactional
+    public void notifyScheduleDelete(Long deleterId, Long crewId, String scheduleTitle) {
+        Member deleter = memberRepository.findById(deleterId).orElseThrow();
+        List<CrewMember> crewMembers = crewMemberRepository.findByCrewId(crewId);
+
+        String title = messages.get("notify.schedule.delete.title");
+        String content = messages.get("notify.schedule.delete.content", deleter.getName(), scheduleTitle);
+
+        for (CrewMember crewMember : crewMembers) {
+            String fcmToken = memberService.getFcmToken(crewMember.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for crew member - skipping schedule delete notification: memberId={}", crewMember.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
+    @Transactional
+    public void notifyScheduleJoin(Long participantId, Long crewId, String scheduleTitle) {
+        Member participant = memberRepository.findById(participantId).orElseThrow();
+        List<CrewMember> managers = crewMemberRepository.findByCrewIdAndRoleIn(crewId,
+            List.of(MemberRole.CREW_LEADER, MemberRole.CREW_MANAGER));
+
+        String title = messages.get("notify.schedule.join.title");
+        String content = messages.get("notify.schedule.join.content", participant.getName(), scheduleTitle);
+
+        for (CrewMember manager : managers) {
+            String fcmToken = memberService.getFcmToken(manager.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for manager - skipping schedule join notification: memberId={}", manager.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
+    @Transactional
+    public void notifyScheduleCancel(Long participantId, Long crewId, String scheduleTitle) {
+        Member participant = memberRepository.findById(participantId).orElseThrow();
+        List<CrewMember> managers = crewMemberRepository.findByCrewIdAndRoleIn(crewId,
+            List.of(MemberRole.CREW_LEADER, MemberRole.CREW_MANAGER));
+
+        String title = messages.get("notify.schedule.cancel.title");
+        String content = messages.get("notify.schedule.cancel.content", participant.getName(), scheduleTitle);
+
+        for (CrewMember manager : managers) {
+            String fcmToken = memberService.getFcmToken(manager.getMemberId()).orElse(null);
+            if (fcmToken == null || fcmToken.trim().isEmpty()) {
+                log.info("FCM token not found for manager - skipping schedule cancel notification: memberId={}", manager.getMemberId());
+                continue;
+            }
+
+            fcmClient.send(title, content, fcmToken);
+        }
+    }
+
+    private String getRoleDisplayName(MemberRole role) {
+        return switch (role) {
+            case CREW_LEADER -> "크루장";
+            case CREW_MANAGER -> "크루 매니저";
+            case CREW_MEMBER -> "크루 멤버";
+            default -> "일반 유저";
+        };
+    }
+}

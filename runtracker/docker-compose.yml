@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # 1. 스프링 부트 애플리케이션 서비스
+  spring:
+    build:
+      context: . # Spring Boot 프로젝트 경로
+    container_name: spring
+    ports:
+      - "8080:8080"
+      - "80:8080"
+    env_file:
+      - .env # DB, Redis 접속 정보 등을 담을 파일
+    volumes:
+      - ./firebase:/app/secrets
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 2. MySQL 데이터베이스 서비스
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+  # 3. Redis 캐시/메시징 서비스
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 4. FastAPI AI 서버 서비스 (✨ 새로 추가)
+  ai-server:
+    build:
+      context: ./RunTracker-AI-Server
+      dockerfile: Dockerfile
+    container_name: ai-server
+    ports:
+      - "8000:8000"
+
+# 데이터 영속성을 위한 볼륨 정의
+volumes:
+  mysql-data:
+  redis-data:
